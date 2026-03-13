@@ -1,0 +1,32 @@
+name: Auto Pull Request
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+
+jobs:
+  create-pr:
+    name: Créer la Pull Request automatiquement
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Créer la Pull Request vers dev
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: dev
+          title: "Merge ${{ github.ref_name }} → dev"
+          body: |
+            ## Pull Request automatique
+
+            La branche `${{ github.ref_name }}` a reçu un nouveau push.
+
+            **Action requise** : L'équipe doit décider si cette branche doit être mergée dans `dev`.
+
+            - Branche source : `${{ github.ref_name }}`
+            - Branche cible : `dev`
+            - Déclenché par : `${{ github.actor }}`
