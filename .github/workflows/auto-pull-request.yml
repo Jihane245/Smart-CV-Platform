@@ -1,0 +1,50 @@
+name: Auto Pull Request
+
+on:
+  push:
+    branches:
+      - 'feature/*'
+
+jobs:
+  create-pr:
+    name: Créer la Pull Request automatiquement
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Extraire le nom de la branche
+        id: extract_branch
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+      - name: Créer la Pull Request vers dev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.extract_branch.outputs.branch }}
+        run: |
+          # Vérifier si un PR existe déjà
+          existing_pr=$(gh pr list --head "$BRANCH" --base dev --json number --jq '.[0].number')
+
+          if [ -z "$existing_pr" ]; then
+            gh pr create \
+              --title "Merge $BRANCH → dev" \
+              --body "## Pull Request automatique
+
+          La branche \`$BRANCH\` a reçu un nouveau push.
+
+          **Action requise** : L'équipe doit décider si cette branche doit être mergée dans \`dev\`.
+
+          - Branche source : \`$BRANCH\`
+          - Branche cible : \`dev\`
+          - Déclenché par : ${{ github.actor }}
+          - Commit : ${{ github.sha }}" \
+              --base dev \
+              --head "$BRANCH"
+            echo "Pull Request créé avec succès"
+          else
+            echo "Un Pull Request existe déjà (#$existing_pr)"
+          fi
