@@ -44,6 +44,7 @@ jobs:
           - Commit : ${{ github.sha }}" \
               --base dev \
               --head "$BRANCH"
+              --reviewer "jihane-245"
             echo "Pull Request créé avec succès"
           else
             echo "Un Pull Request existe déjà (#$existing_pr)"
