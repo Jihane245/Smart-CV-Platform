@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj": {}
+    "C:\\Users\\atain\\Desktop\\Project CV\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj": {
+    "C:\\Users\\atain\\Desktop\\Project CV\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
+        "projectUniqueName": "C:\\Users\\atain\\Desktop\\Project CV\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
         "projectName": "SmartCV.API",
-        "projectPath": "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
-        "packagesPath": "C:\\Users\\Jihane El Ghazrani\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\obj\\",
+        "projectPath": "C:\\Users\\atain\\Desktop\\Project CV\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
+        "packagesPath": "C:\\Users\\atain\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\atain\\Desktop\\Project CV\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Jihane El Ghazrani\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\atain\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
