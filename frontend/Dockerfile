@@ -10,6 +10,12 @@ COPY SmartCV.fr/ .
 RUN npm run build -- --configuration production
 
 FROM nginx:alpine
-COPY --from=build /app/dist/SmartCV.fr/browser /usr/share/nginx/html 
+
+RUN rm -rf /usr/share/nginx/html/*
+
+COPY --from=build /app/dist/SmartCV.fr/browser /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY env.sh /docker-entrypoint.d/40-env-substitution.sh
+RUN chmod +x /docker-entrypoint.d/40-env-substitution.sh
+
 EXPOSE 80
