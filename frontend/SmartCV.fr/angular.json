@@ -6,9 +6,13 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "SmartCV.fr": {
+    "SmartCV": {
       "projectType": "application",
-      "schematics": {},
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -18,6 +22,7 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
             "assets": [
               {
                 "glob": "**/*",
@@ -25,7 +30,7 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.scss"
             ]
           },
           "configurations": {
@@ -56,10 +61,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "SmartCV.fr:build:production"
+              "buildTarget": "SmartCV:build:production"
             },
             "development": {
-              "buildTarget": "SmartCV.fr:build:development"
+              "buildTarget": "SmartCV:build:development"
             }
           },
           "defaultConfiguration": "development"
