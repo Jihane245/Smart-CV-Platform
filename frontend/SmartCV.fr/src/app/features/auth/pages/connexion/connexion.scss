@@ -1,0 +1,236 @@
+// ── Variables ──────────────────────────────────────────────────────────────────
+$color-brown:       #7a5c2e;
+$color-brown-dark:  #5c4220;
+$color-brown-bg:    #7a6040;
+$color-red:         #9b1c1c;
+$color-red-hover:   #7f1515;
+$color-cream:       #f5f0e8;
+$color-cream-light: #faf7f2;
+$color-border:      #c8b89a;
+$color-error:       #c0392b;
+$color-text:        #4a3728;
+$color-placeholder: #9e8a76;
+$radius-pill:       50px;
+$radius-card:       40px;
+
+// ── Layout ─────────────────────────────────────────────────────────────────────
+.auth-layout {
+  display: flex;
+  height: 110vh;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  background: $color-cream;
+}
+
+// ── Panneau gauche ─────────────────────────────────────────────────────────────
+.left-panel {
+  flex: 0 0 42%;
+  background-color: $color-brown-bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 $radius-card $radius-card 0;
+
+  .logo-placeholder {
+    color: rgba(#f5f0e8, 0.55);
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+}
+
+// ── Panneau droit ──────────────────────────────────────────────────────────────
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: $color-cream-light;
+  padding: 1.5rem 3rem 3rem;
+  justify-content: center;
+}
+
+// ── Navigation haut ────────────────────────────────────────────────────────────
+.top-nav {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+
+  .btn-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: none;
+    border: none;
+    color: $color-brown-dark;
+    font-size: 0.95rem;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    transition: background 0.2s;
+
+    svg { width: 16px; height: 16px; }
+
+    &:hover { background: rgba($color-brown, 0.1); }
+  }
+}
+
+// ── Carte formulaire ───────────────────────────────────────────────────────────
+.form-card {
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+// ── Titre ──────────────────────────────────────────────────────────────────────
+.form-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: $color-red;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+// ── Champs ─────────────────────────────────────────────────────────────────────
+.field-group {
+  margin-bottom: 1.1rem;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.85rem 1.3rem;
+  border: 1.5px solid $color-border;
+  border-radius: $radius-pill;
+  background: #fff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: $color-text;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &::placeholder { color: $color-placeholder; }
+
+  &:focus {
+    border-color: $color-brown;
+    box-shadow: 0 0 0 3px rgba($color-brown, 0.12);
+  }
+
+  &.error {
+    border-color: $color-error;
+    box-shadow: 0 0 0 2px rgba($color-error, 0.1);
+  }
+
+  &.with-icon { padding-right: 3rem; }
+}
+
+// ── Toggle œil ────────────────────────────────────────────────────────────────
+.input-wrapper {
+  position: relative;
+
+  .toggle-eye {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $color-placeholder;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+
+    svg { width: 20px; height: 20px; }
+    &:hover { color: $color-brown; }
+  }
+}
+
+// ── Erreurs ────────────────────────────────────────────────────────────────────
+.error-msg {
+  display: block;
+  margin-top: 0.3rem;
+  margin-left: 1rem;
+  font-size: 0.78rem;
+  color: $color-error;
+}
+
+// ── Mot de passe oublié ────────────────────────────────────────────────────────
+.forgot-password {
+  text-align: left;
+  margin: -0.3rem 0 1.2rem 0.5rem;
+
+  a {
+    font-size: 0.85rem;
+    color: $color-red;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// ── Bouton Se connecter ────────────────────────────────────────────────────────
+.btn-submit {
+  width: 100%;
+  padding: 1rem;
+  background: $color-red;
+  color: $color-cream;
+  border: none;
+  border-radius: $radius-pill;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.25s, transform 0.15s, box-shadow 0.2s;
+
+  &:hover {
+    background: $color-red-hover;
+    box-shadow: 0 4px 16px rgba($color-red, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: translateY(0); }
+}
+
+// ── Bouton Google ──────────────────────────────────────────────────────────────
+.btn-google {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  color: $color-text;
+  border: 1.5px solid $color-border;
+  border-radius: $radius-pill;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
+
+  svg { width: 22px; height: 22px; }
+
+  &:hover {
+    border-color: $color-brown;
+    box-shadow: 0 2px 8px rgba($color-brown, 0.15);
+  }
+}
+
+// ── Responsive ─────────────────────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .auth-layout { flex-direction: column; }
+
+  .left-panel {
+    flex: 0 0 160px;
+    min-height: 160px;
+    border-radius: 0 0 $radius-card $radius-card;
+  }
+
+  .right-panel { padding: 1.5rem 1.5rem 3rem; }
+}
