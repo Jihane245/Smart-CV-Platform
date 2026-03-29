@@ -43,7 +43,7 @@ jobs:
           - Déclenché par : ${{ github.actor }}
           - Commit : ${{ github.sha }}" \
               --base dev \
-              --head "$BRANCH" \
+              --head "$BRANCH" 
             echo "Pull Request créé avec succès"
           else
             echo "Un Pull Request existe déjà (#$existing_pr)"
