@@ -1,0 +1,187 @@
+// ─── Tokens ───────────────────────────────────────────────────────────────────
+:host {
+  --brown:        #6B4E2A;
+  --brown-dark:   #5C4220;
+  --cream:        #F5F0E8;
+  --active-bg:    rgba(255, 255, 255, 0.15);
+  --hover-bg:     rgba(255, 255, 255, 0.08);
+  --text-main:    rgba(245, 240, 232, 0.92);
+  --text-muted:   rgba(245, 240, 232, 0.5);
+  --sidebar-w:    220px;
+  --sidebar-w-sm: 64px;
+  --transition:   220ms ease;
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--brown);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width var(--transition);
+  overflow: hidden;
+}
+
+.collapsed .sidebar {
+  width: var(--sidebar-w-sm);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.125rem 1rem;
+  min-height: 60px;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background var(--transition);
+
+  &:hover { background: var(--hover-bg); }
+}
+
+.app-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--cream);
+  white-space: nowrap;
+  transition: opacity var(--transition);
+}
+
+.collapsed .app-name {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.5rem 0.625rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.875rem;
+  border-radius: 10px;
+  color: var(--text-main);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+
+  &:hover  { background: var(--hover-bg); }
+  &.active { background: var(--active-bg); color: #fff; }
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity var(--transition);
+}
+
+.collapsed .nav-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-footer {
+  padding: 0.625rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brown-dark);
+  color: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.user-name {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--transition);
+}
+
+.collapsed .user-name {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: color var(--transition), background var(--transition);
+
+  &:hover {
+    color: #e57373;
+    background: rgba(229, 115, 115, 0.12);
+  }
+}
+
+// ─── Main content ──────────────────────────────────────────────────────────────
+.main-content {
+  flex: 1;
+  overflow: auto;
+  background: #f0ebe0;
+  padding: 2rem;
+}
