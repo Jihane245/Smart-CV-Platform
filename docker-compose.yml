@@ -18,11 +18,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
       - IA_SERVICE_URL=http://ia:8000
-      - Keycloak__Authority=http://host.docker.internal:8080/realms/${KEYCLOAK_REALM}
+      - Keycloak__Authority=http://localhost:8080/realms/${KEYCLOAK_REALM}
+      - Keycloak__MetadataAddress=http://keycloak:8080/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration
       - Keycloak__ClientId=${KEYCLOAK_CLIENT_ID}
       - Keycloak__ClientSecret=${KEYCLOAK_CLIENT_SECRET}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
@@ -53,14 +52,14 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
     networks:
       - app-network
 
@@ -80,7 +79,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
     networks:
       - app-network
 
