@@ -31,6 +31,8 @@ builder.Services.AddAuthentication(options =>
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
     options.Authority = keycloakConfig["Authority"];
+    options.MetadataAddress = keycloakConfig["MetadataAddress"];
+    options.Authority = keycloakConfig["Authority"];
     options.ClientId = keycloakConfig["ClientId"];
     options.ClientSecret = keycloakConfig["ClientSecret"];
     options.ResponseType = OpenIdConnectResponseType.Code;
