@@ -166,9 +166,50 @@
           </div>
         </div>
 
-        <!-- Bouton ajouter section -->
+        <!-- Sections dynamiques -->
+        <div class="card section-card" *ngFor="let s of sections; let i = index">
+
+        <div class="section-header-row">
+            <button class="btn-suppr-section" (click)="supprimerSection(i)">✕</button>
+            <input
+            type="text"
+            class="input-section-titre"
+            [(ngModel)]="s.titre"
+            placeholder="Titre de la section"
+            />
+        </div>
+
+        <hr class="section-divider" />
+
+        <div class="section-lignes">
+            <div class="section-ligne" *ngFor="let l of s.lignes; let j = index">
+            <input
+                type="text"
+                class="input-detail"
+                [(ngModel)]="l.detail"
+                placeholder="Détail"
+            />
+            <input
+                type="text"
+                class="input-description"
+                [(ngModel)]="l.description"
+                placeholder="Description..."
+            />
+            <button
+                class="btn-suppr-ligne"
+                *ngIf="j > 0"
+                (click)="supprimerLigne(s, j)"
+            >✕</button>
+            </div>
+        </div>
+
+        <button class="btn-add-ligne" (click)="ajouterLigne(s)">+</button>
+
+        </div>
+
+        <!-- Bouton ajouter une section -->
         <div class="add-section-row">
-          <button class="btn-add-section" (click)="ajouterFormation()">Ajouter une Section</button>
+        <button class="btn-add-section" (click)="ajouterSection()">Ajouter une Section</button>
         </div>
 
       </div>
