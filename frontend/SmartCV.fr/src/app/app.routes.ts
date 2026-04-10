@@ -26,8 +26,20 @@ export const routes: Routes = [
               (m) => m.MotDePasseOublie
             ),
         },
-       
       { path: '', redirectTo: 'inscription', pathMatch: 'full' },
     ],
   },
+  {
+    path: 'profil',
+      loadComponent: () =>
+        import('./features/profil/pages/mon-profil/mon-profil').then(
+          (m) => m.MonProfil
+        ),
+  },
+  {
+    path: 'admin',
+    loadComponent: () =>
+      import('./features/admin/dashboard/dashboard').then(m => m.Dashboard),
+  },
+    
 ];
