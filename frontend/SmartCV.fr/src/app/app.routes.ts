@@ -32,7 +32,7 @@ export const routes: Routes = [
   {
     path: 'profil',
       loadComponent: () =>
-        import('./features/profil/pages/mon-profil/mon-profil').then(
+        import('./features/user/pages/profil/profil').then(
           (m) => m.MonProfil
         ),
   },

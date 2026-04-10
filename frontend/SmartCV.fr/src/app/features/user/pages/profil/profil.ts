@@ -21,6 +21,16 @@ interface Formation {
   fin: string;
 }
 
+interface LigneSection {
+  detail: string;
+  description: string;
+}
+
+interface Section {
+  titre: string;
+  lignes: LigneSection[];
+}
+
 // TODO: créer src/app/core/models/profil.model.ts avec ces interfaces
 // export interface ProfilUtilisateur {
 //   id: string;
@@ -41,8 +51,8 @@ interface Formation {
   selector: 'app-mon-profil',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './mon-profil.html',
-  styleUrl: './mon-profil.scss',
+  templateUrl: './profil.html',
+  styleUrl: './profil.scss',
 })
 
 // TODO: injecter ProfilService quand le backend sera prêt
@@ -92,6 +102,9 @@ export class MonProfil implements OnInit {
       fin: '2024'
     },
   ];
+
+  sections: Section[] = [];
+  
 
   // TODO: calculer côté backend et recevoir dans la réponse GET /api/profil/me
   completude = 72;
@@ -205,4 +218,32 @@ export class MonProfil implements OnInit {
 
     console.log('Profil enregistré (mock)');
   }
+
+  ajouterSection(): void {
+    this.sections.push({
+      titre: 'Section #',
+      lignes: [
+        { detail: 'Détail 1', description: '' },
+        { detail: 'Détail 2', description: '' },
+      ],
+    });
+    // TODO: POST /api/profil/me/sections
+  }
+
+  supprimerSection(index: number): void {
+    this.sections.splice(index, 1);
+    // TODO: DELETE /api/profil/me/sections/:id
+  }
+
+  ajouterLigne(section: Section): void {
+    section.lignes.push({ detail: `Détail ${section.lignes.length + 1}`, description: '' });
+    // TODO: POST /api/profil/me/sections/:id/lignes
+  }
+
+  supprimerLigne(section: Section, index: number): void {
+    section.lignes.splice(index, 1);
+    // TODO: DELETE /api/profil/me/sections/:id/lignes/:index
+  }
+
+
 }
