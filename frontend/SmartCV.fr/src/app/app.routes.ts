@@ -19,6 +19,14 @@ export const routes: Routes = [
              (m) => m.Connexion
            ),
        },
+       {
+          path: 'mot-de-passe-oublie',
+          loadComponent: () =>
+            import('./features/auth/pages/mot-de-passe-oublie/mot-de-passe-oublie').then(
+              (m) => m.MotDePasseOublie
+            ),
+        },
+       
       { path: '', redirectTo: 'inscription', pathMatch: 'full' },
     ],
   },
