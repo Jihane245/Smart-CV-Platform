@@ -1,0 +1,458 @@
+$color-brown:      #7a6040;
+$color-brown-dark: #5c4220;
+$color-cream:      #f5f0e8;
+$color-cream-bg:   #eee8da;
+$color-green:      #6b8068;
+$color-red:        #9b1c1c;
+$color-beige:      #c8a882;
+$color-border:     #d4c9b4;
+$color-text:       #4a3728;
+$color-muted:      #9e8a76;
+$color-white:      #faf7f2;
+$radius:           12px;
+
+// ── Layout ─────────────────────────────────────────────────────────────────────
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: $color-cream-bg;
+  font-family: 'Georgia', serif;
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────────
+.sidebar {
+  width: 56px;
+  background: $color-brown;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
+  gap: 0.8rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 100;
+
+  .sidebar-menu-icon {
+    color: rgba($color-cream, 0.8);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    svg { width: 22px; height: 22px; }
+  }
+
+  .sidebar-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    color: rgba($color-cream, 0.6);
+    transition: background 0.2s, color 0.2s;
+    svg { width: 20px; height: 20px; }
+
+    &:hover, &.active {
+      background: rgba($color-cream, 0.15);
+      color: $color-cream;
+    }
+  }
+
+  .settings { margin-top: auto; }
+
+  .sidebar-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: $color-green;
+    color: $color-cream;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────────
+.main-content {
+  margin-left: 56px;
+  flex: 1;
+  padding: 2rem 2.5rem;
+  overflow-y: auto;
+}
+
+// ── Header ─────────────────────────────────────────────────────────────────────
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+
+  .page-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: $color-text;
+    margin: 0 0 0.2rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.82rem;
+    color: $color-muted;
+    margin: 0;
+  }
+}
+
+.btn-ajouter-template {
+  background: $color-brown-dark;
+  color: $color-cream;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: darken($color-brown-dark, 8%); }
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────────
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: $color-white;
+  border-radius: $radius;
+  padding: 1.2rem 1.5rem 0.8rem;
+  border: 1px solid $color-border;
+  border-top: 3px solid transparent;
+
+  &.stat-green { border-top-color: $color-green; }
+  &.stat-beige { border-top-color: $color-beige; }
+  &.stat-red   { border-top-color: $color-red; border: 2px solid $color-red; }
+
+  .stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: $color-muted;
+    font-family: sans-serif;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-valeur {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $color-text;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-delta {
+    font-size: 0.78rem;
+    color: $color-green;
+    margin-bottom: 0.8rem;
+  }
+}
+
+// ── Bar chart ──────────────────────────────────────────────────────────────────
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 80px;
+  margin-bottom: 0.3rem;
+
+  .bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    background: rgba($color-green, 0.3);
+    transition: background 0.2s;
+
+    .stat-green & { background: rgba($color-green, 0.3); }
+    .stat-beige & { background: rgba($color-beige, 0.4); }
+    .stat-red &   { background: rgba($color-red, 0.2); }
+
+    &.last {
+      .stat-green & { background: $color-green; }
+      .stat-beige & { background: $color-beige; }
+      .stat-red &   { background: $color-red; }
+    }
+  }
+}
+
+.bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: $color-muted;
+  font-family: sans-serif;
+  padding-bottom: 0.5rem;
+}
+
+// ── Section ────────────────────────────────────────────────────────────────────
+.section {
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: $color-text;
+  margin: 0 0 1rem;
+}
+
+// ── Recherche ──────────────────────────────────────────────────────────────────
+.search-input {
+  padding: 0.5rem 1rem;
+  border: 1px solid $color-border;
+  border-radius: 20px;
+  background: $color-white;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: $color-text;
+  outline: none;
+  width: 220px;
+  transition: border-color 0.2s;
+
+  &::placeholder { color: $color-muted; }
+  &:focus { border-color: $color-brown; }
+}
+
+// ── Table ──────────────────────────────────────────────────────────────────────
+.table-card {
+  background: $color-white;
+  border-radius: $radius;
+  border: 1px solid $color-border;
+  overflow: hidden;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead tr {
+    background: $color-cream-bg;
+
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      color: $color-muted;
+      font-family: sans-serif;
+      font-weight: 600;
+    }
+  }
+
+  tbody tr {
+    border-top: 1px solid $color-border;
+    transition: background 0.15s;
+
+    &:hover { background: rgba($color-cream, 0.5); }
+
+    td {
+      padding: 0.85rem 1rem;
+      font-size: 0.85rem;
+      color: $color-text;
+    }
+  }
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .user-nom { font-weight: 600; font-size: 0.88rem; }
+  .user-role { font-size: 0.75rem; color: $color-muted; }
+}
+
+.email-cell { color: $color-muted !important; font-size: 0.82rem !important; }
+.cv-cell    { font-weight: 600; }
+.date-cell  { color: $color-muted !important; font-size: 0.82rem !important; }
+
+.actions-cell {
+  display: flex;
+  gap: 0.4rem;
+}
+
+// ── Boutons actions table ──────────────────────────────────────────────────────
+.btn-action {
+  padding: 0.3rem 0.7rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover { opacity: 0.8; }
+
+  &.voir {
+    background: $color-cream-bg;
+    color: $color-text;
+    border: 1px solid $color-border;
+  }
+
+  &.desact {
+    background: rgba($color-beige, 0.3);
+    color: $color-brown-dark;
+  }
+
+  &.suppr {
+    background: rgba($color-red, 0.15);
+    color: $color-red;
+  }
+}
+
+// ── Templates grid ─────────────────────────────────────────────────────────────
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.2rem;
+}
+
+.template-card {
+  background: $color-white;
+  border-radius: $radius;
+  border: 1px solid $color-border;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+
+  &:hover { box-shadow: 0 4px 16px rgba($color-brown, 0.15); }
+
+  .template-preview {
+    height: 110px;
+    padding: 0;
+    background: $color-cream;
+
+    .preview-header {
+      height: 28px;
+      width: 100%;
+    }
+
+    .preview-lines {
+      padding: 0.6rem 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      .preview-line {
+        height: 8px;
+        border-radius: 4px;
+
+        &:first-child { width: 60%; }
+        &:nth-child(2) { width: 90%; }
+        &:last-child { width: 75%; }
+      }
+    }
+  }
+
+  .template-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.8rem;
+    border-top: 1px solid $color-border;
+
+    .template-nom {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: $color-text;
+    }
+
+    .template-actions {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+  }
+
+  &.nouveau {
+    border: 2px dashed $color-border;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 155px;
+    transition: border-color 0.2s, background 0.2s;
+
+    &:hover {
+      border-color: $color-brown;
+      background: rgba($color-cream, 0.5);
+    }
+
+    .nouveau-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      color: $color-muted;
+
+      .nouveau-plus { font-size: 1.5rem; }
+      .nouveau-label { font-size: 0.82rem; }
+    }
+  }
+}
+
+.btn-template-edit {
+  background: $color-cream-bg;
+  border: 1px solid $color-border;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-family: inherit;
+  color: $color-text;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  &:hover { border-color: $color-brown; }
+}
+
+.btn-template-delete {
+  background: rgba($color-red, 0.1);
+  border: none;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: $color-red;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: rgba($color-red, 0.2); }
+}
+
+// ── Responsive ─────────────────────────────────────────────────────────────────
+@media (max-width: 1024px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .templates-grid { grid-template-columns: repeat(2, 1fr); }
+}
