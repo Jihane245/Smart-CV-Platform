@@ -23,23 +23,19 @@ export const routes: Routes = [
             (m) => m.Connexion
           ),
       },
-       {
-          path: 'mot-de-passe-oublie',
-          loadComponent: () =>
-            import('./features/auth/pages/mot-de-passe-oublie/mot-de-passe-oublie').then(
-              (m) => m.MotDePasseOublie
-            ),
-        },
+      {
+        path: 'mot-de-passe-oublie',
+        loadComponent: () =>
+          import('./features/auth/pages/mot-de-passe-oublie/mot-de-passe-oublie').then(
+            (m) => m.MotDePasseOublie
+          ),
+      },
       {
         path: '',
         redirectTo: 'inscription',
         pathMatch: 'full',
       },
     ],
-  },
-  {
-    path: '**',
-    redirectTo: 'auth',
   },
   {
     path: 'user',
@@ -56,10 +52,10 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'profile',
+        path: 'profil',
         loadComponent: () =>
-          import('./features/user/pages/profile/profile').then(
-            (m) => m.Profile
+          import('./features/user/pages/profil/profil').then(
+            (m) => m.MonProfil
           ),
       },
       {
@@ -86,20 +82,14 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'admin',
+    loadComponent: () =>
+      import('./features/admin/dashboard/dashboard').then(
+        (m) => m.Dashboard
+      ),
+  },
+  {
     path: '**',
     redirectTo: 'auth',
   },
-  {
-    path: 'profil',
-      loadComponent: () =>
-        import('./features/user/pages/profil/profil').then(
-          (m) => m.MonProfil
-        ),
-  },
-  {
-    path: 'admin',
-    loadComponent: () =>
-      import('./features/admin/dashboard/dashboard').then(m => m.Dashboard),
-  },
-    
 ];
