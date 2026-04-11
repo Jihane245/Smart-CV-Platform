@@ -9,7 +9,7 @@ Ce guide explique uniquement les étapes essentielles pour faire fonctionner :
 - Création automatique des utilisateurs dans la base PostgreSQL de l’application
  les etapes:
  creer file .env:
- DB_NAME=Cv_Platform
+DB_NAME=Cv_Platform
 DB_USER=postgres
 DB_PASSWORD=postgres
 

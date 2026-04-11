@@ -18,7 +18,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
       - IA_SERVICE_URL=http://ia:8000
-      - Keycloak__Authority=http://localhost:8080/realms/${KEYCLOAK_REALM}
+      - Keycloak__Authority=http://keycloak:8080/realms/${KEYCLOAK_REALM}
       - Keycloak__MetadataAddress=http://keycloak:8080/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration
       - Keycloak__ClientId=${KEYCLOAK_CLIENT_ID}
       - Keycloak__ClientSecret=${KEYCLOAK_CLIENT_SECRET}
@@ -97,6 +97,8 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: "localhost"
+      KC_HOSTNAME_PORT: "8080"
     ports:
       - "8080:8080"
     depends_on:
