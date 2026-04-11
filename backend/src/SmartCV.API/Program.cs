@@ -36,6 +36,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
+    options.BackchannelHttpHandler = new HostRewritingHandler("localhost:8080", "keycloak:8080");
+
     options.Authority = keycloakConfig["Authority"];
     options.MetadataAddress = keycloakConfig["MetadataAddress"];
     options.Authority = keycloakConfig["Authority"];
@@ -58,7 +60,7 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,                    
+        ValidateIssuer = false,                    
         ValidIssuer = keycloakConfig["Authority"], 
         ValidateAudience = true,                  
         ValidAudience = keycloakConfig["ClientId"], 
