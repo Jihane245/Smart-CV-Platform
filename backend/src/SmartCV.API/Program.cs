@@ -16,6 +16,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ===== Auth Keycloak =====
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy => policy.RequireRole("admin"));
+    options.AddPolicy("User", policy => policy.RequireRole("user", "admin"));
+});
+
 var keycloakConfig = builder.Configuration.GetSection("Keycloak");
 
 builder.Services.AddAuthentication(options =>
@@ -52,7 +58,14 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        NameClaimType = "preferred_username"
+        ValidateIssuer = true,                    
+        ValidIssuer = keycloakConfig["Authority"], 
+        ValidateAudience = true,                  
+        ValidAudience = keycloakConfig["ClientId"], 
+        ValidateLifetime = true,                  
+        ClockSkew = TimeSpan.Zero,               
+        NameClaimType = "preferred_username",     
+        RoleClaimType = "roles"                   
     };
 
     options.Events = new OpenIdConnectEvents
