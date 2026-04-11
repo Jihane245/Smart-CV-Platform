@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-connexion',
@@ -10,14 +11,24 @@ import { CommonModule } from '@angular/common';
   templateUrl: './connexion.html',
   styleUrl: './connexion.scss',
 })
-export class Connexion {
+export class Connexion implements OnInit {
   connexionForm: FormGroup;
   showPassword = false;
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
+  ) {
     this.connexionForm = this.fb.group({
       identifiant: ['', [Validators.required]],
       motDePasse: ['', [Validators.required]],
+    });
+  }
+
+  ngOnInit(): void {
+    this.authService.isAuthenticated().subscribe(isAuth => {
+      if (isAuth) this.router.navigate(['/user']);
     });
   }
 
@@ -26,20 +37,15 @@ export class Connexion {
   }
 
   goToInscription(): void {
-    this.router.navigate(['/auth/inscription']);
+    this.authService.register();
   }
 
   goToMotDePasseOublie(): void {
-    this.router.navigate(['/auth/mot-de-passe-oublie']);
+    this.authService.login();
   }
 
   onSubmit(): void {
-    if (this.connexionForm.invalid) {
-      this.connexionForm.markAllAsTouched();
-      return;
-    }
-    console.log('Connexion:', this.connexionForm.value);
-    // TODO: appel API
+    this.authService.login();
   }
 
   isInvalid(field: string): boolean {
