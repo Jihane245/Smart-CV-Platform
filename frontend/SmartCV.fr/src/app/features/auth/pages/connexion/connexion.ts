@@ -29,6 +29,10 @@ export class Connexion {
     this.router.navigate(['/auth/inscription']);
   }
 
+  goToMotDePasseOublie(): void {
+    this.router.navigate(['/auth/mot-de-passe-oublie']);
+  }
+
   onSubmit(): void {
     if (this.connexionForm.invalid) {
       this.connexionForm.markAllAsTouched();
