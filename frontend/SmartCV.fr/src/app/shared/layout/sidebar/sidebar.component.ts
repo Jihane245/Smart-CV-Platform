@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule, RouterOutlet } from '@angular/router';
+import { RouterModule, RouterOutlet } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -9,21 +10,33 @@ import { Router, RouterModule, RouterOutlet } from '@angular/router';
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss',
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
   isCollapsed = false;
+  displayName = '';
+  userInitials = '';
 
-  // Placeholder — replaced when backend auth is connected
-  displayName = 'Utilisateur';
-  userInitials = 'U';
+  constructor(private authService: AuthService) {}
 
-  constructor(private router: Router) {}
+  ngOnInit(): void {
+    this.authService.getMe().subscribe({
+      next: (data) => {
+        const given = data.givenName ?? '';
+        const surname = data.surname ?? '';
+        this.displayName = `${given} ${surname}`.trim() || data.preferredUsername || '';
+        this.userInitials = (given.charAt(0) + surname.charAt(0)).toUpperCase() || '?';
+      },
+      error: () => {
+        this.displayName = 'Utilisateur';
+        this.userInitials = 'U';
+      }
+    });
+  }
 
   toggleSidebar(): void {
     this.isCollapsed = !this.isCollapsed;
   }
 
   logout(): void {
-    // TODO: clear session/token when backend auth is ready
-    this.router.navigate(['/auth/connexion']);
+    this.authService.logout();
   }
 }

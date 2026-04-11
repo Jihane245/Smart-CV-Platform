@@ -7,8 +7,9 @@ import {
   ValidationErrors,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 
 function passwordsMatchValidator(
   control: AbstractControl
@@ -23,7 +24,7 @@ function passwordsMatchValidator(
 @Component({
   selector: 'app-inscription',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './inscription.html',
   styleUrl: './inscription.scss',
 })
@@ -33,9 +34,16 @@ export class Inscription implements OnInit {
   showConfirmPassword = false;
   isSubmitting = false;
 
-  constructor(private fb: FormBuilder, private router: Router) {}
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    this.authService.isAuthenticated().subscribe(isAuth => {
+      if (isAuth) this.router.navigate(['/user']);
+    });
     this.inscriptionForm = this.fb.group(
       {
         nom: ['', [Validators.required, Validators.minLength(2)]],
@@ -57,21 +65,11 @@ export class Inscription implements OnInit {
   }
 
   goToConnexion(): void {
-    this.router.navigate(['/auth/connexion']);
+    this.authService.login();
   }
 
   onSubmit(): void {
-    if (this.inscriptionForm.invalid) {
-      this.inscriptionForm.markAllAsTouched();
-      return;
-    }
-    this.isSubmitting = true;
-    // TODO: remplacer par un vrai appel API
-    setTimeout(() => {
-      console.log('Formulaire soumis :', this.inscriptionForm.value);
-      this.isSubmitting = false;
-      this.router.navigate(['/auth/connexion']);
-    }, 1500);
+    this.authService.register();
   }
 
   isInvalid(field: string): boolean {
