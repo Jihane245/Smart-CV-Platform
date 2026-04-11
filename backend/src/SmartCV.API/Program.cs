@@ -1,69 +1,125 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
-using API.data; // Votre namespace contenant ApplicationDbContext
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using API.data;
+using API.models;
+using API.models.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== LIAISON BASE DE DONNÉES =====
+// ===== DB =====
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// ===== Auth Keycloak =====
+var keycloakConfig = builder.Configuration.GetSection("Keycloak");
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+})
+.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
+{
+    options.Authority = keycloakConfig["Authority"];
+    options.MetadataAddress = keycloakConfig["MetadataAddress"];
+    options.Authority = keycloakConfig["Authority"];
+    options.ClientId = keycloakConfig["ClientId"];
+    options.ClientSecret = keycloakConfig["ClientSecret"];
+    options.ResponseType = OpenIdConnectResponseType.Code;
+
+    options.SaveTokens = true;
+    options.RequireHttpsMetadata = false; // local dev
+    options.CallbackPath = "/signin-oidc";
+    options.SignedOutCallbackPath = "/signout-callback-oidc";
+    options.GetClaimsFromUserInfoEndpoint = true;
+    options.MapInboundClaims = false;
+    options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.Disable;
+
+    options.Scope.Clear();
+    options.Scope.Add("openid");
+    options.Scope.Add("profile");
+    options.Scope.Add("email");
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = "preferred_username"
+    };
+
+    options.Events = new OpenIdConnectEvents
+    {
+        OnTokenValidated = async ctx =>
+        {
+            var email = ctx.Principal?.FindFirstValue("email");
+            if (string.IsNullOrEmpty(email))
+                return;
+
+            using var scope = ctx.HttpContext.RequestServices.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                db.Users.Add(new User
+                {
+                    Email = email,
+                    Nom = ctx.Principal?.FindFirstValue("family_name") ?? "Unknown",
+                    Prenom = ctx.Principal?.FindFirstValue("given_name") ?? "Unknown",
+                    PasswordHash = Guid.NewGuid().ToString(),
+                    Role = RoleUtilisateur.Candidat
+                });
+
+                await db.SaveChangesAsync();
+            }
+        },
+        OnRedirectToIdentityProviderForSignOut = async ctx =>
+        {
+            var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
+
+            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost:5000/";
+
+            if (!string.IsNullOrEmpty(idToken))
+            {
+                ctx.ProtocolMessage.IdTokenHint = idToken;
+            }
+        },
+        OnRemoteFailure = ctx =>
+        {
+            ctx.Response.Redirect("/api/auth/error?message=" +
+                Uri.EscapeDataString(ctx.Failure?.Message ?? "unknown"));
+            ctx.HandleResponse();
+            return Task.CompletedTask;
+        }
+    };
+});
+
+builder.Services.AddAuthorization();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-// Test de connexion à la base de données
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    try
-    {
-        if (db.Database.CanConnect())
-        {
-            Console.WriteLine("✅ Connexion à la base de données réussie !");
-        }
-        else
-        {
-            Console.WriteLine("❌ Impossible de se connecter à la base de données.");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"❌ Erreur de connexion à la base : {ex.Message}");
-    }
-}
+app.MapControllers();
+app.MapGet("/", () => Results.Ok("API is running"));
 
 app.Run();
-
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
