@@ -1,0 +1,176 @@
+<main class="main-content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Mon profil</h1>
+      <p class="page-subtitle">Ces informations alimentent la génération de vos CV</p>
+    </div>
+    <button class="btn-enregistrer" (click)="enregistrer()">
+      Enregistrer les modifications
+    </button>
+  </div>
+
+  <div class="content-grid">
+
+    <!-- Colonne gauche -->
+    <div class="left-col">
+
+      <!-- Carte avatar -->
+      <div class="card avatar-card">
+        <div class="avatar-circle">{{ initiales }}</div>
+        <div class="avatar-name">{{ prenom }} {{ nom }}</div>
+        <div class="avatar-email">{{ email }}</div>
+        <button class="btn-photo">Changer la photo</button>
+
+        <div class="completude-label">
+          <span>COMPLÉTUDE</span>
+        </div>
+        <div class="completude-row">
+          <span class="completude-text">Profil global</span>
+          <span class="completude-pct">{{ completude }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="completude"></div>
+        </div>
+      </div>
+
+      <!-- Carte compétences -->
+      <div class="card">
+        <h2 class="card-title">Compétences</h2>
+        <div class="tags-list">
+          <span
+            class="tag"
+            *ngFor="let c of competences; let i = index"
+            (click)="supprimerCompetence(i)"
+            title="Cliquer pour supprimer"
+          >{{ c }}</span>
+        </div>
+
+        <div *ngIf="ajoutCompetenceVisible" class="add-input-row">
+          <input
+            type="text"
+            class="input-inline"
+            placeholder="Nouvelle compétence"
+            [(ngModel)]="nouvelleCompetence"
+            (keydown.enter)="ajouterCompetence()"
+          />
+          <button class="btn-add-confirm" (click)="ajouterCompetence()">✓</button>
+        </div>
+
+        <button class="btn-ajouter" (click)="ajoutCompetenceVisible = true">
+          + Ajouter une compétence
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Colonne droite -->
+    <div class="right-col">
+
+      <!-- Informations personnelles -->
+      <div class="card">
+        <h2 class="section-title">Informations personnelles</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>PRÉNOM</label>
+            <input type="text" class="form-input" [(ngModel)]="prenom" />
+          </div>
+          <div class="field">
+            <label>NOM</label>
+            <input type="text" class="form-input" [(ngModel)]="nom" />
+          </div>
+          <div class="field">
+            <label>EMAIL</label>
+            <input type="email" class="form-input" [(ngModel)]="email" />
+          </div>
+          <div class="field">
+            <label>TÉLÉPHONE</label>
+            <input type="tel" class="form-input" [(ngModel)]="telephone" />
+          </div>
+          <div class="field">
+            <label>VILLE</label>
+            <input type="text" class="form-input" [(ngModel)]="ville" />
+          </div>
+          <div class="field">
+            <label>LINKEDIN</label>
+            <input type="text" class="form-input" [(ngModel)]="linkedin" />
+          </div>
+          <div class="field full-width">
+            <label>RÉSUMÉ PROFESSIONNEL</label>
+            <textarea class="form-input textarea" [(ngModel)]="resume" rows="4"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expériences -->
+      <div class="card">
+        <h2 class="section-title">Expériences professionnelles</h2>
+        <div class="experience-list">
+          <div class="experience-item" *ngFor="let exp of experiences; let i = index">
+            <div class="exp-dot" [class.actuel]="exp.actuel"></div>
+            <div class="exp-content">
+              <input type="text" class="input-transparent bold" [(ngModel)]="exp.poste" placeholder="Poste" />
+              <input type="text" class="input-transparent small" [(ngModel)]="exp.entreprise" placeholder="Entreprise" />
+              <input type="text" class="input-transparent small muted" [(ngModel)]="exp.periode" placeholder="Période" />
+              <input type="text" class="input-transparent small" [(ngModel)]="exp.description" placeholder="Description" />
+            </div>
+          </div>
+        </div>
+        <button class="btn-ajouter" (click)="ajouterExperience()">+ Ajouter une expérience</button>
+      </div>
+
+      <!-- Formation -->
+      <div class="card" *ngFor="let f of formations; let i = index">
+        <h2 class="section-title" *ngIf="i === 0">Formation</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>ÉTABLISSEMENT</label>
+            <input type="text" class="form-input" [(ngModel)]="f.etablissement" />
+          </div>
+          <div class="field">
+            <label>DIPLÔME</label>
+            <input type="text" class="form-input" [(ngModel)]="f.diplome" />
+          </div>
+          <div class="field">
+            <label>DÉBUT</label>
+            <input type="text" class="form-input" [(ngModel)]="f.debut" />
+          </div>
+          <div class="field">
+            <label>FIN</label>
+            <input type="text" class="form-input" [(ngModel)]="f.fin" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Sections dynamiques -->
+      <div class="card section-card" *ngFor="let s of sections; let i = index">
+        <div class="section-header-row">
+          <button class="btn-suppr-section" (click)="supprimerSection(i)">✕</button>
+          <input
+            type="text"
+            class="input-section-titre"
+            [(ngModel)]="s.titre"
+            placeholder="Titre de la section"
+          />
+        </div>
+        <hr class="section-divider" />
+        <div class="section-lignes">
+          <div class="section-ligne" *ngFor="let l of s.lignes; let j = index">
+            <input type="text" class="input-detail" [(ngModel)]="l.detail" placeholder="Détail" />
+            <input type="text" class="input-description" [(ngModel)]="l.description" placeholder="Description..." />
+            <button class="btn-suppr-ligne" *ngIf="j > 0" (click)="supprimerLigne(s, j)">✕</button>
+          </div>
+        </div>
+        <button class="btn-add-ligne" (click)="ajouterLigne(s)">+</button>
+      </div>
+
+      <!-- Bouton ajouter une section -->
+      <div class="add-section-row">
+        <button class="btn-add-section" (click)="ajouterSection()">Ajouter une Section</button>
+      </div>
+
+    </div>
+  </div>
+
+</main>

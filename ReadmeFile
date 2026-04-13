@@ -1,0 +1,51 @@
+# Smart CV Platform - Setup Guide
+
+Les etapes:
+1. Lancer la commande "cp .example.env .env" pour recopier .example.env vers .env
+2. Remplir par ces valeurs:
+
+DB_NAME=Cv_Platform
+DB_USER=postgres
+DB_PASSWORD=postgres
+
+KEYCLOAK_DB_NAME=keycloak
+KEYCLOAK_DB_USER=keycloak
+KEYCLOAK_DB_PASSWORD=keycloak
+
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=admin
+
+KEYCLOAK_REALM=cv-platform
+KEYCLOAK_CLIENT_ID=cv_app
+KEYCLOAK_CLIENT_SECRET=REPLACE_ME # ← Important de changer, envoyé par message
+
+3. Ajout du fichier backend/src/SmartCV.API/appsettings.Development.json (non-commité, demander le par message)
+
+4. Vérifier le fichier Keycloak export
+keycloak/realm-export/cv-platform-realm.json
+
+5. Lancer docker-compose up -d, et attendre 60-90 secondes pour que touts les conteneurs sont initialisés.
+
+6. Il est possible d'utiliser la base de donnée locale ou en Docker, préférence de garder la
+      totalité du projet dans Docker. Pour effectuer les migrations, si Docker est lancé sans erreur:
+cd backend/src/SmartCV.API
+dotnet ef database update
+
+7. Endpoints à tester:
+localhost:8080 → Keycloak Admin Dashboard
+localhost:5000 → Doit donner "API is running"
+localhost:80 → Doit mener vers la page d'inscription (Si déjà connecté, redirige vers /user)
+    Appuyez sur "Connexion" ou "S'inscrire" va vous mettre dans la page "Login" de Keycloak par défaut. 
+    C'est normal et temporarire lors qu'on teste. Appuyez sur "Register" pour créer un compte.
+    Après une inscription ou connexion, vous êtes redirigés vers les pages utilisateur (presque vides).
+
+# -----
+
+Ce qu'il faut faire:
+1. (backend) Logout redirige vers localhost:5000 à la place de localhost:80
+2. Discuter sur les autres changements effectués au backend
+3. (frontend) Après finalisation de la liaison, ajouter les thèmes Keycloak pour l'Inscription et la Connexion
+4. (front+back) Ajouter les pages de profil, et leurs fonctionnalités
+5. (front+back) Ajouter la(les) page(s) admin, et les fonctionnalités
+6. Ajouter un guard pour les pages admin.
+
