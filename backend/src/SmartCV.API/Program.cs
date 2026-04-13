@@ -100,7 +100,7 @@ builder.Services.AddAuthentication(options =>
         {
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
 
-            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost:5000/";
+            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost:80/";
 
             if (!string.IsNullOrEmpty(idToken))
             {
@@ -109,8 +109,7 @@ builder.Services.AddAuthentication(options =>
         },
         OnRemoteFailure = ctx =>
         {
-            ctx.Response.Redirect("/api/auth/error?message=" +
-                Uri.EscapeDataString(ctx.Failure?.Message ?? "unknown"));
+            ctx.Response.Redirect("http://localhost:5000/api/auth/login");
             ctx.HandleResponse();
             return Task.CompletedTask;
         }

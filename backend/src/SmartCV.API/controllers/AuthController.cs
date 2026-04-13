@@ -29,7 +29,7 @@ namespace API.Controllers
             return SignOut(
                 new AuthenticationProperties
                 {
-                    RedirectUri = "/"
+                    RedirectUri = "http://localhost:80"
                 },
                 OpenIdConnectDefaults.AuthenticationScheme
             );
