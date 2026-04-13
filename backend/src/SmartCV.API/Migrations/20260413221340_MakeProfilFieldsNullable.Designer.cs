@@ -3,6 +3,7 @@ using System;
 using API.data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SmartCV.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260413221340_MakeProfilFieldsNullable")]
+    partial class MakeProfilFieldsNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64,7 +67,7 @@ namespace SmartCV.API.Migrations
                         .HasColumnType("jsonb");
 
                     b.Property<DateTime>("DateAnalyse")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.PrimitiveCollection<string>("MotsClesExtraits")
                         .IsRequired()
@@ -108,7 +111,7 @@ namespace SmartCV.API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("DateEnvoi")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Entreprise")
                         .IsRequired()
@@ -155,12 +158,13 @@ namespace SmartCV.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("DateExpiration")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DateObtention")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -168,17 +172,21 @@ namespace SmartCV.API.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("Identifiant")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("ImageUrl")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
                     b.Property<string>("LienVerification")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Niveau")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
@@ -252,7 +260,7 @@ namespace SmartCV.API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("DateAnalyse")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Exigences")
                         .IsRequired()
@@ -306,10 +314,10 @@ namespace SmartCV.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdExp"));
 
                     b.Property<DateTime>("DateDebut")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DateFin")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -381,7 +389,7 @@ namespace SmartCV.API.Migrations
                         .HasColumnType("character varying(10000)");
 
                     b.Property<DateTime>("DateGeneration")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -411,10 +419,10 @@ namespace SmartCV.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("DateExpiration")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DatePublication")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -518,7 +526,7 @@ namespace SmartCV.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
