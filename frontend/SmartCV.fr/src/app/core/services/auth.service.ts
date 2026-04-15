@@ -54,4 +54,17 @@ export class AuthService {
       catchError(() => of(false))
     );
   }
+
+  isAdmin(): Observable<boolean> {
+    return this.getMe().pipe(
+      map(data => {
+        const claims = data.claims as { type: string; value: string }[];
+        return claims?.some(c =>
+          (c.type === 'roles' || c.type === 'role') &&
+          c.value === 'admin'
+        ) ?? false;
+      }),
+      catchError(() => of(false))
+    );
+  }
 }
