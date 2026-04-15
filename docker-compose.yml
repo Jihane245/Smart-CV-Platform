@@ -15,7 +15,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
       - IA_SERVICE_URL=http://ia:8000
       - Keycloak__Authority=http://keycloak:8080/realms/${KEYCLOAK_REALM}
