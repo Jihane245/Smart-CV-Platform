@@ -8,6 +8,7 @@ using System.Security.Claims;
 using API.data;
 using API.models;
 using API.models.Enums;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,13 +41,12 @@ builder.Services.AddAuthentication(options =>
 
     options.Authority = keycloakConfig["Authority"];
     options.MetadataAddress = keycloakConfig["MetadataAddress"];
-    options.Authority = keycloakConfig["Authority"];
     options.ClientId = keycloakConfig["ClientId"];
     options.ClientSecret = keycloakConfig["ClientSecret"];
     options.ResponseType = OpenIdConnectResponseType.Code;
 
     options.SaveTokens = true;
-    options.RequireHttpsMetadata = false; // local dev
+    options.RequireHttpsMetadata = false;
     options.CallbackPath = "/signin-oidc";
     options.SignedOutCallbackPath = "/signout-callback-oidc";
     options.GetClaimsFromUserInfoEndpoint = true;
@@ -60,14 +60,14 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,                    
-        ValidIssuer = keycloakConfig["Authority"], 
-        ValidateAudience = true,                  
-        ValidAudience = keycloakConfig["ClientId"], 
-        ValidateLifetime = true,                  
-        ClockSkew = TimeSpan.Zero,               
-        NameClaimType = "preferred_username",     
-        RoleClaimType = "roles"                   
+        ValidateIssuer = false,
+        ValidIssuer = keycloakConfig["Authority"],
+        ValidateAudience = true,
+        ValidAudience = keycloakConfig["ClientId"],
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero,
+        NameClaimType = "preferred_username",
+        RoleClaimType = "roles"
     };
 
     options.Events = new OpenIdConnectEvents
@@ -75,8 +75,7 @@ builder.Services.AddAuthentication(options =>
         OnTokenValidated = async ctx =>
         {
             var email = ctx.Principal?.FindFirstValue("email");
-            if (string.IsNullOrEmpty(email))
-                return;
+            if (string.IsNullOrEmpty(email)) return;
 
             using var scope = ctx.HttpContext.RequestServices.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -92,7 +91,6 @@ builder.Services.AddAuthentication(options =>
                     PasswordHash = Guid.NewGuid().ToString(),
                     Role = RoleUtilisateur.Candidat
                 });
-
                 await db.SaveChangesAsync();
             }
         },
@@ -103,9 +101,7 @@ builder.Services.AddAuthentication(options =>
             ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost:80/";
 
             if (!string.IsNullOrEmpty(idToken))
-            {
                 ctx.ProtocolMessage.IdTokenHint = idToken;
-            }
         },
         OnRemoteFailure = ctx =>
         {
@@ -129,14 +125,21 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+// ===== .NET 10 : OpenAPI natif =====
+builder.Services.AddOpenApi();
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var app = builder.Build();
 
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // .NET 10 : endpoint OpenAPI JSON
+    app.MapOpenApi();
+
+    // UI Swagger via Scalar (gratuit, moderne, compatible .NET 10)
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
