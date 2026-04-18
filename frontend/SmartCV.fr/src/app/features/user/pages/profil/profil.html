@@ -6,12 +6,18 @@
       <h1 class="page-title">Mon profil</h1>
       <p class="page-subtitle">Ces informations alimentent la génération de vos CV</p>
     </div>
-    <button class="btn-enregistrer" (click)="enregistrer()">
-      Enregistrer les modifications
+    <button
+      class="btn-enregistrer"
+      (click)="enregistrer()"
+      [disabled]="loading || saving"
+    >
+      {{ saving ? 'Enregistrement…' : 'Enregistrer les modifications' }}
     </button>
   </div>
 
-  <div class="content-grid">
+  <p *ngIf="loading" class="page-subtitle">Chargement du profil…</p>
+
+  <div class="content-grid" *ngIf="!loading">
 
     <!-- Colonne gauche -->
     <div class="left-col">
@@ -21,7 +27,7 @@
         <div class="avatar-circle">{{ initiales }}</div>
         <div class="avatar-name">{{ prenom }} {{ nom }}</div>
         <div class="avatar-email">{{ email }}</div>
-        <button class="btn-photo">Changer la photo</button>
+        <button class="btn-photo" type="button">Changer la photo</button>
 
         <div class="completude-label">
           <span>COMPLÉTUDE</span>
@@ -44,7 +50,7 @@
             *ngFor="let c of competences; let i = index"
             (click)="supprimerCompetence(i)"
             title="Cliquer pour supprimer"
-          >{{ c }}</span>
+          >{{ c.nom }}</span>
         </div>
 
         <div *ngIf="ajoutCompetenceVisible" class="add-input-row">
@@ -55,10 +61,10 @@
             [(ngModel)]="nouvelleCompetence"
             (keydown.enter)="ajouterCompetence()"
           />
-          <button class="btn-add-confirm" (click)="ajouterCompetence()">✓</button>
+          <button type="button" class="btn-add-confirm" (click)="ajouterCompetence()">✓</button>
         </div>
 
-        <button class="btn-ajouter" (click)="ajoutCompetenceVisible = true">
+        <button type="button" class="btn-ajouter" (click)="ajoutCompetenceVisible = true">
           + Ajouter une compétence
         </button>
       </div>
@@ -71,30 +77,37 @@
       <!-- Informations personnelles -->
       <div class="card">
         <h2 class="section-title">Informations personnelles</h2>
+        <p class="page-subtitle" *ngIf="prenom || nom || email">
+          Prénom, nom et e-mail proviennent de votre compte (connexion).
+        </p>
         <div class="form-grid">
           <div class="field">
             <label>PRÉNOM</label>
-            <input type="text" class="form-input" [(ngModel)]="prenom" />
+            <input type="text" class="form-input" [(ngModel)]="prenom" readonly />
           </div>
           <div class="field">
             <label>NOM</label>
-            <input type="text" class="form-input" [(ngModel)]="nom" />
+            <input type="text" class="form-input" [(ngModel)]="nom" readonly />
           </div>
           <div class="field">
             <label>EMAIL</label>
-            <input type="email" class="form-input" [(ngModel)]="email" />
+            <input type="email" class="form-input" [(ngModel)]="email" readonly />
+          </div>
+          <div class="field full-width">
+            <label>TITRE PROFESSIONNEL</label>
+            <input type="text" class="form-input" [(ngModel)]="titre" placeholder="Ex. Développeur Full Stack" />
           </div>
           <div class="field">
             <label>TÉLÉPHONE</label>
             <input type="tel" class="form-input" [(ngModel)]="telephone" />
           </div>
           <div class="field">
-            <label>VILLE</label>
+            <label>VILLE / ADRESSE</label>
             <input type="text" class="form-input" [(ngModel)]="ville" />
           </div>
           <div class="field">
             <label>LINKEDIN</label>
-            <input type="text" class="form-input" [(ngModel)]="linkedin" />
+            <input type="text" class="form-input" [(ngModel)]="linkedIn" />
           </div>
           <div class="field full-width">
             <label>RÉSUMÉ PROFESSIONNEL</label>
@@ -108,16 +121,31 @@
         <h2 class="section-title">Expériences professionnelles</h2>
         <div class="experience-list">
           <div class="experience-item" *ngFor="let exp of experiences; let i = index">
-            <div class="exp-dot" [class.actuel]="exp.actuel"></div>
+            <div class="exp-dot" [class.actuel]="experienceActuelle(exp)"></div>
             <div class="exp-content">
               <input type="text" class="input-transparent bold" [(ngModel)]="exp.poste" placeholder="Poste" />
               <input type="text" class="input-transparent small" [(ngModel)]="exp.entreprise" placeholder="Entreprise" />
-              <input type="text" class="input-transparent small muted" [(ngModel)]="exp.periode" placeholder="Période" />
+              <div class="exp-dates-row">
+                <label class="input-transparent small muted">Début</label>
+                <input type="date" class="form-input input-date" [(ngModel)]="exp.dateDebut" />
+                <label class="exp-checkbox">
+                  <input
+                    type="checkbox"
+                    [checked]="experienceActuelle(exp)"
+                    (change)="onExperienceActuelleChange(exp, $any($event.target).checked)"
+                  />
+                  En cours
+                </label>
+                <ng-container *ngIf="!experienceActuelle(exp)">
+                  <label class="input-transparent small muted">Fin</label>
+                  <input type="date" class="form-input input-date" [(ngModel)]="exp.dateFin" />
+                </ng-container>
+              </div>
               <input type="text" class="input-transparent small" [(ngModel)]="exp.description" placeholder="Description" />
             </div>
           </div>
         </div>
-        <button class="btn-ajouter" (click)="ajouterExperience()">+ Ajouter une expérience</button>
+        <button type="button" class="btn-ajouter" (click)="ajouterExperience()">+ Ajouter une expérience</button>
       </div>
 
       <!-- Formation -->
@@ -133,12 +161,12 @@
             <input type="text" class="form-input" [(ngModel)]="f.diplome" />
           </div>
           <div class="field">
-            <label>DÉBUT</label>
-            <input type="text" class="form-input" [(ngModel)]="f.debut" />
+            <label>ANNÉE</label>
+            <input type="number" class="form-input" [(ngModel)]="f.annee" />
           </div>
           <div class="field">
-            <label>FIN</label>
-            <input type="text" class="form-input" [(ngModel)]="f.fin" />
+            <label>MENTION / DÉTAILS</label>
+            <input type="text" class="form-input" [(ngModel)]="f.mention" />
           </div>
         </div>
       </div>
@@ -146,7 +174,7 @@
       <!-- Sections dynamiques -->
       <div class="card section-card" *ngFor="let s of sections; let i = index">
         <div class="section-header-row">
-          <button class="btn-suppr-section" (click)="supprimerSection(i)">✕</button>
+          <button type="button" class="btn-suppr-section" (click)="supprimerSection(i)">✕</button>
           <input
             type="text"
             class="input-section-titre"
@@ -159,15 +187,15 @@
           <div class="section-ligne" *ngFor="let l of s.lignes; let j = index">
             <input type="text" class="input-detail" [(ngModel)]="l.detail" placeholder="Détail" />
             <input type="text" class="input-description" [(ngModel)]="l.description" placeholder="Description..." />
-            <button class="btn-suppr-ligne" *ngIf="j > 0" (click)="supprimerLigne(s, j)">✕</button>
+            <button type="button" class="btn-suppr-ligne" *ngIf="j > 0" (click)="supprimerLigne(s, j)">✕</button>
           </div>
         </div>
-        <button class="btn-add-ligne" (click)="ajouterLigne(s)">+</button>
+        <button type="button" class="btn-add-ligne" (click)="ajouterLigne(s)">+</button>
       </div>
 
       <!-- Bouton ajouter une section -->
       <div class="add-section-row">
-        <button class="btn-add-section" (click)="ajouterSection()">Ajouter une Section</button>
+        <button type="button" class="btn-add-section" (click)="ajouterSection()">Ajouter une Section</button>
       </div>
 
     </div>

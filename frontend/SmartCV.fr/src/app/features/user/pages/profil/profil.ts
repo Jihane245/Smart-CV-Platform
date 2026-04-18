@@ -1,25 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of, Observable } from 'rxjs';
+import { catchError, finalize, switchMap } from 'rxjs/operators';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INTERFACES — À déplacer dans models/profil.model.ts quand le backend sera prêt
-// Elles devront correspondre exactement aux types retournés par l'API
-// ─────────────────────────────────────────────────────────────────────────────
-interface Experience {
-  poste: string;
-  entreprise: string;
-  periode: string;
-  description: string;
-  actuel: boolean;
-}
-
-interface Formation {
-  etablissement: string;
-  diplome: string;
-  debut: string;
-  fin: string;
-}
+import { AuthService } from '../../../../core/services/auth.service';
+import {
+  ExperienceDtoPayload,
+  FormationDtoPayload,
+  ProfilMeResponse,
+  ProfilService,
+  normalizeCompetenceNiveau,
+} from '../../../../core/services/profil.service';
+import { Competence, Experience, Formation } from '../../../../core/models/models';
 
 interface LigneSection {
   detail: string;
@@ -31,22 +24,6 @@ interface Section {
   lignes: LigneSection[];
 }
 
-// TODO: créer src/app/core/models/profil.model.ts avec ces interfaces
-// export interface ProfilUtilisateur {
-//   id: string;
-//   prenom: string;
-//   nom: string;
-//   email: string;
-//   telephone: string;
-//   ville: string;
-//   linkedin: string;
-//   resume: string;
-//   competences: string[];
-//   experiences: Experience[];
-//   formations: Formation[];
-//   completude: number;
-// }
-
 @Component({
   selector: 'app-mon-profil',
   standalone: true,
@@ -54,169 +31,310 @@ interface Section {
   templateUrl: './profil.html',
   styleUrl: './profil.scss',
 })
-
-// TODO: injecter ProfilService quand le backend sera prêt
-// import { ProfilService } from '../../../../core/services/profil.service';
-// Générer avec : ng g service core/services/profil
 export class MonProfil implements OnInit {
+  prenom = '';
+  nom = '';
+  email = '';
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // DONNÉES MOCK — À remplacer par les données retournées par l'API
-  // TODO: supprimer ces valeurs en dur et les charger via ProfilService.getProfil()
-  // ─────────────────────────────────────────────────────────────────────────
-  prenom = 'Jihane';
-  nom = 'El Ghazrani';
-  email = 'jihane@email.com';
-  telephone = '+212 6 00 00 00 00';
-  ville = 'Casablanca';
-  linkedin = 'linkedin.com/in/jihane';
-  resume = 'Développeur Full Stack passionné avec 2 ans d\'expérience en React et Node.js. Je cherche un poste stimulant pour contribuer à des projets innovants.';
+  titre = '';
+  telephone = '';
+  ville = '';
+  linkedIn = '';
+  resume = '';
 
-  // TODO: charger depuis l'API → GET /api/profil/me
-  competences = ['React.js', 'Node.js', 'Git', 'PostgreSQL', 'Docker', 'REST API', 'Figma'];
-
-  // TODO: charger depuis l'API → GET /api/profil/me/experiences
-  experiences: Experience[] = [
-    {
-      poste: 'Développeur Full Stack',
-      entreprise: 'StartupTech Casablanca',
-      periode: 'Jan 2023 – Présent · 2 ans',
-      description: 'Développement de fonctionnalités React/Node.js, intégration d\'APIs REST, déploiement Docker.',
-      actuel: true,
-    },
-    {
-      poste: 'Stage Développeur Web',
-      entreprise: 'Agence Digitale Rabat',
-      periode: 'Juin – Août 2022 · 3 mois',
-      description: 'Refonte de l\'interface utilisateur, optimisation des requêtes PostgreSQL.',
-      actuel: false,
-    },
-  ];
-
-  // TODO: charger depuis l'API → GET /api/profil/me/formations
-  formations: Formation[] = [
-    {
-      etablissement: 'ENSA Tanger',
-      diplome: 'Génie Informatique',
-      debut: '2021',
-      fin: '2024'
-    },
-  ];
-
+  competences: Competence[] = [];
+  experiences: Experience[] = [];
+  formations: Formation[] = [];
   sections: Section[] = [];
-  
 
-  // TODO: calculer côté backend et recevoir dans la réponse GET /api/profil/me
-  completude = 72;
+  completude = 0;
+  initiales = '?';
 
-  // TODO: générer depuis prenom + nom retournés par l'API
-  initiales = 'JG';
+  loading = false;
+  saving = false;
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ÉTAT LOCAL UI — ces variables restent dans le composant, pas dans l'API
-  // ─────────────────────────────────────────────────────────────────────────
   nouvelleCompetence = '';
   ajoutCompetenceVisible = false;
 
+  private profilId = 0;
+
+  constructor(
+    private profilService: ProfilService,
+    private authService: AuthService
+  ) {}
+
   ngOnInit(): void {
-    // TODO: remplacer le contenu de cette méthode par l'appel API :
-    //
-    // this.profilService.getProfil().subscribe({
-    //   next: (data) => {
-    //     this.prenom = data.prenom;
-    //     this.nom = data.nom;
-    //     this.email = data.email;
-    //     this.telephone = data.telephone;
-    //     this.ville = data.ville;
-    //     this.linkedin = data.linkedin;
-    //     this.resume = data.resume;
-    //     this.competences = data.competences;
-    //     this.experiences = data.experiences;
-    //     this.formations = data.formations;
-    //     this.completude = data.completude;
-    //     this.initiales = data.prenom[0] + data.nom[0];
-    //   },
-    //   error: (err) => console.error('Erreur chargement profil', err),
-    // });
+    this.loading = true;
+    forkJoin({
+      status: this.authService.getStatus().pipe(catchError(() => of(null))),
+      profil: this.profilService.getMe().pipe(
+        catchError((err) => {
+          console.error('Erreur chargement profil', err);
+          return of(null);
+        })
+      ),
+    })
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe(({ status, profil }) => {
+        if (status) {
+          this.prenom = status.givenName ?? '';
+          this.nom = status.surname ?? '';
+          this.email = status.email ?? '';
+          this.initiales = this.computeInitiales(this.prenom, this.nom);
+        }
+        if (profil) {
+          this.applyProfil(profil);
+        }
+        this.recalcCompletude();
+      });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // COMPÉTENCES
-  // ─────────────────────────────────────────────────────────────────────────
-  ajouterCompetence(): void {
-    if (this.nouvelleCompetence.trim()) {
-      this.competences.push(this.nouvelleCompetence.trim());
-      this.nouvelleCompetence = '';
-      this.ajoutCompetenceVisible = false;
+  private computeInitiales(prenom: string, nom: string): string {
+    const a = prenom.trim().charAt(0);
+    const b = nom.trim().charAt(0);
+    if (!a && !b) {
+      return '?';
+    }
+    return (a + b).toUpperCase();
+  }
 
-      // TODO: appel API → POST /api/profil/me/competences
-      // this.profilService.ajouterCompetence(this.nouvelleCompetence).subscribe(...)
+  private applyProfil(p: ProfilMeResponse): void {
+    this.profilId = p.id;
+    this.titre = p.titre ?? '';
+    this.telephone = p.telephone ?? '';
+    this.ville = p.adresse ?? '';
+    this.linkedIn = p.linkedIn ?? '';
+    this.resume = p.description ?? '';
+
+    this.competences = (p.competences ?? []).map((c) => ({
+      idComp: c.idComp,
+      profilId: this.profilId,
+      nom: c.nom ?? '',
+      niveau: normalizeCompetenceNiveau(c.niveau),
+      categorie: c.categorie ?? '',
+    }));
+
+    this.experiences = (p.experiences ?? []).map((e) => ({
+      idExp: e.idExp,
+      profilId: e.profilId ?? this.profilId,
+      poste: e.poste ?? '',
+      entreprise: e.entreprise ?? '',
+      dateDebut: this.isoToInputDate(e.dateDebut),
+      dateFin: e.dateFin ? this.isoToInputDate(e.dateFin) : undefined,
+      description: e.description ?? '',
+    }));
+
+    this.formations = (p.formations ?? []).map((f) => ({
+      idFrmt: f.idFrmt,
+      profilId: f.profilId ?? this.profilId,
+      diplome: f.diplome ?? '',
+      etablissement: f.etablissement ?? '',
+      annee: f.annee ?? 0,
+      mention: f.mention ?? '',
+    }));
+  }
+
+  private isoToInputDate(iso: string): string {
+    if (!iso) {
+      return '';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return '';
+    }
+    return d.toISOString().slice(0, 10);
+  }
+
+  private inputDateToIso(date: string): string {
+    if (!date) {
+      return new Date().toISOString();
+    }
+    return new Date(date + 'T12:00:00.000Z').toISOString();
+  }
+
+  experienceActuelle(exp: Experience): boolean {
+    return !exp.dateFin || exp.dateFin === '';
+  }
+
+  onExperienceActuelleChange(exp: Experience, checked: boolean): void {
+    if (checked) {
+      exp.dateFin = undefined;
+    } else if (!exp.dateFin) {
+      exp.dateFin = this.isoToInputDate(new Date().toISOString());
     }
   }
 
-  supprimerCompetence(index: number): void {
-    this.competences.splice(index, 1);
-
-    // TODO: appel API → DELETE /api/profil/me/competences/:index
-    // this.profilService.supprimerCompetence(index).subscribe(...)
+  private recalcCompletude(): void {
+    let filled = 0;
+    let total = 10;
+    if (this.titre.trim()) {
+      filled++;
+    }
+    if (this.telephone.trim()) {
+      filled++;
+    }
+    if (this.ville.trim()) {
+      filled++;
+    }
+    if (this.linkedIn.trim()) {
+      filled++;
+    }
+    if (this.resume.trim().length > 20) {
+      filled++;
+    }
+    if (this.competences.length) {
+      filled++;
+    }
+    if (this.experiences.some((e) => e.poste?.trim())) {
+      filled++;
+    }
+    if (this.formations.some((f) => f.diplome?.trim() || f.etablissement?.trim())) {
+      filled++;
+    }
+    if (this.prenom.trim() && this.nom.trim()) {
+      filled++;
+    }
+    if (this.email.trim()) {
+      filled++;
+    }
+    this.completude = Math.round((filled / total) * 100);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // EXPÉRIENCES
-  // ─────────────────────────────────────────────────────────────────────────
+  ajouterCompetence(): void {
+    const nom = this.nouvelleCompetence.trim();
+    if (!nom) {
+      return;
+    }
+
+    this.profilService
+      .addCompetence({
+        nom,
+        niveau: 1,
+        categorie: '',
+      })
+      .subscribe({
+        next: () => {
+          this.nouvelleCompetence = '';
+          this.ajoutCompetenceVisible = false;
+          this.reloadProfil();
+        },
+        error: (err) => console.error('Erreur ajout compétence', err),
+      });
+  }
+
+  supprimerCompetence(index: number): void {
+    const c = this.competences[index];
+    if (!c?.idComp) {
+      return;
+    }
+    this.profilService.deleteCompetence(c.idComp).subscribe({
+      next: () => {
+        this.competences.splice(index, 1);
+        this.recalcCompletude();
+      },
+      error: (err) => console.error('Erreur suppression compétence', err),
+    });
+  }
+
   ajouterExperience(): void {
     this.experiences.push({
+      idExp: 0,
+      profilId: this.profilId,
       poste: '',
       entreprise: '',
-      periode: '',
+      dateDebut: this.isoToInputDate(new Date().toISOString()),
+      dateFin: undefined,
       description: '',
-      actuel: false,
     });
-
-    // TODO: appel API → POST /api/profil/me/experiences
-    // this.profilService.ajouterExperience(nouvelleExp).subscribe(...)
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // FORMATIONS
-  // ─────────────────────────────────────────────────────────────────────────
   ajouterFormation(): void {
     this.formations.push({
-      etablissement: '',
+      idFrmt: 0,
+      profilId: this.profilId,
       diplome: '',
-      debut: '',
-      fin: ''
+      etablissement: '',
+      annee: new Date().getFullYear(),
+      mention: '',
     });
-
-    // TODO: appel API → POST /api/profil/me/formations
-    // this.profilService.ajouterFormation(nouvelleFormation).subscribe(...)
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ENREGISTRER — bouton principal
-  // ─────────────────────────────────────────────────────────────────────────
-  enregistrer(): void {
-    // TODO: remplacer par l'appel API → PUT /api/profil/me
-    //
-    // const payload: ProfilUtilisateur = {
-    //   prenom: this.prenom,
-    //   nom: this.nom,
-    //   email: this.email,
-    //   telephone: this.telephone,
-    //   ville: this.ville,
-    //   linkedin: this.linkedin,
-    //   resume: this.resume,
-    //   competences: this.competences,
-    //   experiences: this.experiences,
-    //   formations: this.formations,
-    // };
-    //
-    // this.profilService.mettreAJourProfil(payload).subscribe({
-    //   next: () => console.log('Profil mis à jour avec succès'),
-    //   error: (err) => console.error('Erreur mise à jour', err),
-    // });
+  private reloadProfil(): void {
+    this.profilService.getMe().subscribe({
+      next: (p) => {
+        this.applyProfil(p);
+        this.recalcCompletude();
+      },
+      error: (err) => console.error('Erreur rechargement profil', err),
+    });
+  }
 
-    console.log('Profil enregistré (mock)');
+  private toExperiencePayload(exp: Experience): ExperienceDtoPayload {
+    return {
+      poste: exp.poste ?? '',
+      entreprise: exp.entreprise ?? '',
+      dateDebut: this.inputDateToIso(exp.dateDebut),
+      dateFin: exp.dateFin ? this.inputDateToIso(exp.dateFin) : null,
+      description: exp.description ?? '',
+    };
+  }
+
+  private toFormationPayload(f: Formation): FormationDtoPayload {
+    return {
+      diplome: f.diplome ?? '',
+      etablissement: f.etablissement ?? '',
+      annee: f.annee ?? 0,
+      mention: f.mention ?? '',
+    };
+  }
+
+  enregistrer(): void {
+    this.saving = true;
+
+    this.profilService
+      .updateMe({
+        titre: this.titre,
+        telephone: this.telephone,
+        adresse: this.ville,
+        linkedIn: this.linkedIn,
+        description: this.resume,
+      })
+      .pipe(
+        switchMap((p) => {
+          this.applyProfil(p);
+          const tasks: Observable<unknown>[] = [];
+
+          for (const exp of this.experiences) {
+            const payload = this.toExperiencePayload(exp);
+            if (!exp.idExp) {
+              tasks.push(this.profilService.addExperience(payload));
+            } else {
+              tasks.push(this.profilService.updateExperience(exp.idExp, payload));
+            }
+          }
+
+          for (const f of this.formations) {
+            const payload = this.toFormationPayload(f);
+            if (!f.idFrmt) {
+              tasks.push(this.profilService.addFormation(payload));
+            } else {
+              tasks.push(this.profilService.updateFormation(f.idFrmt, payload));
+            }
+          }
+
+          if (!tasks.length) {
+            return of(null);
+          }
+          return forkJoin(tasks);
+        }),
+        finalize(() => {
+          this.saving = false;
+        })
+      )
+      .subscribe({
+        next: () => this.reloadProfil(),
+        error: (err) => console.error('Erreur mise à jour profil', err),
+      });
   }
 
   ajouterSection(): void {
@@ -227,23 +345,20 @@ export class MonProfil implements OnInit {
         { detail: 'Détail 2', description: '' },
       ],
     });
-    // TODO: POST /api/profil/me/sections
   }
 
   supprimerSection(index: number): void {
     this.sections.splice(index, 1);
-    // TODO: DELETE /api/profil/me/sections/:id
   }
 
   ajouterLigne(section: Section): void {
-    section.lignes.push({ detail: `Détail ${section.lignes.length + 1}`, description: '' });
-    // TODO: POST /api/profil/me/sections/:id/lignes
+    section.lignes.push({
+      detail: `Détail ${section.lignes.length + 1}`,
+      description: '',
+    });
   }
 
   supprimerLigne(section: Section, index: number): void {
     section.lignes.splice(index, 1);
-    // TODO: DELETE /api/profil/me/sections/:id/lignes/:index
   }
-
-
 }
