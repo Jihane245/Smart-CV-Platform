@@ -359,6 +359,33 @@ $radius:           12px;
     flex-direction: column;
     gap: 0.2rem;
   }
+
+  .exp-dates-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin: 0.35rem 0;
+  }
+
+  .input-date {
+    max-width: 11rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.82rem;
+  }
+
+  .exp-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: $color-muted;
+    cursor: pointer;
+
+    input {
+      cursor: pointer;
+    }
+  }
 }
 
 .input-transparent {
