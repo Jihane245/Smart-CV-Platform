@@ -73,15 +73,12 @@ export class ProfilService {
     });
   }
 
-  updateExperience(
-    idExp: number,
-    payload: ExperienceDtoPayload
-  ): Observable<void> {
-    return this.http.put<void>(
-      `${API_BASE}/me/experiences/${idExp}`,
-      payload,
-      { withCredentials: true }
-    );
+  updateExperience(idExp: number, payload: ExperienceDtoPayload): Observable<void> {
+    return this.http.put<void>(`${API_BASE}/me/experiences/${idExp}`, payload, { withCredentials: true });
+  }
+
+  deleteExperience(idExp: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/me/experiences/${idExp}`, { withCredentials: true });
   }
 
   addFormation(payload: FormationDtoPayload): Observable<Formation> {
@@ -90,15 +87,12 @@ export class ProfilService {
     });
   }
 
-  updateFormation(
-    idFrmt: number,
-    payload: FormationDtoPayload
-  ): Observable<void> {
-    return this.http.put<void>(
-      `${API_BASE}/me/formations/${idFrmt}`,
-      payload,
-      { withCredentials: true }
-    );
+  updateFormation(idFrmt: number, payload: FormationDtoPayload): Observable<void> {
+    return this.http.put<void>(`${API_BASE}/me/formations/${idFrmt}`, payload, { withCredentials: true });
+  }
+
+  deleteFormation(idFrmt: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/me/formations/${idFrmt}`, { withCredentials: true });
   }
 }
 
