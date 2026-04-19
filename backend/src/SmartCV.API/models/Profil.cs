@@ -30,4 +30,5 @@ public class Profil
     public ICollection<Experience> Experiences { get; set; } = [];
     public ICollection<Formation> Formations { get; set; } = [];
     public ICollection<Certificat> Certificats { get; set; } = [];
+    public ICollection<SectionDynamique> Sections { get; set; } = [];
 }
