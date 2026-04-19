@@ -1,0 +1,274 @@
+<main class="main-content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <a class="btn-retour" routerLink="/user">
+        <span class="retour-arrow">‹</span> Retour
+      </a>
+      <div>
+        <h1 class="page-title">Générateur de CV</h1>
+        <p class="page-subtitle">Adaptez votre CV à une offre en 4 étapes</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <ng-container *ngFor="let etape of etapes; let last = last">
+      <div
+        class="stepper-item"
+        [class.active]="etapeActive === etape.num"
+        [class.complete]="estComplete(etape.num)"
+        (click)="allerEtape(etape.num)"
+      >
+        <div class="stepper-circle">
+          <ng-container *ngIf="estComplete(etape.num); else numTpl">
+            <span class="check">✓</span>
+          </ng-container>
+          <ng-template #numTpl>{{ etape.num }}</ng-template>
+        </div>
+        <span class="stepper-label">{{ etape.label }}</span>
+      </div>
+      <div class="stepper-sep" *ngIf="!last"></div>
+    </ng-container>
+  </div>
+
+  <!-- Séparateur -->
+  <div class="stepper-line"></div>
+
+  <!-- Layout deux colonnes -->
+  <div class="gen-layout">
+
+    <!-- ══ Colonne gauche ══ -->
+    <div class="gen-left">
+
+      <!-- ÉTAPE 1 -->
+      <ng-container *ngIf="etapeActive === 1">
+        <p class="etape-label">ÉTAPE 1</p>
+        <h2 class="etape-titre">Collez votre offre d'emploi</h2>
+        <p class="etape-desc">Copiez-collez la description du poste ou importez un fichier.<br>L'IA analysera les compétences et exigences clés.</p>
+
+        <textarea
+          class="offre-textarea"
+          [(ngModel)]="offreTexte"
+          placeholder="Nous recherchons un Développeur Full Stack (H/F) à Casablanca.&#10;&#10;Compétences requises :&#10;– React.js / Next.js (2 ans min.)&#10;– Node.js, Express, REST API&#10;– Docker, Git, CI/CD"
+          rows="10"
+        ></textarea>
+
+        <button class="btn-primary" (click)="analyser()" [disabled]="!offreTexte.trim() || analyseEnCours">
+          <span *ngIf="!analyseEnCours">Analyser avec l'IA →</span>
+          <span *ngIf="analyseEnCours">Analyse en cours…</span>
+        </button>
+
+        <p class="ou-bien">Ou bien..</p>
+
+        <button class="btn-secondary" (click)="analyserImage()">
+          Analyser une image →
+        </button>
+      </ng-container>
+
+      <!-- ÉTAPE 2 -->
+      <ng-container *ngIf="etapeActive === 2">
+        <p class="etape-label">ÉTAPE 2 — RÉSULTATS</p>
+        <h2 class="etape-titre">Offre analysée</h2>
+        <p class="etape-desc">L'IA a identifié les compétences clés et calculé votre compatibilité.</p>
+
+        <div class="score-card">
+          <div class="score-header">
+            <span class="score-desc">Compatibilité profil / offre</span>
+            <span class="score-badge">{{ scoreLabel }}</span>
+          </div>
+          <div class="score-num">{{ scoreCompatibilite }}%</div>
+          <div class="score-bar">
+            <div class="score-fill" [style.width.%]="scoreCompatibilite"></div>
+          </div>
+        </div>
+
+        <p class="section-mini-label">COMPÉTENCES DÉTECTÉES</p>
+        <div class="comp-tags">
+          <span
+            *ngFor="let c of competencesAnalysees"
+            class="comp-tag"
+            [class.maitrise]="c.statut === 'maitrise'"
+            [class.partiel]="c.statut === 'partiel'"
+            [class.renforcer]="c.statut === 'renforcer'"
+          >{{ c.nom }} {{ statutCompetence(c.statut) }}</span>
+        </div>
+        <p class="comp-legende">✓ Maîtrisé &nbsp;– Partiel &nbsp;✕ À renforcer</p>
+
+        <p class="section-mini-label">RECOMMANDATIONS IA</p>
+        <ul class="reco-list">
+          <li *ngFor="let r of recommandations">{{ r }}</li>
+        </ul>
+
+        <div class="btn-row">
+          <button class="btn-outline" (click)="etapePrecedente()">← Retour</button>
+          <button class="btn-primary" (click)="allerEtape3()">Choisir un template →</button>
+        </div>
+      </ng-container>
+
+      <!-- ÉTAPE 3 -->
+      <ng-container *ngIf="etapeActive === 3">
+        <p class="etape-label">ÉTAPE 3</p>
+        <h2 class="etape-titre">Choisissez un template</h2>
+        <p class="etape-desc">Sélectionnez la mise en page qui correspond le mieux au poste.</p>
+
+        <div class="template-grid">
+          <div
+            *ngFor="let t of templates"
+            class="template-card"
+            [class.selected]="templateSelectionne === t"
+            (click)="templateSelectionne = t"
+          >
+            <div class="template-thumb" [class]="'thumb-' + t.toLowerCase()">
+              <div class="thumb-header"></div>
+              <div class="thumb-lines">
+                <div class="thumb-line long"></div>
+                <div class="thumb-line short"></div>
+                <div class="thumb-line medium"></div>
+              </div>
+            </div>
+            <span class="template-name">{{ t }} <span *ngIf="templateSelectionne === t">✓</span></span>
+          </div>
+        </div>
+
+        <div class="personnalisation-card">
+          <p class="section-mini-label">PERSONNALISATION</p>
+          <div class="perso-row">
+            <span class="perso-label">Couleur d'accent</span>
+            <div class="couleur-swatches">
+              <div
+                *ngFor="let c of couleurs"
+                class="swatch"
+                [style.background]="c"
+                [class.swatch-active]="couleurAccent === c"
+                (click)="couleurAccent = c"
+              ></div>
+            </div>
+          </div>
+          <div class="perso-row">
+            <span class="perso-label">Langue du CV</span>
+            <select class="select-langue" [(ngModel)]="langueSelectionnee">
+              <option *ngFor="let l of langues" [value]="l">{{ l }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-outline" (click)="etapePrecedente()">← Retour</button>
+          <button class="btn-primary" (click)="generer()">✓ Générer le CV</button>
+        </div>
+      </ng-container>
+
+      <!-- ÉTAPE 4 -->
+      <ng-container *ngIf="etapeActive === 4">
+        <p class="etape-label">ÉTAPE 4</p>
+        <h2 class="etape-titre">Votre CV est prêt !</h2>
+        <p class="etape-desc">Vérifiez l'aperçu, apportez vos dernières modifications, puis téléchargez en PDF.</p>
+
+        <div class="modif-card">
+          <p class="section-mini-label">MODIFICATIONS RAPIDES</p>
+
+          <div class="field">
+            <label class="field-label">Résumé professionnel</label>
+            <textarea class="form-input textarea" [(ngModel)]="resumeEdite" rows="4"></textarea>
+          </div>
+
+          <div class="field" style="margin-top: 1rem;">
+            <label class="field-label">Titre du CV</label>
+            <input type="text" class="form-input" [(ngModel)]="titreCv" />
+          </div>
+        </div>
+
+        <div class="score-opti-card">
+          <span class="score-opti-label">Score après optimisation</span>
+          <span class="score-opti-num">{{ scoreApresOptimisation }}%</span>
+          <div class="score-opti-pts">+{{ pointsGagnes }} points gagnés</div>
+        </div>
+
+        <button class="btn-primary btn-dl" (click)="telechargerPdf()">
+          ↓ Télécharger en PDF
+        </button>
+
+        <div class="btn-row">
+          <button class="btn-outline" (click)="etapePrecedente()">← Modifier</button>
+          <button class="btn-secondary-action" (click)="enregistrerCandidature()">Enregistrer candidature</button>
+        </div>
+      </ng-container>
+
+    </div>
+
+    <!-- ══ Colonne droite — Aperçu CV ══ -->
+    <div class="gen-right">
+      <div class="apercu-header">
+        <span class="apercu-label">APERÇU DU CV</span>
+        <span class="apercu-badge">✓ Optimisé par l'IA pour cette offre</span>
+      </div>
+
+      <div class="cv-preview" [style.--accent]="couleurAccent">
+        <!-- En-tête CV -->
+        <div class="cv-head">
+          <h3 class="cv-nom">{{ prenomMock }} {{ nomMock }}</h3>
+          <p class="cv-titre-poste">{{ titreMock }}</p>
+          <div class="cv-meta">
+            <span>✉ {{ emailMock }}</span>
+            <span>📍 {{ villeMock }}</span>
+            <span>🔗 {{ linkedinMock }}</span>
+          </div>
+        </div>
+
+        <!-- Corps CV -->
+        <div class="cv-body">
+          <!-- Colonne gauche CV -->
+          <div class="cv-col-left">
+            <div class="cv-section">
+              <p class="cv-section-label">COMPÉTENCES</p>
+              <div *ngFor="let c of competencesMock" class="cv-comp-item">
+                <span class="cv-comp-nom">{{ c.nom }}</span>
+                <div class="cv-comp-bar">
+                  <div class="cv-comp-fill" [style.width.%]="c.pct"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="cv-section">
+              <p class="cv-section-label">FORMATION</p>
+              <p class="cv-bold">{{ formationMock.etablissement }}</p>
+              <p class="cv-small">{{ formationMock.diplome }}</p>
+              <p class="cv-small muted">{{ formationMock.debut }} – {{ formationMock.fin }}</p>
+            </div>
+
+            <div class="cv-section">
+              <p class="cv-section-label">LANGUES</p>
+              <div *ngFor="let l of languesMock" class="cv-langue-row">
+                <span class="cv-small">{{ l.langue }}</span>
+                <span class="cv-small muted">{{ l.niveau }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Colonne droite CV -->
+          <div class="cv-col-right">
+            <div class="cv-section">
+              <p class="cv-section-label">RÉSUMÉ PROFESSIONNEL</p>
+              <p class="cv-small">{{ etapeActive === 4 ? resumeEdite : resumeMock }}</p>
+            </div>
+
+            <div class="cv-section">
+              <p class="cv-section-label">EXPÉRIENCES</p>
+              <div *ngFor="let e of experiencesMock" class="cv-exp-item">
+                <p class="cv-bold">{{ e.poste }}</p>
+                <p class="cv-small">{{ e.entreprise }}</p>
+                <p class="cv-small muted">{{ e.periode }}</p>
+                <p class="cv-small">{{ e.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
