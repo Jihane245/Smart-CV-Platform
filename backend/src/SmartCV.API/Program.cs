@@ -16,28 +16,28 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ===== Auth Keycloak =====
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("Admin", policy => policy.RequireRole("admin"));
-    options.AddPolicy("User", policy => policy.RequireRole("user", "admin"));
-});
-
+// ===== Keycloak config =====
 var keycloakConfig = builder.Configuration.GetSection("Keycloak");
 
+// =======================================================
+// AUTHENTICATION (OIDC + JWT)
+// =======================================================
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
+// ===== Cookie (frontend login session) =====
 .AddCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 })
+// ===== OpenID Connect (Angular login redirect) =====
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
-    options.BackchannelHttpHandler = new HostRewritingHandler("localhost:8080", "keycloak:8080");
+    options.BackchannelHttpHandler =
+        new HostRewritingHandler("localhost:8080", "keycloak:8080");
 
     options.Authority = keycloakConfig["Authority"];
     options.MetadataAddress = keycloakConfig["MetadataAddress"];
@@ -66,7 +66,9 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = keycloakConfig["ClientId"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
+
         NameClaimType = "preferred_username",
+
         RoleClaimType = "roles"
     };
 
@@ -81,6 +83,7 @@ builder.Services.AddAuthentication(options =>
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
             if (user == null)
             {
                 db.Users.Add(new User
@@ -91,9 +94,11 @@ builder.Services.AddAuthentication(options =>
                     PasswordHash = Guid.NewGuid().ToString(),
                     Role = RoleUtilisateur.Candidat
                 });
+
                 await db.SaveChangesAsync();
             }
         },
+
         OnRedirectToIdentityProviderForSignOut = async ctx =>
         {
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
@@ -103,6 +108,7 @@ builder.Services.AddAuthentication(options =>
             if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
         },
+
         OnRemoteFailure = ctx =>
         {
             ctx.Response.Redirect("http://localhost:5000/api/auth/login");
@@ -110,9 +116,33 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
+})
+
+// ===========
+// JWT BEARER
+// ===========
+.AddJwtBearer("Bearer", options =>
+{
+    options.Authority = "http://localhost:8080/realms/cv-platform";
+    options.RequireHttpsMetadata = false;
+    options.Audience = "cv_app";
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = "preferred_username",
+
+        RoleClaimType = "roles"
+    };
 });
 
-builder.Services.AddAuthorization();
+// ===== AUTHORIZATION =====
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("User", policy => policy.RequireRole("User", "Admin"));
+});
+
+// ===== CORS =====
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -123,27 +153,26 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// ===== .NET 10 : OpenAPI natif =====
+// ===== OpenAPI (.NET 10) =====
 builder.Services.AddOpenApi();
+
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var app = builder.Build();
 
-
 if (app.Environment.IsDevelopment())
 {
-    // .NET 10 : endpoint OpenAPI JSON
     app.MapOpenApi();
-
-    // UI Swagger via Scalar (gratuit, moderne, compatible .NET 10)
     app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
 app.UseCors();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
