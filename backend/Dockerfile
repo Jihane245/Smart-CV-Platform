@@ -1,14 +1,11 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /app
-
-COPY src/SmartCV.API/SmartCV.API.csproj ./src/SmartCV.API/
-RUN dotnet restore ./src/SmartCV.API/SmartCV.API.csproj
-
-COPY src/ ./src/
-RUN dotnet publish ./src/SmartCV.API/SmartCV.API.csproj -c Release -o /out
-
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
+
+# 🔥 FIX AUTH / KERBEROS / POSTGRES / OIDC
+RUN apt-get update && apt-get install -y \
+    libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /out .
 
 ENV ASPNETCORE_URLS=http://+:5000
