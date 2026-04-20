@@ -20,6 +20,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("test")]
+    [AllowAnonymous]
     public IActionResult Test()
     {
         return Ok(new { message = "AdminController fonctionne !" });
