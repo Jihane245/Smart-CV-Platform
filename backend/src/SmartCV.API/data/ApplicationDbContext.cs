@@ -24,6 +24,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<TemplateCv> Templates { get; set; }
     public DbSet<LettreMotivation> LettresMotivation { get; set; }
     public DbSet<Candidature> Candidatures { get; set; }
+    public DbSet<SectionDynamique> SectionsDynamiques { get; set; }
+    public DbSet<LigneDynamique> LignesDynamiques { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +36,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Candidature>().Property(c => c.Statut).HasConversion<string>();
         modelBuilder.Entity<Offre>().Property(o => o.TypeContrat).HasConversion<string>();
         modelBuilder.Entity<User>().Property(u => u.Role).HasConversion<string>();
+        modelBuilder.Entity<SectionDynamique>().HasOne(s => s.Profil).WithMany(p => p.Sections).HasForeignKey(s => s.ProfilId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<LigneDynamique>().HasOne(l => l.Section).WithMany(s => s.Lignes).HasForeignKey(l => l.SectionId).OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
         modelBuilder.Entity<Competence>().HasIndex(c => c.Nom).IsUnique();
