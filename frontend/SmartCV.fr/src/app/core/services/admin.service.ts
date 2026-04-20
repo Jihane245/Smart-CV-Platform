@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 const API_BASE = 'http://localhost:5000/api/admin';
 
@@ -13,7 +14,7 @@ export interface AdminStatDto {
 }
 
 export interface AdminUtilisateurDto {
-  id: string;
+  id: number;
   initiales: string;
   couleurAvatar: string;
   nom: string;
@@ -23,6 +24,8 @@ export interface AdminUtilisateurDto {
   inscritLe: string;
   actif: boolean;
 }
+
+type AdminUtilisateurApiDto = Omit<AdminUtilisateurDto, 'id'> & { id: string | number };
 
 export interface AdminTemplateDto {
   id: number;
@@ -52,16 +55,25 @@ export class AdminService {
   getUtilisateurs(search?: string): Observable<AdminUtilisateurDto[]> {
     const q = (search ?? '').trim();
     const url = q ? `${API_BASE}/utilisateurs?search=${encodeURIComponent(q)}` : `${API_BASE}/utilisateurs`;
-    return this.http.get<AdminUtilisateurDto[]>(url, { withCredentials: true });
+    return this.http
+      .get<AdminUtilisateurApiDto[]>(url, { withCredentials: true })
+      .pipe(
+        map((users) =>
+          users.map((u) => ({
+            ...u,
+            id: typeof u.id === 'number' ? u.id : Number.parseInt(u.id, 10),
+          }))
+        )
+      );
   }
 
-  updateActif(userId: string, actif: boolean): Observable<unknown> {
+  updateActif(userId: number, actif: boolean): Observable<unknown> {
     return this.http.put(`${API_BASE}/utilisateurs/${userId}/actif`, { actif } satisfies UpdateActifPayload, {
       withCredentials: true,
     });
   }
 
-  deleteUtilisateur(userId: string): Observable<unknown> {
+  deleteUtilisateur(userId: number): Observable<unknown> {
     return this.http.delete(`${API_BASE}/utilisateurs/${userId}`, { withCredentials: true });
   }
 
