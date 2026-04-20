@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Experience, Formation, NiveauCompetence } from '../models/models';
 
 const API_BASE = 'http://localhost:5000/api/profil';
+const SECTIONS_BASE = 'http://localhost:5000/api/profil/me/sections';
 
 /** Corps attendu par POST /api/profil/me/competences (niveau = index enum backend) */
 export interface CompetenceCreatePayload {
@@ -37,6 +38,44 @@ export interface ProfilMeResponse {
   experiences: Experience[];
   formations: Formation[];
   certificats: unknown[];
+}
+
+// ─── Sections dynamiques ──────────────────────────────────────────────────────
+
+export interface LigneDynamiqueResponseDto {
+  id: string; // Guid
+  detail: string | null;
+  description: string | null;
+  ordre: number;
+}
+
+export interface SectionDynamiqueResponseDto {
+  id: string; // Guid
+  titre: string;
+  ordre: number;
+  lignes: LigneDynamiqueResponseDto[];
+}
+
+export interface CreateSectionDtoPayload {
+  titre: string;
+  ordre: number;
+}
+
+export interface UpdateSectionDtoPayload {
+  titre: string;
+  ordre: number;
+}
+
+export interface CreateLigneDtoPayload {
+  detail: string | null;
+  description: string | null;
+  ordre: number;
+}
+
+export interface UpdateLigneDtoPayload {
+  detail: string | null;
+  description: string | null;
+  ordre: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -93,6 +132,42 @@ export class ProfilService {
 
   deleteFormation(idFrmt: number): Observable<void> {
     return this.http.delete<void>(`${API_BASE}/me/formations/${idFrmt}`, { withCredentials: true });
+  }
+
+  // ─── Sections dynamiques ──────────────────────────────────────────────────
+
+  getSections(): Observable<SectionDynamiqueResponseDto[]> {
+    return this.http.get<SectionDynamiqueResponseDto[]>(SECTIONS_BASE, {
+      withCredentials: true,
+    });
+  }
+
+  createSection(payload: CreateSectionDtoPayload): Observable<SectionDynamiqueResponseDto> {
+    return this.http.post<SectionDynamiqueResponseDto>(SECTIONS_BASE, payload, {
+      withCredentials: true,
+    });
+  }
+
+  updateSection(id: string, payload: UpdateSectionDtoPayload): Observable<void> {
+    return this.http.put<void>(`${SECTIONS_BASE}/${id}`, payload, { withCredentials: true });
+  }
+
+  deleteSection(id: string): Observable<void> {
+    return this.http.delete<void>(`${SECTIONS_BASE}/${id}`, { withCredentials: true });
+  }
+
+  addLigne(sectionId: string, payload: CreateLigneDtoPayload): Observable<LigneDynamiqueResponseDto> {
+    return this.http.post<LigneDynamiqueResponseDto>(`${SECTIONS_BASE}/${sectionId}/lignes`, payload, {
+      withCredentials: true,
+    });
+  }
+
+  updateLigne(sectionId: string, ligneId: string, payload: UpdateLigneDtoPayload): Observable<void> {
+    return this.http.put<void>(`${SECTIONS_BASE}/${sectionId}/lignes/${ligneId}`, payload, { withCredentials: true });
+  }
+
+  deleteLigne(sectionId: string, ligneId: string): Observable<void> {
+    return this.http.delete<void>(`${SECTIONS_BASE}/${sectionId}/lignes/${ligneId}`, { withCredentials: true });
   }
 }
 

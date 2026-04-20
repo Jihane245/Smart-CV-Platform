@@ -6,20 +6,30 @@ import { catchError, finalize, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import {
+  CreateLigneDtoPayload,
+  CreateSectionDtoPayload,
   ExperienceDtoPayload,
   FormationDtoPayload,
+  LigneDynamiqueResponseDto,
   ProfilMeResponse,
   ProfilService,
+  SectionDynamiqueResponseDto,
+  UpdateLigneDtoPayload,
+  UpdateSectionDtoPayload,
   normalizeCompetenceNiveau,
 } from '../../../../core/services/profil.service';
 import { Competence, Experience, Formation, NiveauCompetence } from '../../../../core/models/models';
 
 interface LigneSection {
+  id?: string; // Guid
+  ordre: number;
   detail: string;
   description: string;
 }
 
 interface Section {
+  id?: string; // Guid
+  ordre: number;
   titre: string;
   lignes: LigneSection[];
 }
@@ -87,9 +97,15 @@ export class MonProfil implements OnInit {
           return of(null);
         })
       ),
+      sections: this.profilService.getSections().pipe(
+        catchError((err) => {
+          console.error('Erreur chargement sections', err);
+          return of(null);
+        })
+      ),
     })
       .pipe(finalize(() => { this.loading = false; this.cdr.markForCheck(); }))
-      .subscribe(({ status, profil }) => {
+      .subscribe(({ status, profil, sections }) => {
         if (status) {
           this.prenom = status.givenName ?? '';
           this.nom = status.surname ?? '';
@@ -98,6 +114,9 @@ export class MonProfil implements OnInit {
         }
         if (profil) {
           this.applyProfil(profil);
+        }
+        if (sections) {
+          this.applySections(sections);
         }
         this.recalcCompletude();
         this.cdr.markForCheck();
@@ -234,6 +253,26 @@ export class MonProfil implements OnInit {
         mention: f.mention ?? '',
       });
     }
+  }
+
+  private applySections(sections: SectionDynamiqueResponseDto[]): void {
+    this.sections = (sections ?? [])
+      .slice()
+      .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+      .map((s) => ({
+        id: s.id,
+        titre: s.titre ?? '',
+        ordre: s.ordre ?? 0,
+        lignes: (s.lignes ?? [])
+          .slice()
+          .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+          .map((l) => ({
+            id: l.id,
+            ordre: l.ordre ?? 0,
+            detail: l.detail ?? '',
+            description: l.description ?? '',
+          })),
+      }));
   }
 
   private isoToInputDate(iso: string): string {
@@ -397,6 +436,16 @@ export class MonProfil implements OnInit {
     });
   }
 
+  private reloadSections(): void {
+    this.profilService.getSections().subscribe({
+      next: (sections) => {
+        this.applySections(sections);
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Erreur rechargement sections', err),
+    });
+  }
+
   private toExperiencePayload(exp: Experience): ExperienceDtoPayload {
     return {
       poste: exp.poste ?? '',
@@ -481,24 +530,119 @@ export class MonProfil implements OnInit {
   // ─── Sections dynamiques ──────────────────────────────────────────────────
 
   ajouterSection(): void {
-    this.sections.push({
+    const ordre = this.sections.length ? Math.max(...this.sections.map((s) => s.ordre ?? 0)) + 1 : 0;
+    const payload: CreateSectionDtoPayload = {
       titre: 'Section #',
-      lignes: [
-        { detail: 'Détail 1', description: '' },
-        { detail: 'Détail 2', description: '' },
-      ],
+      ordre,
+    };
+
+    this.profilService.createSection(payload).subscribe({
+      next: (created) => {
+        this.sections.push({
+          id: created.id,
+          titre: created.titre ?? payload.titre,
+          ordre: created.ordre ?? ordre,
+          lignes: (created.lignes ?? []).map((l) => ({
+            id: l.id,
+            ordre: l.ordre ?? 0,
+            detail: l.detail ?? '',
+            description: l.description ?? '',
+          })),
+        });
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Erreur création section', err),
     });
   }
 
   supprimerSection(index: number): void {
-    this.sections.splice(index, 1);
+    const section = this.sections[index];
+    if (!section) return;
+
+    // If not saved (shouldn't happen with API flow), just remove locally
+    if (!section.id) {
+      this.sections.splice(index, 1);
+      return;
+    }
+
+    this.profilService.deleteSection(section.id).subscribe({
+      next: () => {
+        this.sections.splice(index, 1);
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Erreur suppression section', err),
+    });
   }
 
   ajouterLigne(section: Section): void {
-    section.lignes.push({ detail: `Détail ${section.lignes.length + 1}`, description: '' });
+    if (!section.id) {
+      // Section not yet saved; keep local behavior
+      section.lignes.push({
+        ordre: section.lignes.length,
+        detail: `Détail ${section.lignes.length + 1}`,
+        description: '',
+      });
+      return;
+    }
+
+    const ordre = section.lignes.length ? Math.max(...section.lignes.map((l) => l.ordre ?? 0)) + 1 : 0;
+    const payload: CreateLigneDtoPayload = {
+      detail: `Détail ${section.lignes.length + 1}`,
+      description: '',
+      ordre,
+    };
+
+    this.profilService.addLigne(section.id, payload).subscribe({
+      next: (created: LigneDynamiqueResponseDto) => {
+        section.lignes.push({
+          id: created.id,
+          ordre: created.ordre ?? ordre,
+          detail: created.detail ?? payload.detail ?? '',
+          description: created.description ?? payload.description ?? '',
+        });
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Erreur ajout ligne', err),
+    });
   }
 
   supprimerLigne(section: Section, index: number): void {
-    section.lignes.splice(index, 1);
+    const ligne = section.lignes[index];
+    if (!ligne) return;
+
+    if (!section.id || !ligne.id) {
+      section.lignes.splice(index, 1);
+      return;
+    }
+
+    this.profilService.deleteLigne(section.id, ligne.id).subscribe({
+      next: () => {
+        section.lignes.splice(index, 1);
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Erreur suppression ligne', err),
+    });
+  }
+
+  onSectionBlur(section: Section): void {
+    if (!section.id) return;
+    const payload: UpdateSectionDtoPayload = { titre: section.titre ?? '', ordre: section.ordre ?? 0 };
+    this.profilService.updateSection(section.id, payload).subscribe({
+      next: () => {},
+      error: (err) => console.error('Erreur update section', err),
+    });
+  }
+
+  onLigneBlur(section: Section, ligne: LigneSection): void {
+    if (!section.id || !ligne.id) return;
+    const payload: UpdateLigneDtoPayload = {
+      detail: ligne.detail ?? '',
+      description: ligne.description ?? '',
+      ordre: ligne.ordre ?? 0,
+    };
+    this.profilService.updateLigne(section.id, ligne.id, payload).subscribe({
+      next: () => {},
+      error: (err) => console.error('Erreur update ligne', err),
+    });
   }
 }

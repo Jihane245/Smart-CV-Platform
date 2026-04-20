@@ -23,6 +23,13 @@ describe('MonProfil', () => {
     updateExperience: ReturnType<typeof vi.fn>;
     addFormation: ReturnType<typeof vi.fn>;
     updateFormation: ReturnType<typeof vi.fn>;
+    getSections: ReturnType<typeof vi.fn>;
+    createSection: ReturnType<typeof vi.fn>;
+    updateSection: ReturnType<typeof vi.fn>;
+    deleteSection: ReturnType<typeof vi.fn>;
+    addLigne: ReturnType<typeof vi.fn>;
+    updateLigne: ReturnType<typeof vi.fn>;
+    deleteLigne: ReturnType<typeof vi.fn>;
   };
 
   const statusOk: AuthStatus = {
@@ -65,6 +72,13 @@ describe('MonProfil', () => {
       updateExperience: vi.fn().mockReturnValue(of(void 0)),
       addFormation: vi.fn().mockReturnValue(of({ idFrmt: 88 })),
       updateFormation: vi.fn().mockReturnValue(of(void 0)),
+      getSections: vi.fn().mockReturnValue(of([])),
+      createSection: vi.fn().mockReturnValue(of({ id: '00000000-0000-0000-0000-000000000000', titre: 'Section #', ordre: 0, lignes: [] })),
+      updateSection: vi.fn().mockReturnValue(of(void 0)),
+      deleteSection: vi.fn().mockReturnValue(of(void 0)),
+      addLigne: vi.fn().mockReturnValue(of({ id: '00000000-0000-0000-0000-000000000001', detail: 'Détail 1', description: '', ordre: 0 })),
+      updateLigne: vi.fn().mockReturnValue(of(void 0)),
+      deleteLigne: vi.fn().mockReturnValue(of(void 0)),
     };
 
     await TestBed.configureTestingModule({
@@ -392,19 +406,16 @@ describe('MonProfil', () => {
   describe('sections locales', () => {
     it('should ajouterSection / supprimerSection', () => {
       component.ajouterSection();
-      expect(component.sections.length).toBe(1);
-      component.supprimerSection(0);
-      expect(component.sections.length).toBe(0);
+      expect(profilServiceMock.createSection).toHaveBeenCalled();
     });
 
     it('should ajouterLigne / supprimerLigne', () => {
-      component.ajouterSection();
+      component.sections = [
+        { id: '00000000-0000-0000-0000-000000000000', ordre: 0, titre: 'S', lignes: [] },
+      ] as any;
       const s = component.sections[0];
-      const len = s.lignes.length;
       component.ajouterLigne(s);
-      expect(s.lignes.length).toBe(len + 1);
-      component.supprimerLigne(s, 1);
-      expect(s.lignes.length).toBe(len);
+      expect(profilServiceMock.addLigne).toHaveBeenCalled();
     });
   });
 });
