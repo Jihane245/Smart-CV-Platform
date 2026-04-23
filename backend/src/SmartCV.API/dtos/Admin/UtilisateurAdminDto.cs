@@ -1,4 +1,4 @@
-namespace API.dtos;
+namespace API.dtos.Admin;
 
 public class UtilisateurAdminDto
 {

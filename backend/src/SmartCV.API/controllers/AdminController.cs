@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using API.data;
 using API.models;
-using API.dtos;
+using API.dtos.Admin;
 
 namespace API.Controllers;
 

@@ -138,7 +138,17 @@ builder.Services.AddAuthentication(options =>
 // ===== AUTHORIZATION =====
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("Admin", policy => 
+        policy.RequireAssertion(context =>
+            context.User.HasClaim(c => 
+                c.Type == "realm_access" && 
+                c.Value.ToLower().Contains("admin")
+            ) || 
+            context.User.IsInRole("Admin") ||
+            context.User.IsInRole("admin")
+        )
+    );  // ← Parenthèse fermante ajoutée ici
+    
     options.AddPolicy("User", policy => policy.RequireRole("User", "Admin"));
 });
 
