@@ -125,6 +125,7 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
 
 // ===== .NET 10 : OpenAPI natif =====
 builder.Services.AddOpenApi();
@@ -144,6 +145,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
