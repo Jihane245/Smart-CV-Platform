@@ -821,7 +821,7 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "secret" : "xrQer7r82u1ZXv2fN0slXQNPmX6c3GwC",
+    "secret" : "TLAZjMPQZwXBRMaQXIcRAMbbnIiKT42A",
     "redirectUris" : [ "http://localhost:80/*", "http://localhost/*", "http://localhost:5000/*", "http://localhost:5000/signin-oidc" ],
     "webOrigins" : [ "http://localhost:80/*", "http://localhost:5000", "http://localhost/*" ],
     "notBefore" : 0,
@@ -1388,8 +1388,10 @@
       "config" : {
         "user.attribute" : "foo",
         "introspection.token.claim" : "true",
+        "userinfo.token.claim" : "true",
+        "id.token.claim" : "true",
         "access.token.claim" : "true",
-        "claim.name" : "realm_access.roles",
+        "claim.name" : "role",
         "jsonType.label" : "String",
         "multivalued" : "true"
       }

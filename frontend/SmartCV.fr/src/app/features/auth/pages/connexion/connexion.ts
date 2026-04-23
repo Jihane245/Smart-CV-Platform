@@ -26,11 +26,15 @@ export class Connexion implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    this.authService.isAuthenticated().subscribe(isAuth => {
-      if (isAuth) this.router.navigate(['/user']);
-    });
-  }
+   ngOnInit(): void {
+      this.authService.isAuthenticated().subscribe(isAuth => {
+        if (isAuth) {
+          this.authService.isAdmin().subscribe(isAdmin => {
+            this.router.navigate([isAdmin ? '/admin' : '/user']);
+          });
+        }
+      });
+    }
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
