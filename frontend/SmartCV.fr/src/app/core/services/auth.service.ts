@@ -61,7 +61,7 @@ export class AuthService {
         const claims = data.claims as { type: string; value: string }[];
         return claims?.some(c =>
           (c.type === 'roles' || c.type === 'role') &&
-          c.value === 'admin'
+          c.value === 'Admin'
         ) ?? false;
       }),
       catchError(() => of(false))
