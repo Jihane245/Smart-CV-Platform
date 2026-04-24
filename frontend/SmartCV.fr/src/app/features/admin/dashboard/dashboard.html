@@ -28,6 +28,13 @@
       </svg>
     </div>
     <div class="sidebar-avatar">{{ initiales }}</div>
+    <button class="sidebar-logout" (click)="logout()" title="Se déconnecter" aria-label="Se déconnecter">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </button>
   </aside>
 
   <!-- Contenu principal -->
@@ -44,6 +51,22 @@
       </button>
     </div>
 
+    <!-- Filtre mois (global pour toutes les stats) -->
+    <div class="month-filter">
+      <span class="month-filter-label">Filtrer par mois :</span>
+      <button
+        class="month-filter-btn"
+        [class.active]="selectedMonthIndex === null"
+        (click)="resetMonth()"
+      >Total</button>
+      <button
+        *ngFor="let label of monthLabels; let i = index"
+        class="month-filter-btn"
+        [class.active]="selectedMonthIndex === i"
+        (click)="selectMonth(i)"
+      >{{ label }}</button>
+    </div>
+
     <!-- Statistiques -->
     <div class="stats-grid">
       <div
@@ -53,18 +76,29 @@
         [ngClass]="'stat-' + stat.couleur"
       >
         <div class="stat-label">{{ stat.label }}</div>
-        <div class="stat-valeur">{{ stat.valeur | number }}</div>
-        <div class="stat-delta">↑ {{ stat.delta }} ce mois</div>
+        <div class="stat-valeur">{{ getStatValeur(stat) | number }}</div>
+        <div class="stat-delta">
+          <span *ngIf="selectedMonthIndex === null">↑ {{ stat.delta }} ce mois</span>
+          <span *ngIf="selectedMonthIndex !== null">{{ getStatLabel() }}</span>
+        </div>
         <div class="bar-chart">
           <div
+            *ngFor="let h of stat.historique; let i = index; let last = last"
             class="bar"
-            *ngFor="let h of stat.historique; let last = last"
             [style.height.px]="h * 0.7"
             [class.last]="last"
+            [class.selected-bar]="selectedMonthIndex === i"
+            (click)="selectMonth(i)"
+            [title]="monthLabels[i] + ' : ' + h"
           ></div>
         </div>
         <div class="bar-labels">
-          <span *ngFor="let l of ['Oct','Nov','Déc','Jan','Fév','Mar']">{{ l }}</span>
+          <span
+            *ngFor="let label of monthLabels; let i = index"
+            class="month-label"
+            [class.selected-month]="selectedMonthIndex === i"
+            (click)="selectMonth(i)"
+          >{{ label }}</span>
         </div>
       </div>
     </div>
@@ -129,7 +163,7 @@
       <div class="templates-grid">
 
         <!-- Templates existants -->
-        <div class="template-card" *ngFor="let t of templates">
+        <div class="template-card" *ngFor="let t of templates" (click)="voirDetailTemplate(t)" style="cursor: pointer;">
           <div class="template-preview">
             <div class="preview-header" [style.background]="t.couleur"></div>
             <div class="preview-lines">
@@ -139,8 +173,8 @@
           <div class="template-footer">
             <span class="template-nom">{{ t.nom }}</span>
             <div class="template-actions">
-              <button class="btn-template-edit" (click)="editerTemplate(t)">Éditer</button>
-              <button class="btn-template-delete" (click)="supprimerTemplate(t)">✕</button>
+              <button class="btn-template-edit" (click)="editerTemplate(t); $event.stopPropagation()">Éditer</button>
+              <button class="btn-template-delete" (click)="supprimerTemplate(t); $event.stopPropagation()">✕</button>
             </div>
           </div>
         </div>
@@ -194,4 +228,98 @@
       </ng-container>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MODAL : Détail d'un template                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="templateDetail" (click)="fermerDetailTemplate()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+
+      <!-- Header du modal -->
+      <div class="modal-header" [style.background]="templateDetail.couleur">
+        <h2>{{ templateDetail.nom }}</h2>
+        <button class="modal-close" (click)="fermerDetailTemplate()">✕</button>
+      </div>
+
+      <!-- Body du modal -->
+      <div class="modal-body">
+
+        <!-- Infos de base -->
+        <div class="modal-section">
+          <h3>Informations générales</h3>
+          <p><strong>Nom :</strong> {{ templateDetail.nom }}</p>
+          <p>
+            <strong>Couleur principale :</strong>
+            <span class="couleur-box" [style.background]="templateDetail.couleur"></span>
+            {{ templateDetail.couleur }}
+          </p>
+          <p><strong>ID :</strong> {{ templateDetail.id }}</p>
+        </div>
+
+        <!-- Structure (sections + champs) -->
+        <div class="modal-section" *ngIf="templateDetail.structure?.sections?.length">
+          <h3>Structure du template</h3>
+          <div *ngFor="let section of templateDetail.structure?.sections" class="detail-section">
+            <div class="detail-section-header" [style.background]="section.couleur || '#6b8068'">
+              <span class="detail-section-ordre">#{{ section.ordre }}</span>
+              <span class="detail-section-titre">{{ section.titre }}</span>
+            </div>
+
+            <div class="detail-champs">
+              <div *ngIf="section.champs?.length === 0" class="empty-fields">
+                Aucun champ dans cette section
+              </div>
+              <table *ngIf="section.champs?.length" class="detail-champs-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Nom technique</th>
+                    <th>Label</th>
+                    <th>Type</th>
+                    <th>Placeholder</th>
+                    <th>Max</th>
+                    <th>Requis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let champ of section.champs">
+                    <td>{{ champ.ordre }}</td>
+                    <td><code>{{ champ.nom || '—' }}</code></td>
+                    <td>{{ champ.label || '—' }}</td>
+                    <td><span class="type-badge">{{ champ.type }}</span></td>
+                    <td>{{ champ.placeholder || '—' }}</td>
+                    <td>{{ champ.maxLength || '∞' }}</td>
+                    <td>
+                      <span *ngIf="champ.requis" class="requis-oui">✓</span>
+                      <span *ngIf="!champ.requis" class="requis-non">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Si pas de structure -->
+        <div class="modal-section" *ngIf="!templateDetail.structure?.sections?.length">
+          <h3>Structure du template</h3>
+          <p class="empty-message">
+            Ce template n'a pas encore de structure définie.
+            Cliquez sur "Éditer" pour ajouter des sections et des champs.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Footer du modal -->
+      <div class="modal-footer">
+        <button class="modal-btn-edit" (click)="editerTemplate(templateDetail); fermerDetailTemplate()">
+          ✏️ Éditer ce template
+        </button>
+        <button class="modal-btn-close" (click)="fermerDetailTemplate()">Fermer</button>
+      </div>
+
+    </div>
+  </div>
+
 </div>

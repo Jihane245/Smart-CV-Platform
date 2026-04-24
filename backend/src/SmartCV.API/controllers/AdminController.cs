@@ -3,14 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using API.data;
 using API.models;
+using API.models.Enums;
 using API.dtos;
 using API.services;
+using System.Text.Json;
 
 namespace API.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize(Policy = "Admin")]  
+  [Authorize(Policy = "Admin", AuthenticationSchemes = "Cookies,Bearer")] 
 public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -33,17 +35,18 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetStats()
     {
         var maintenant = DateTime.UtcNow;
-        
-        // Les 7 derniers mois
-        var mois = Enumerable.Range(0, 7)
-            .Select(i => maintenant.AddMonths(-6 + i))
+
+        // Les 12 mois de l'année en cours (Jan → Déc)
+        var mois = Enumerable.Range(1, 12)
+            .Select(i => new DateTime(maintenant.Year, i, 1))
             .ToList();
 
-        // === Historique des utilisateurs ===
+        // === Historique des utilisateurs (EXCLUT les admins) ===
         var historiqueUsers = new List<int>();
         foreach (var m in mois)
         {
             var count = await _db.Users
+                .Where(u => u.Role != RoleUtilisateur.Admin)
                 .Where(u => u.CreatedAt.Year == m.Year && u.CreatedAt.Month == m.Month)
                 .CountAsync();
             historiqueUsers.Add(count);
@@ -80,7 +83,7 @@ public class AdminController : ControllerBase
             new StatDto
             {
                 Label      = "UTILISATEURS INSCRITS",
-                Valeur     = await _db.Users.CountAsync(),
+                Valeur     = await _db.Users.Where(u => u.Role != RoleUtilisateur.Admin).CountAsync(),
                 Delta      = deltaUsers,
                 Couleur    = "green",
                 Historique = historiqueUsers
@@ -123,7 +126,8 @@ public class AdminController : ControllerBase
     [HttpGet("utilisateurs")]
     public async Task<IActionResult> GetUtilisateurs([FromQuery] string? search)
     {
-        var query = _db.Users.AsQueryable();
+        // Exclure les admins de la liste
+        var query = _db.Users.Where(u => u.Role != RoleUtilisateur.Admin).AsQueryable();
 
         // Si un terme de recherche est fourni, on filtre
         if (!string.IsNullOrEmpty(search))
@@ -218,43 +222,99 @@ public class AdminController : ControllerBase
     }
 
     // GET /api/admin/templates
-    [HttpGet("templates")]
-    public async Task<IActionResult> GetTemplates()
-    {
-        var templates = await _db.Templates
-            .Select(t => new TemplateDto
-            {
-                Id     = t.IdTemp,
-                Nom    = t.Nom,
-                Couleur = t.Format ?? "#000000",
-                Lignes = new List<string> { "#cccccc", "#dddddd", "#eeeeee" }  // Valeurs par défaut
-            })
-            .ToListAsync();
 
-        return Ok(templates);
-    }
+
+  [HttpGet("templates")]
+  public async Task<IActionResult> GetTemplates()
+  {
+      var templates = await _db.Templates.ToListAsync();
+
+      var result = templates.Select(t => new TemplateDto
+      {
+          Id      = t.IdTemp,
+          Nom     = t.Nom,
+          Couleur = t.Couleur ?? t.Format ?? "#000000",
+          Lignes  = new List<string> { "#cccccc", "#dddddd", "#eeeeee" },
+          Structure = ParseStructure(t.StructureJson)
+      }).ToList();
+
+      return Ok(result);
+  }
+    // GET /api/admin/templates/{id}
+  [HttpGet("templates/{id}")]
+  public async Task<IActionResult> GetTemplate(int id)
+  {
+      var t = await _db.Templates.FindAsync(id);
+      if (t == null)
+          return NotFound(new { message = "Template non trouvé" });
+
+      return Ok(new TemplateDto
+      {
+          Id        = t.IdTemp,
+          Nom       = t.Nom,
+          Couleur   = t.Couleur ?? t.Format ?? "#000000",
+          Lignes    = new List<string> { "#cccccc", "#dddddd", "#eeeeee" },
+          Structure = ParseStructure(t.StructureJson)
+      });
+  }
 
     // POST /api/admin/templates
-    [HttpPost("templates")]
-    public async Task<IActionResult> CreateTemplate([FromBody] CreateTemplateDto dto)
-    {
-        var template = new TemplateCv
-        {
-            Nom    = dto.Nom,
-            Format = dto.Couleur
-        };
+  // POST /api/admin/templates
+  [HttpPost("templates")]
+  public async Task<IActionResult> CreateTemplate([FromBody] CreateTemplateDto dto)
+  {
+      var template = new TemplateCv
+      {
+          Nom       = dto.Nom,
+          Format    = dto.Couleur,
+          Couleur   = dto.Couleur,
+          ApercuUrl = "https://placeholder.com/preview.png",
+          Lignes    = dto.Lignes != null
+                        ? string.Join(",", dto.Lignes)
+                        : "#cccccc,#dddddd,#eeeeee",
+          StructureJson = dto.Structure != null
+                            ? JsonSerializer.Serialize(dto.Structure)
+                            : null
+      };
 
-        _db.Templates.Add(template);
-        await _db.SaveChangesAsync();
+      _db.Templates.Add(template);
+      await _db.SaveChangesAsync();
 
-        return Ok(new TemplateDto
-        {
-            Id      = template.IdTemp,
-            Nom     = template.Nom,
-            Couleur = template.Format ?? "#000000",
-            Lignes  = dto.Lignes ?? new List<string> { "#cccccc", "#dddddd", "#eeeeee" }
-        });
-    }
+      return Ok(new TemplateDto
+      {
+          Id        = template.IdTemp,
+          Nom       = template.Nom,
+          Couleur   = template.Couleur ?? "#000000",
+          Lignes    = dto.Lignes ?? new List<string> { "#cccccc", "#dddddd", "#eeeeee" },
+          Structure = dto.Structure
+      });
+  }
+ // PUT /api/admin/templates/{id}
+  [HttpPut("templates/{id}")]
+  public async Task<IActionResult> UpdateTemplate(int id, [FromBody] UpdateTemplateDto dto)
+  {
+      var template = await _db.Templates.FindAsync(id);
+      if (template == null)
+          return NotFound(new { message = "Template non trouvé" });
+
+      template.Nom           = dto.Nom;
+      template.Couleur       = dto.Couleur;
+      template.Format        = dto.Couleur;
+      template.StructureJson = dto.Structure != null
+                                 ? JsonSerializer.Serialize(dto.Structure)
+                                 : null;
+
+      await _db.SaveChangesAsync();
+
+      return Ok(new TemplateDto
+      {
+          Id        = template.IdTemp,
+          Nom       = template.Nom,
+          Couleur   = template.Couleur ?? "#000000",
+          Lignes    = new List<string> { "#cccccc", "#dddddd", "#eeeeee" },
+          Structure = dto.Structure
+      });
+  }
 
     // DELETE /api/admin/templates/:id
     [HttpDelete("templates/{id}")]
@@ -269,4 +329,19 @@ public class AdminController : ControllerBase
 
         return Ok(new { message = "Template supprimé" });
     }
+     private static TemplateStructureDto? ParseStructure(string? json)
+      {
+          if (string.IsNullOrEmpty(json)) return null;
+          try
+          {
+              return JsonSerializer.Deserialize<TemplateStructureDto>(
+                  json,
+                  new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+              );
+          }
+          catch
+          {
+              return null;
+          }
+      }
 }
