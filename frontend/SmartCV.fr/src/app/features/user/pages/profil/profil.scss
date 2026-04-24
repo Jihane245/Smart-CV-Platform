@@ -20,15 +20,44 @@ $br:#7a6040;$brd:#5c4220;$cr:#f5f0e8;$cbg:#eee8da;$gn:#6b8068;$gnt:#7a9080;$red:
 .modified-badge{font-size:0.7rem;color:#7a5c10;white-space:nowrap;font-family:sans-serif}
 
 .avatar-card{text-align:center;
-  .avatar-circle{width:70px;height:70px;border-radius:50%;background:$br;color:$cr;font-size:1.3rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 0.6rem}
+  .avatar-wrapper{position:relative;width:80px;height:80px;margin:0 auto 0.6rem;border-radius:50%;
+    &.clickable{cursor:pointer;
+      &:hover .avatar-overlay{opacity:1}
+      &:hover .avatar-circle{filter:brightness(0.85)}}}
+  .avatar-circle{width:100%;height:100%;border-radius:50%;background:$br;color:$cr;font-size:1.4rem;font-weight:700;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;background-repeat:no-repeat;transition:filter 0.2s;
+    &.has-photo{background-color:transparent;color:transparent;box-shadow:0 2px 8px rgba($txt,0.12)}}
+  .avatar-overlay{position:absolute;inset:0;border-radius:50%;background:rgba($txt,0.45);display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transition:opacity 0.2s;pointer-events:none}
+  .avatar-loading{position:absolute;inset:0;border-radius:50%;background:rgba($txt,0.35);display:flex;align-items:center;justify-content:center;
+    .spinner{width:24px;height:24px;border:2.5px solid rgba(#fff,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite}}
   .avatar-name{font-weight:700;font-size:0.95rem;color:$txt}
   .avatar-email{font-size:0.78rem;color:$mut;margin-bottom:0.75rem}
-  .btn-photo{background:none;border:1px solid $bdr;border-radius:6px;padding:0.35rem 0.8rem;font-size:0.78rem;font-family:inherit;color:$txt;cursor:pointer;transition:border-color 0.2s;&:hover{border-color:$br}}
+  .btn-photo{background:none;border:1px solid $bdr;border-radius:6px;padding:0.35rem 0.8rem;font-size:0.78rem;font-family:inherit;color:$txt;cursor:pointer;transition:border-color 0.2s,background 0.2s;
+    &:hover:not(:disabled){border-color:$br;background:rgba($br,0.04)}}
+  .photo-error{color:$red;font-size:0.72rem;margin:0.4rem 0 0;font-family:sans-serif;padding:0.3rem 0.5rem;background:rgba($red,0.08);border-radius:4px}
   .completude-label{text-align:left;font-size:0.7rem;color:$mut;letter-spacing:0.05em;margin-bottom:0.3rem}
   .completude-row{display:flex;justify-content:space-between;font-size:0.8rem;color:$txt;margin-bottom:0.4rem}
   .completude-pct{color:$mut}
   .progress-bar{height:6px;background:$bdr;border-radius:3px;overflow:hidden;
     .progress-fill{height:100%;background:$gn;border-radius:3px;transition:width 0.4s}}}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+// ── Modale de visualisation de la photo ──────────────────────────────────────
+.photo-modal-backdrop{position:fixed;inset:0;background:rgba($txt,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;padding:2rem;animation:fadeIn 0.2s ease-out}
+.photo-modal{position:relative;background:$wht;border-radius:$r;padding:1.5rem;max-width:520px;width:100%;box-shadow:0 20px 60px rgba($txt,0.4);animation:slideUp 0.25s ease-out;font-family:'Inria Serif','Georgia',serif}
+.photo-modal-close{position:absolute;top:0.8rem;right:0.8rem;background:none;border:none;font-size:1.4rem;line-height:1;color:$mut;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.2s,color 0.2s;
+  &:hover{background:rgba($txt,0.08);color:$txt}}
+.photo-modal-image{width:100%;max-height:60vh;display:flex;align-items:center;justify-content:center;margin-bottom:1.2rem;background:$cbg;border-radius:8px;overflow:hidden;
+  img{max-width:100%;max-height:60vh;object-fit:contain;border-radius:8px}}
+.photo-modal-actions{display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap}
+.btn-photo-action{display:inline-flex;align-items:center;gap:0.5rem;padding:0.55rem 1.2rem;border-radius:8px;font-size:0.85rem;font-family:inherit;font-weight:500;cursor:pointer;transition:all 0.2s;border:1px solid transparent;
+  svg{flex-shrink:0}
+  &:disabled{opacity:0.55;cursor:wait}
+  &.change{background:$br;color:$cr;&:hover:not(:disabled){background:$brd;transform:translateY(-1px);box-shadow:0 4px 12px rgba($br,0.25)}}
+  &.delete{background:transparent;color:$red;border-color:rgba($red,0.35);&:hover:not(:disabled){background:rgba($red,0.08);border-color:$red;transform:translateY(-1px)}}}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 .tags-list{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.8rem;
   .tag{background:rgba($gnt,0.12);border:1px solid rgba($gnt,0.35);border-radius:20px;padding:0.25rem 0.75rem;font-size:0.78rem;color:#4a6055;cursor:pointer;transition:background 0.2s,border-color 0.2s,color 0.2s;

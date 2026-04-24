@@ -1,10 +1,12 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, Observable } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
+import { ConfirmService } from '../../../../core/services/confirm.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import {
   CreateLigneDtoPayload,
   CreateSectionDtoPayload,
@@ -17,6 +19,7 @@ import {
   UpdateLigneDtoPayload,
   UpdateSectionDtoPayload,
   normalizeCompetenceNiveau,
+  toAbsolutePhotoUrl,
 } from '../../../../core/services/profil.service';
 import { Competence, Experience, Formation, NiveauCompetence } from '../../../../core/models/models';
 
@@ -76,6 +79,14 @@ export class MonProfil implements OnInit {
   loading = false;
   saving = false;
 
+  // Photo de profil
+  photoUrl: string | null = null;
+  uploadingPhoto = false;
+  photoError: string | null = null;
+  photoViewerOuvert = false;
+
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
   nouvelleCompetence = '';
   ajoutCompetenceVisible = false;
 
@@ -84,7 +95,9 @@ export class MonProfil implements OnInit {
   constructor(
     private profilService: ProfilService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private confirmService: ConfirmService,
+    private notif: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -203,6 +216,7 @@ export class MonProfil implements OnInit {
     this.ville = p.adresse ?? '';
     this.linkedIn = p.linkedIn ?? '';
     this.resume = p.description ?? '';
+    this.photoUrl = toAbsolutePhotoUrl(p.photoUrl);
 
     // Update snapshots to match saved state
     this.savedTitre = this.titre;
@@ -320,6 +334,106 @@ export class MonProfil implements OnInit {
     if (this.prenom.trim() && this.nom.trim()) filled++;
     if (this.email.trim()) filled++;
     this.completude = Math.round((filled / total) * 100);
+  }
+
+  // ─── Photo de profil ──────────────────────────────────────────────────────
+
+  /** Click sur l'avatar : ouvre la modale de visualisation si photo, sinon ouvre le sélecteur */
+  onAvatarClick(): void {
+    if (this.photoUrl) {
+      this.photoViewerOuvert = true;
+    } else {
+      this.ouvrirSelecteurPhoto();
+    }
+  }
+
+  /** Ferme la modale de visualisation */
+  fermerPhotoViewer(): void {
+    this.photoViewerOuvert = false;
+  }
+
+  /** Ouvre le sélecteur de fichier (appelé par le bouton ou depuis la modale) */
+  ouvrirSelecteurPhoto(): void {
+    if (this.uploadingPhoto) return;
+    this.photoError = null;
+    this.fileInput?.nativeElement.click();
+  }
+
+  /** Handler sur l'input <input type="file"> */
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    // Validation côté client (même règles que le backend)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      this.notif.error('Format non supporté', 'Utilisez JPG, PNG ou WebP.');
+      input.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.notif.error('Image trop grande', 'Maximum 5 Mo.');
+      input.value = '';
+      return;
+    }
+
+    this.uploadingPhoto = true;
+    this.photoError = null;
+
+    this.profilService.uploadPhoto(file).subscribe({
+      next: (res) => {
+        // Cache-buster : ajouter un timestamp force le navigateur à recharger l'image
+        this.photoUrl = `${toAbsolutePhotoUrl(res.photoUrl)}?t=${Date.now()}`;
+        this.uploadingPhoto = false;
+        input.value = '';
+        this.photoViewerOuvert = false;
+        this.notif.success('Photo de profil mise à jour');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erreur upload photo', err);
+        const msg = typeof err?.error === 'string' ? err.error : 'Erreur lors de l\'upload de la photo.';
+        this.notif.error('Upload impossible', msg);
+        this.uploadingPhoto = false;
+        input.value = '';
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** Supprime la photo de profil (retour aux initiales) */
+  supprimerPhoto(): void {
+    if (!this.photoUrl || this.uploadingPhoto) return;
+
+    this.confirmService.confirm({
+      title: 'Supprimer la photo',
+      message: 'Êtes-vous sûr de vouloir supprimer votre photo de profil ? Vous reviendrez à l\'affichage des initiales.',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler',
+      type: 'danger'
+    }).then((ok) => {
+      if (!ok) return;
+
+      this.uploadingPhoto = true;
+      this.photoError = null;
+
+      this.profilService.deletePhoto().subscribe({
+        next: () => {
+          this.photoUrl = null;
+          this.uploadingPhoto = false;
+          this.photoViewerOuvert = false;
+          this.notif.success('Photo de profil supprimée');
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          console.error('Erreur suppression photo', err);
+          this.notif.error('Impossible de supprimer la photo', err?.message);
+          this.uploadingPhoto = false;
+          this.cdr.markForCheck();
+        },
+      });
+    });
   }
 
   // ─── Compétences ──────────────────────────────────────────────────────────

@@ -5,6 +5,14 @@ import { Experience, Formation, NiveauCompetence } from '../models/models';
 
 const API_BASE = 'http://localhost:5000/api/profil';
 const SECTIONS_BASE = 'http://localhost:5000/api/profil/me/sections';
+const BACKEND_ORIGIN = 'http://localhost:5000';
+
+/** Construit l'URL absolue d'une photo à partir de l'URL relative renvoyée par le backend */
+export function toAbsolutePhotoUrl(relative: string | null | undefined): string | null {
+  if (!relative) return null;
+  if (/^https?:\/\//i.test(relative)) return relative;
+  return `${BACKEND_ORIGIN}${relative.startsWith('/') ? '' : '/'}${relative}`;
+}
 
 /** Corps attendu par POST /api/profil/me/competences (niveau = index enum backend) */
 export interface CompetenceCreatePayload {
@@ -29,6 +37,7 @@ export interface ProfilMeResponse {
   adresse: string | null;
   linkedIn: string | null;
   description: string | null;
+  photoUrl: string | null;
   competences: Array<{
     idComp: number;
     nom: string;
@@ -38,6 +47,11 @@ export interface ProfilMeResponse {
   experiences: Experience[];
   formations: Formation[];
   certificats: unknown[];
+}
+
+/** Réponse de POST /api/profil/me/photo */
+export interface UploadPhotoResponse {
+  photoUrl: string;
 }
 
 // ─── Sections dynamiques ──────────────────────────────────────────────────────
@@ -92,6 +106,20 @@ export class ProfilService {
     return this.http.put<ProfilMeResponse>(`${API_BASE}/me`, payload, {
       withCredentials: true,
     });
+  }
+
+  /** Upload de la photo de profil. Max 5 MB, formats : jpg, png, webp. */
+  uploadPhoto(file: File): Observable<UploadPhotoResponse> {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return this.http.post<UploadPhotoResponse>(`${API_BASE}/me/photo`, formData, {
+      withCredentials: true,
+    });
+  }
+
+  /** Supprime la photo de profil (204 No Content). */
+  deletePhoto(): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/me/photo`, { withCredentials: true });
   }
 
   addCompetence(payload: CompetenceCreatePayload): Observable<unknown> {
