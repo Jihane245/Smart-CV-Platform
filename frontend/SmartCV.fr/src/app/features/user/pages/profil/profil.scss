@@ -73,14 +73,55 @@ $br:#7a6040;$brd:#5c4220;$cr:#f5f0e8;$cbg:#eee8da;$gn:#6b8068;$gnt:#7a9080;$red:
 .add-section-row{display:flex;justify-content:center;margin-top:0.5rem;
   .btn-add-section{background:$cr;border:1px solid $bdr;border-radius:20px;padding:0.5rem 1.5rem;font-size:0.85rem;font-family:inherit;color:$txt;cursor:pointer;transition:border-color 0.2s,background 0.2s;
     &:hover{border-color:$br;background:#f0e8d8}}}
-.section-header-row{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem}
-.input-section-titre{flex:1;background:none;border:none;border-bottom:1px solid $bdr;font-size:0.95rem;font-weight:700;font-family:inherit;color:$txt;outline:none;padding:0.1rem 0}
-.section-divider{border:none;border-top:1px solid $bdr;margin:0.5rem 0}
-.section-lignes{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem}
-.section-ligne{display:flex;gap:0.5rem;align-items:center}
-.input-detail,.input-description{background:none;border-bottom:1px solid $bdr;font-family:inherit;font-size:0.82rem;color:$txt;outline:none;padding:0.1rem 0}
-.input-detail{flex:0 0 35%}.input-description{flex:1}
-.btn-suppr-section,.btn-suppr-ligne{background:none;border:none;color:$mut;font-size:0.8rem;cursor:pointer;padding:0.1rem 0.3rem;border-radius:4px;transition:color 0.15s,background 0.15s;
-  &:hover{color:$red;background:rgba($red,0.08)}}
-.btn-add-ligne{background:none;border:1px dashed $bdr;border-radius:6px;width:28px;height:28px;font-size:1rem;color:$mut;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color 0.2s,color 0.2s;
-  &:hover{border-color:$br;color:$br}}
+
+// ─── Sections dynamiques (style "formulaire" comme la capture) ───────────────
+.section-card{padding:1rem 1.1rem 0.9rem}
+.section-header-row{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem}
+.input-section-titre{
+  flex:1;min-width:0;
+  background:$cr;border:1px solid $bdr;border-radius:10px;
+  font-size:0.92rem;font-weight:700;font-family:inherit;color:$txt;
+  outline:none;padding:0.55rem 0.9rem;
+  transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;
+  &:focus{border-color:$gn;box-shadow:0 0 0 3px rgba($gnt,0.18)}
+}
+.section-divider{border:none;border-top:1px solid $bdr;margin:0.7rem 0 0.9rem}
+.section-lignes{display:flex;flex-direction:column;gap:0.75rem;margin-bottom:0.8rem}
+.section-ligne{display:flex;gap:0.75rem;align-items:center}
+.input-detail,.input-description{
+  background:$cr;border:1px solid $bdr;border-radius:10px;
+  font-family:inherit;font-size:0.86rem;color:$txt;outline:none;
+  padding:0.55rem 0.85rem;min-width:0;
+  transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;
+  &:focus{border-color:$gn;box-shadow:0 0 0 3px rgba($gnt,0.16)}
+}
+.input-detail{flex:0 0 140px}
+.input-description{flex:1}
+
+.btn-suppr-section,.btn-suppr-ligne{
+  flex-shrink:0;
+  background:$red;border:none;color:$cr;
+  width:32px;height:32px;border-radius:10px;
+  display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:filter 0.15s,transform 0.05s,box-shadow 0.2s;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  &:hover{filter:brightness(0.95)}
+  &:active{transform:translateY(1px)}
+}
+.btn-add-ligne{
+  background:$gn;border:none;color:white;
+  width:34px;height:34px;border-radius:10px;
+  font-size:1.1rem;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.10);
+  transition:filter 0.15s,transform 0.05s;
+  &:hover{filter:brightness(0.98)}
+  &:active{transform:translateY(1px)}
+}
+
+@media (max-width: 900px){
+  .content-grid{grid-template-columns:1fr}
+  .section-ligne{flex-wrap:wrap}
+  .input-detail{flex:1 1 160px}
+  .input-description{flex:1 1 260px}
+}
