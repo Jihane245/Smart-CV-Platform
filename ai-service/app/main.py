@@ -1,7 +1,10 @@
 from fastapi import FastAPI
+from app.routes import analyze
 
-app = FastAPI(title="Smart CV AI Service")
+app = FastAPI(title="SmartCV AI Service")
+
+app.include_router(analyze.router)
 
 @app.get("/")
-def health_check():
-    return {"status": "AI service running"}
+def root():
+    return {"status": "AI Service running"}
