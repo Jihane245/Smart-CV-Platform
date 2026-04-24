@@ -1,0 +1,105 @@
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirm-box {
+  background: white;
+  border-radius: 14px;
+  padding: 2rem 1.8rem 1.5rem;
+  min-width: 380px;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  animation: scaleIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.confirm-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #e8a33a;
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.2rem;
+}
+
+.confirm-title {
+  margin: 0 0 0.6rem 0;
+  font-size: 1.2rem;
+  color: #2a2a2a;
+  font-weight: 700;
+}
+
+.confirm-message {
+  margin: 0 0 1.6rem 0;
+  color: #555;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+}
+
+.confirm-btn-cancel,
+.confirm-btn-ok {
+  padding: 0.65rem 1.4rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  border: none;
+  min-width: 100px;
+}
+
+.confirm-btn-cancel {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ccc;
+
+  &:hover { background: #f5f5f5; }
+}
+
+.confirm-btn-ok {
+  background: #6b8068;
+  color: white;
+
+  &:hover { background: #5a6e57; }
+
+  &.danger {
+    background: #d14848;
+    &:hover { background: #b03838; }
+  }
+}
+
+// ── Variants par type ─────────────────────────────────────────
+.confirm-danger .confirm-icon { background: #d14848; }
+.confirm-warning .confirm-icon { background: #e8a33a; }
+.confirm-info .confirm-icon { background: #4a8ac0; }

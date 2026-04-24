@@ -34,7 +34,7 @@ export const routes: Routes = [
       },
       {
         path: '',
-        redirectTo: 'inscription',
+        redirectTo: 'connexion',
         pathMatch: 'full',
       },
     ],
@@ -88,6 +88,22 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/admin/dashboard/dashboard').then(
         (m) => m.Dashboard
+      ),
+  },
+    {
+    path: 'admin/templates/nouveau',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./features/admin/template-editor/template-editor').then(
+        (m) => m.TemplateEditor
+      ),
+  },
+  {
+    path: 'admin/templates/:id/edit',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./features/admin/template-editor/template-editor').then(
+        (m) => m.TemplateEditor
       ),
   },
   {
