@@ -1,0 +1,28 @@
+<div class="confirm-overlay" *ngIf="options" (click)="reject()">
+  <div
+    class="confirm-box"
+    [class.confirm-danger]="options.type === 'danger'"
+    [class.confirm-warning]="options.type === 'warning'"
+    [class.confirm-info]="options.type === 'info' || !options.type"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="confirm-icon">{{ iconFor(options.type) }}</div>
+
+    <h3 class="confirm-title">{{ options.title || 'Confirmation' }}</h3>
+
+    <p class="confirm-message">{{ options.message }}</p>
+
+    <div class="confirm-actions">
+      <button class="confirm-btn-cancel" (click)="reject()">
+        {{ options.cancelText || 'Annuler' }}
+      </button>
+      <button
+        class="confirm-btn-ok"
+        [class.danger]="options.type === 'danger'"
+        (click)="accept()"
+      >
+        {{ options.confirmText || 'Confirmer' }}
+      </button>
+    </div>
+  </div>
+</div>

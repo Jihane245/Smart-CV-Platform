@@ -18,6 +18,7 @@ public class TemplateCv
     public string Couleur { get; set; }  
 
     public string Lignes { get; set; }   
+     public string? StructureJson { get; set; }
     
     public ICollection<Cv> Cvs { get; set; }
 }
