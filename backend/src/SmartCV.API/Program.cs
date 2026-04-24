@@ -69,7 +69,7 @@ builder.Services.AddAuthentication(options =>
 
         NameClaimType = "preferred_username",
 
-        RoleClaimType = "roles"
+        RoleClaimType = "role"
     };
 
     options.Events = new OpenIdConnectEvents
@@ -131,14 +131,17 @@ builder.Services.AddAuthentication(options =>
     {
         NameClaimType = "preferred_username",
 
-        RoleClaimType = "roles"
+        RoleClaimType = "role"
     };
 });
 
 // ===== AUTHORIZATION =====
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("Admin", policy =>
+    policy.RequireRole("Admin")
+    );
+    
     options.AddPolicy("User", policy => policy.RequireRole("User", "Admin"));
 });
 
