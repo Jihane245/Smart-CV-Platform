@@ -157,4 +157,41 @@
     </div>
 
   </main>
+
+  <!-- Modal détail utilisateur -->
+  <div class="modal-backdrop" *ngIf="userDetail || loadingUserDetail" (click)="fermerUserDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" (click)="fermerUserDetail()" aria-label="Fermer">×</button>
+
+      <ng-container *ngIf="loadingUserDetail">
+        <p class="modal-loading">Chargement…</p>
+      </ng-container>
+
+      <ng-container *ngIf="userDetail as d">
+        <div class="modal-header">
+          <div class="modal-avatar" [style.background]="d.couleurAvatar">{{ d.initiales }}</div>
+          <div>
+            <h3 class="modal-nom">{{ d.nom }}</h3>
+            <p class="modal-role">{{ d.role }}</p>
+          </div>
+        </div>
+
+        <dl class="modal-infos">
+          <div><dt>Email</dt><dd>{{ d.email }}</dd></div>
+          <div><dt>Prénom</dt><dd>{{ d.prenom }}</dd></div>
+          <div><dt>Nom</dt><dd>{{ d.nomFamille }}</dd></div>
+          <div><dt>CV générés</dt><dd>{{ d.cvGeneres }}</dd></div>
+          <div><dt>Inscrit le</dt><dd>{{ d.inscritLe }}</dd></div>
+          <div>
+            <dt>Statut</dt>
+            <dd>
+              <span class="badge" [class.badge-on]="d.actif" [class.badge-off]="!d.actif">
+                {{ d.actif ? 'Actif' : 'Désactivé' }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </ng-container>
+    </div>
+  </div>
 </div>

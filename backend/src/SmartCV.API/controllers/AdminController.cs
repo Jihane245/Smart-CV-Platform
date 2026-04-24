@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using API.data;
 using API.models;
 using API.dtos;
+using API.services;
 
 namespace API.Controllers;
 
@@ -13,10 +14,12 @@ namespace API.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly KeycloakAdminService _keycloak;
 
-    public AdminController(ApplicationDbContext db)
+    public AdminController(ApplicationDbContext db, KeycloakAdminService keycloak)
     {
         _db = db;
+        _keycloak = keycloak;
     }
 
     [HttpGet("test")]
@@ -150,12 +153,45 @@ public class AdminController : ControllerBase
         return Ok(users);
     }
 
+    [HttpGet("utilisateurs/{id}")]
+    public async Task<IActionResult> GetUtilisateur(int id)
+    {
+        var user = await _db.Users
+            .Where(u => u.Id == id)
+            .Select(u => new
+            {
+                id          = u.Id,
+                initiales   = GenererInitiales(u.Prenom, u.Nom),
+                couleurAvatar = GenererCouleur(u.Id),
+                nom         = $"{u.Prenom} {u.Nom}",
+                prenom      = u.Prenom,
+                nomFamille  = u.Nom,
+                role        = u.Role.ToString(),
+                email       = u.Email,
+                cvGeneres   = u.Cvs.Count(),
+                inscritLe   = u.CreatedAt.ToString("MMM yyyy"),
+                dateCreation = u.CreatedAt,
+                actif       = u.IsActif
+            })
+            .FirstOrDefaultAsync();
+
+        if (user == null)
+            return NotFound(new { message = "Utilisateur non trouvé" });
+
+        return Ok(user);
+    }
+
     [HttpPut("utilisateurs/{id}/actif")]
     public async Task<IActionResult> UpdateActif(int id, [FromBody] UpdateActifDto dto)
     {
         var user = await _db.Users.FindAsync(id);
         if (user == null)
             return NotFound(new { message = "Utilisateur non trouvé" });
+
+        // Désactiver/activer dans Keycloak d'abord (source de vérité pour la connexion)
+        var kcOk = await _keycloak.SetUserEnabledAsync(user.Email, dto.Actif);
+        if (!kcOk)
+            return StatusCode(500, new { message = "Erreur Keycloak lors du changement d'état" });
 
         user.IsActif = dto.Actif;
         await _db.SaveChangesAsync();
@@ -170,9 +206,10 @@ public class AdminController : ControllerBase
         if (user == null)
             return NotFound(new { message = "Utilisateur non trouvé" });
 
-        // Sécurité : on ne supprime que les utilisateurs inactifs
-        if (user.IsActif)
-            return BadRequest(new { message = "Impossible de supprimer un utilisateur actif" });
+        // Supprimer d'abord dans Keycloak (pour empêcher toute reconnexion)
+        var kcOk = await _keycloak.DeleteUserAsync(user.Email);
+        if (!kcOk)
+            return StatusCode(500, new { message = "Erreur Keycloak lors de la suppression" });
 
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();

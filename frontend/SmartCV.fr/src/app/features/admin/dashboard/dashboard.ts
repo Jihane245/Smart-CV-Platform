@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 
-import { AdminService, AdminStatDto, AdminTemplateDto, AdminUtilisateurDto } from '../../../core/services/admin.service';
+import { AdminService, AdminStatDto, AdminTemplateDto, AdminUtilisateurDetailDto, AdminUtilisateurDto } from '../../../core/services/admin.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -28,6 +28,10 @@ export class Dashboard implements OnInit {
   loadingUsers = false;
   loadingTemplates = false;
   lastError: string | null = null;
+
+  // Modal détail utilisateur
+  userDetail: AdminUtilisateurDetailDto | null = null;
+  loadingUserDetail = false;
 
   constructor(private adminService: AdminService) {}
 
@@ -91,8 +95,22 @@ export class Dashboard implements OnInit {
   // ACTIONS UTILISATEURS
   // ─────────────────────────────────────────────────────────────────────────
   voirUtilisateur(u: AdminUtilisateurDto): void {
-    console.log('Voir:', u);
-    // TODO: router.navigate(['/admin/utilisateurs', u.id])
+    this.loadingUserDetail = true;
+    this.userDetail = null;
+    this.adminService.getUtilisateur(u.id)
+      .pipe(
+        catchError((err) => {
+          console.error('Erreur chargement détail utilisateur', err);
+          this.lastError = 'Impossible de charger les détails de l\'utilisateur.';
+          return of(null);
+        }),
+        finalize(() => (this.loadingUserDetail = false))
+      )
+      .subscribe((detail) => (this.userDetail = detail));
+  }
+
+  fermerUserDetail(): void {
+    this.userDetail = null;
   }
 
   toggleActif(u: AdminUtilisateurDto): void {

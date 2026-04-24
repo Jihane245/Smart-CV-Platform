@@ -27,6 +27,21 @@ export interface AdminUtilisateurDto {
 
 type AdminUtilisateurApiDto = Omit<AdminUtilisateurDto, 'id'> & { id: string | number };
 
+export interface AdminUtilisateurDetailDto {
+  id: number;
+  initiales: string;
+  couleurAvatar: string;
+  nom: string;
+  prenom: string;
+  nomFamille: string;
+  role: string;
+  email: string;
+  cvGeneres: number;
+  inscritLe: string;
+  dateCreation: string;
+  actif: boolean;
+}
+
 export interface AdminTemplateDto {
   id: number;
   nom: string;
@@ -65,6 +80,12 @@ export class AdminService {
           }))
         )
       );
+  }
+
+  getUtilisateur(id: number): Observable<AdminUtilisateurDetailDto> {
+    return this.http.get<AdminUtilisateurDetailDto>(`${API_BASE}/utilisateurs/${id}`, {
+      withCredentials: true,
+    });
   }
 
   updateActif(userId: number, actif: boolean): Observable<unknown> {
