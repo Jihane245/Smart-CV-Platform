@@ -74,6 +74,27 @@ $radius:           12px;
     font-weight: 700;
     cursor: pointer;
   }
+
+  .sidebar-logout {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: rgba($color-cream, 0.7);
+    margin-top: 0.4rem;
+    transition: background 0.2s, color 0.2s;
+    padding: 0;
+
+    &:hover {
+      background: rgba($color-red, 0.3);
+      color: $color-cream;
+    }
+  }
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
@@ -116,6 +137,53 @@ $radius:           12px;
   cursor: pointer;
   transition: background 0.2s;
   &:hover { background: darken($color-brown-dark, 8%); }
+}
+
+// ── Filtre mois ────────────────────────────────────────────────────────────────
+.month-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  background: $color-white;
+  padding: 0.75rem 1rem;
+  border-radius: $radius;
+  border: 1px solid $color-border;
+}
+
+.month-filter-label {
+  font-size: 0.78rem;
+  color: $color-muted;
+  font-family: sans-serif;
+  font-weight: 600;
+  margin-right: 0.3rem;
+}
+
+.month-filter-btn {
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  color: $color-text;
+  border: 1px solid $color-border;
+  border-radius: 16px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 38px;
+  text-align: center;
+
+  &:hover {
+    border-color: $color-brown;
+    color: $color-brown-dark;
+  }
+
+  &.active {
+    background: $color-brown-dark;
+    color: $color-cream;
+    border-color: $color-brown-dark;
+    font-weight: 600;
+  }
 }
 
 // ── Stats ──────────────────────────────────────────────────────────────────────
@@ -172,7 +240,9 @@ $radius:           12px;
     flex: 1;
     border-radius: 3px 3px 0 0;
     background: rgba($color-green, 0.3);
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.15s;
+    cursor: pointer;
+    min-height: 3px;
 
     .stat-green & { background: rgba($color-green, 0.3); }
     .stat-beige & { background: rgba($color-beige, 0.4); }
@@ -183,16 +253,45 @@ $radius:           12px;
       .stat-beige & { background: $color-beige; }
       .stat-red &   { background: $color-red; }
     }
+
+    &:hover { transform: scaleY(1.05); }
+
+    &.selected-bar {
+      .stat-green & { background: $color-green; box-shadow: 0 0 0 2px rgba($color-green, 0.3); }
+      .stat-beige & { background: $color-beige; box-shadow: 0 0 0 2px rgba($color-beige, 0.3); }
+      .stat-red &   { background: $color-red; box-shadow: 0 0 0 2px rgba($color-red, 0.3); }
+    }
   }
 }
 
 .bar-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   color: $color-muted;
   font-family: sans-serif;
   padding-bottom: 0.5rem;
+  gap: 2px;
+
+  .month-label {
+    cursor: pointer;
+    padding: 0.15rem 0.2rem;
+    border-radius: 3px;
+    transition: all 0.15s;
+    flex: 1;
+    text-align: center;
+
+    &:hover {
+      background: rgba($color-brown, 0.1);
+      color: $color-brown-dark;
+    }
+
+    &.selected-month {
+      background: $color-brown-dark;
+      color: $color-cream;
+      font-weight: 600;
+    }
+  }
 }
 
 // ── Section ────────────────────────────────────────────────────────────────────
@@ -455,4 +554,255 @@ $radius:           12px;
 @media (max-width: 1024px) {
   .stats-grid { grid-template-columns: 1fr; }
   .templates-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODAL : Détail d'un template
+// ═══════════════════════════════════════════════════════════════════════════════
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: $color-white;
+  border-radius: $radius;
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  padding: 1.5rem 2rem;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+}
+
+.modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover { background: rgba(255, 255, 255, 0.35); }
+}
+
+.modal-body {
+  padding: 1.5rem 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-section {
+  margin-bottom: 2rem;
+
+  h3 {
+    font-size: 1rem;
+    color: $color-text;
+    margin: 0 0 0.8rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid $color-border;
+  }
+
+  p {
+    margin: 0.4rem 0;
+    font-size: 0.9rem;
+    color: $color-text;
+
+    strong {
+      color: $color-brown-dark;
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+.couleur-box {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin: 0 0.4rem;
+  border: 1px solid $color-border;
+}
+
+.detail-section {
+  background: $color-cream-bg;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.detail-section-header {
+  padding: 0.7rem 1rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+
+  .detail-section-ordre {
+    background: rgba(255, 255, 255, 0.3);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+  }
+
+  .detail-section-titre {
+    font-size: 1rem;
+  }
+}
+
+.detail-champs {
+  padding: 0.8rem;
+}
+
+.empty-fields {
+  text-align: center;
+  color: $color-muted;
+  padding: 1rem;
+  font-style: italic;
+}
+
+.detail-champs-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+
+  thead {
+    background: $color-cream;
+
+    th {
+      text-align: left;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $color-muted;
+      font-weight: 600;
+    }
+  }
+
+  tbody tr {
+    border-top: 1px solid $color-border;
+
+    td {
+      padding: 0.55rem 0.7rem;
+      font-size: 0.82rem;
+      color: $color-text;
+
+      code {
+        background: $color-cream;
+        padding: 0.15rem 0.4rem;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.78rem;
+      }
+    }
+  }
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  background: $color-green;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.requis-oui {
+  color: $color-green;
+  font-weight: 700;
+}
+
+.requis-non {
+  color: $color-muted;
+}
+
+.empty-message {
+  color: $color-muted;
+  font-style: italic;
+  padding: 1rem;
+  text-align: center;
+  background: $color-cream-bg;
+  border-radius: 6px;
+}
+
+.modal-footer {
+  padding: 1rem 2rem;
+  border-top: 1px solid $color-border;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  background: $color-cream-bg;
+}
+
+.modal-btn-edit {
+  background: $color-brown-dark;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: opacity 0.2s;
+
+  &:hover { opacity: 0.9; }
+}
+
+.modal-btn-close {
+  background: transparent;
+  border: 1px solid $color-border;
+  color: $color-text;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: background 0.2s;
+
+  &:hover { background: $color-cream; }
 }
