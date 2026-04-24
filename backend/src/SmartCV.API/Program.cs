@@ -69,7 +69,7 @@ builder.Services.AddAuthentication(options =>
 
         NameClaimType = "preferred_username",
 
-        RoleClaimType = "roles"
+        RoleClaimType = "role"
     };
 
     options.Events = new OpenIdConnectEvents
@@ -79,22 +79,34 @@ builder.Services.AddAuthentication(options =>
             var email = ctx.Principal?.FindFirstValue("email");
             if (string.IsNullOrEmpty(email)) return;
 
+            // Récupère les rôles Keycloak depuis le token (claim "role")
+            var rolesKeycloak = ctx.Principal?.FindAll("role").Select(c => c.Value).ToList()
+                                ?? new List<string>();
+            var estAdmin = rolesKeycloak.Contains("Admin");
+
             using var scope = ctx.HttpContext.RequestServices.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var roleAttendu = estAdmin ? RoleUtilisateur.Admin : RoleUtilisateur.Candidat;
 
             if (user == null)
             {
+                // Nouvel utilisateur : créé avec le bon rôle
                 db.Users.Add(new User
                 {
                     Email = email,
                     Nom = ctx.Principal?.FindFirstValue("family_name") ?? "Unknown",
                     Prenom = ctx.Principal?.FindFirstValue("given_name") ?? "Unknown",
                     PasswordHash = Guid.NewGuid().ToString(),
-                    Role = RoleUtilisateur.Candidat
+                    Role = roleAttendu
                 });
-
+                await db.SaveChangesAsync();
+            }
+            else if (user.Role != roleAttendu)
+            {
+                // Utilisateur existant : on met à jour son rôle si changé côté Keycloak
+                user.Role = roleAttendu;
                 await db.SaveChangesAsync();
             }
         },
@@ -103,7 +115,8 @@ builder.Services.AddAuthentication(options =>
         {
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
 
-            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost:80/";
+            // URI autorisée dans Keycloak (voir cv_app → post.logout.redirect.uris)
+            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost";
 
             if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
@@ -131,7 +144,7 @@ builder.Services.AddAuthentication(options =>
     {
         NameClaimType = "preferred_username",
 
-        RoleClaimType = "roles"
+        RoleClaimType = "role"
     };
 });
 
