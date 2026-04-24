@@ -69,7 +69,7 @@ builder.Services.AddAuthentication(options =>
 
         NameClaimType = "preferred_username",
 
-        RoleClaimType = "roles"
+        RoleClaimType = "role"
     };
 
     options.Events = new OpenIdConnectEvents
@@ -131,23 +131,16 @@ builder.Services.AddAuthentication(options =>
     {
         NameClaimType = "preferred_username",
 
-        RoleClaimType = "roles"
+        RoleClaimType = "role"
     };
 });
 
 // ===== AUTHORIZATION =====
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("Admin", policy => 
-        policy.RequireAssertion(context =>
-            context.User.HasClaim(c => 
-                c.Type == "realm_access" && 
-                c.Value.ToLower().Contains("admin")
-            ) || 
-            context.User.IsInRole("Admin") ||
-            context.User.IsInRole("admin")
-        )
-    );  // ← Parenthèse fermante ajoutée ici
+    options.AddPolicy("Admin", policy =>
+    policy.RequireRole("Admin")
+    );
     
     options.AddPolicy("User", policy => policy.RequireRole("User", "Admin"));
 });
