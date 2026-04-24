@@ -8,6 +8,7 @@ using System.Security.Claims;
 using API.data;
 using API.models;
 using API.models.Enums;
+using API.services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -103,7 +104,7 @@ builder.Services.AddAuthentication(options =>
         {
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
 
-            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost:80/";
+            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost/connexion";
 
             if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
@@ -153,6 +154,9 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<KeycloakAdminService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
