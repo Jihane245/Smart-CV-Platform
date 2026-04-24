@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace API.controllers;
+namespace API.Controllers;
 
 [ApiController]
 [Route("api/profil")]

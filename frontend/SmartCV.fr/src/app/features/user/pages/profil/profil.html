@@ -223,13 +223,31 @@
       <div class="card section-card" *ngFor="let s of sections; let i = index">
         <div class="section-header-row">
           <button type="button" class="btn-suppr-section" (click)="supprimerSection(i)">✕</button>
-          <input type="text" class="input-section-titre" [(ngModel)]="s.titre" placeholder="Titre de la section" />
+          <input
+            type="text"
+            class="input-section-titre"
+            [(ngModel)]="s.titre"
+            (blur)="onSectionBlur(s)"
+            placeholder="Titre de la section"
+          />
         </div>
         <hr class="section-divider" />
         <div class="section-lignes">
           <div class="section-ligne" *ngFor="let l of s.lignes; let j = index">
-            <input type="text" class="input-detail" [(ngModel)]="l.detail" placeholder="Détail" />
-            <input type="text" class="input-description" [(ngModel)]="l.description" placeholder="Description..." />
+            <input
+              type="text"
+              class="input-detail"
+              [(ngModel)]="l.detail"
+              (blur)="onLigneBlur(s, l)"
+              placeholder="Détail"
+            />
+            <input
+              type="text"
+              class="input-description"
+              [(ngModel)]="l.description"
+              (blur)="onLigneBlur(s, l)"
+              placeholder="Description..."
+            />
             <button type="button" class="btn-suppr-ligne" *ngIf="j > 0" (click)="supprimerLigne(s, j)">✕</button>
           </div>
         </div>

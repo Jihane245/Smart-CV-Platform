@@ -3,6 +3,7 @@ using System;
 using API.data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SmartCV.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260419002854_AddCouleurLignesToTemplate")]
+    partial class AddCouleurLignesToTemplate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -402,33 +405,6 @@ namespace SmartCV.API.Migrations
                     b.ToTable("LettresMotivation");
                 });
 
-            modelBuilder.Entity("API.models.LigneDynamique", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Detail")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("Ordre")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("SectionId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SectionId");
-
-                    b.ToTable("LignesDynamiques");
-                });
-
             modelBuilder.Entity("API.models.Offre", b =>
                 {
                     b.Property<int>("Id")
@@ -490,10 +466,6 @@ namespace SmartCV.API.Migrations
                     b.Property<string>("LinkedIn")
                         .HasColumnType("text");
 
-                    b.Property<string>("PhotoUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.Property<string>("Telephone")
                         .HasColumnType("text");
 
@@ -510,30 +482,6 @@ namespace SmartCV.API.Migrations
                         .IsUnique();
 
                     b.ToTable("Profils");
-                });
-
-            modelBuilder.Entity("API.models.SectionDynamique", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Ordre")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ProfilId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Titre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProfilId");
-
-                    b.ToTable("SectionsDynamiques");
                 });
 
             modelBuilder.Entity("API.models.TemplateCv", b =>
@@ -774,17 +722,6 @@ namespace SmartCV.API.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("API.models.LigneDynamique", b =>
-                {
-                    b.HasOne("API.models.SectionDynamique", "Section")
-                        .WithMany("Lignes")
-                        .HasForeignKey("SectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Section");
-                });
-
             modelBuilder.Entity("API.models.Profil", b =>
                 {
                     b.HasOne("API.models.User", "User")
@@ -794,17 +731,6 @@ namespace SmartCV.API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("API.models.SectionDynamique", b =>
-                {
-                    b.HasOne("API.models.Profil", "Profil")
-                        .WithMany("Sections")
-                        .HasForeignKey("ProfilId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Profil");
                 });
 
             modelBuilder.Entity("API.models.Cv", b =>
@@ -830,13 +756,6 @@ namespace SmartCV.API.Migrations
                     b.Navigation("Experiences");
 
                     b.Navigation("Formations");
-
-                    b.Navigation("Sections");
-                });
-
-            modelBuilder.Entity("API.models.SectionDynamique", b =>
-                {
-                    b.Navigation("Lignes");
                 });
 
             modelBuilder.Entity("API.models.TemplateCv", b =>
