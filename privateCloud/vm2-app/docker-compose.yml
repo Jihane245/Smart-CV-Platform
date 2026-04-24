@@ -1,0 +1,42 @@
+# docker-compose.yml sur VM App
+services:
+
+  frontend:
+    image: ${REGISTRY}/frontend:${TAG:-latest}
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+
+  backend:
+    image: ${REGISTRY}/backend:${TAG:-latest}
+    container_name: backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=${VM_DB_IP};Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      - IA_SERVICE_URL=http://ia:8000
+      - Keycloak__Authority=http://${VM_DB_IP}:8080/realms/${KEYCLOAK_REALM}
+      - Keycloak__ClientId=${KEYCLOAK_CLIENT_ID}
+      - Keycloak__ClientSecret=${KEYCLOAK_CLIENT_SECRET}
+    depends_on:
+      - ia
+    networks:
+      - app-network
+
+  ia:
+    image: ${REGISTRY}/ia-service:${TAG:-latest}
+    container_name: ia-service
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${VM_DB_IP}:5432/${DB_NAME}
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
