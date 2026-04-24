@@ -42,8 +42,13 @@ export class Inscription implements OnInit {
 
   ngOnInit(): void {
     this.authService.isAuthenticated().subscribe(isAuth => {
-      if (isAuth) this.router.navigate(['/user']);
-    });
+    if (isAuth) {
+      this.authService.isAdmin().subscribe(isAdmin => {
+        this.router.navigate([isAdmin ? '/admin' : '/user']);
+      });
+    }
+  });
+
     this.inscriptionForm = this.fb.group(
       {
         nom: ['', [Validators.required, Validators.minLength(2)]],
