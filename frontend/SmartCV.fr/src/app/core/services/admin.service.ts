@@ -5,6 +5,9 @@ import { map } from 'rxjs/operators';
 
 const API_BASE = 'http://localhost:5000/api/admin';
 
+// ─────────────────────────────────────────────────────────────────────────
+// STATISTIQUES
+// ─────────────────────────────────────────────────────────────────────────
 export interface AdminStatDto {
   label: string;
   valeur: number;
@@ -13,6 +16,9 @@ export interface AdminStatDto {
   historique: number[];
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// UTILISATEURS
+// ─────────────────────────────────────────────────────────────────────────
 export interface AdminUtilisateurDto {
   id: number;
   initiales: string;
@@ -42,31 +48,69 @@ export interface AdminUtilisateurDetailDto {
   actif: boolean;
 }
 
+export interface UpdateActifPayload {
+  actif: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TEMPLATES — types pour la STRUCTURE (Phase 1)
+// ─────────────────────────────────────────────────────────────────────────
+export interface TemplateFieldDto {
+  nom: string;
+  label: string;
+  type: 'text' | 'email' | 'tel' | 'date' | 'long_text' | 'list';
+  placeholder?: string;
+  maxLength?: number;
+  requis: boolean;
+  ordre: number;
+}
+
+export interface TemplateSectionDto {
+  id?: string;
+  titre: string;
+  ordre: number;
+  couleur?: string;
+  champs: TemplateFieldDto[];
+}
+
+export interface TemplateStructureDto {
+  sections: TemplateSectionDto[];
+}
+
 export interface AdminTemplateDto {
   id: number;
   nom: string;
   couleur: string;
   lignes: string[];
-}
-
-export interface UpdateActifPayload {
-  actif: boolean;
+  structure?: TemplateStructureDto | null;
 }
 
 export interface CreateTemplatePayload {
   nom: string;
   couleur: string;
   lignes?: string[];
+  structure?: TemplateStructureDto;
 }
 
+export interface UpdateTemplatePayload {
+  nom: string;
+  couleur: string;
+  structure?: TemplateStructureDto;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SERVICE
+// ─────────────────────────────────────────────────────────────────────────
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   constructor(private http: HttpClient) {}
 
+  // ───── STATS ─────
   getStats(): Observable<AdminStatDto[]> {
     return this.http.get<AdminStatDto[]>(`${API_BASE}/stats`, { withCredentials: true });
   }
 
+  // ───── UTILISATEURS ─────
   getUtilisateurs(search?: string): Observable<AdminUtilisateurDto[]> {
     const q = (search ?? '').trim();
     const url = q ? `${API_BASE}/utilisateurs?search=${encodeURIComponent(q)}` : `${API_BASE}/utilisateurs`;
@@ -98,16 +142,24 @@ export class AdminService {
     return this.http.delete(`${API_BASE}/utilisateurs/${userId}`, { withCredentials: true });
   }
 
+  // ───── TEMPLATES ─────
   getTemplates(): Observable<AdminTemplateDto[]> {
     return this.http.get<AdminTemplateDto[]>(`${API_BASE}/templates`, { withCredentials: true });
+  }
+
+  getTemplateById(id: number): Observable<AdminTemplateDto> {
+    return this.http.get<AdminTemplateDto>(`${API_BASE}/templates/${id}`, { withCredentials: true });
   }
 
   createTemplate(payload: CreateTemplatePayload): Observable<AdminTemplateDto> {
     return this.http.post<AdminTemplateDto>(`${API_BASE}/templates`, payload, { withCredentials: true });
   }
 
+  updateTemplate(id: number, payload: UpdateTemplatePayload): Observable<AdminTemplateDto> {
+    return this.http.put<AdminTemplateDto>(`${API_BASE}/templates/${id}`, payload, { withCredentials: true });
+  }
+
   deleteTemplate(id: number): Observable<unknown> {
     return this.http.delete(`${API_BASE}/templates/${id}`, { withCredentials: true });
   }
 }
-

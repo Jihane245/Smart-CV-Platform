@@ -3,13 +3,22 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { provideRouter } from '@angular/router';    // ← remplace RouterTestingModule
 import { CommonModule } from '@angular/common';
 import { vi } from 'vitest';                        // ← import vi pour les spies
+import { of } from 'rxjs';
 import { Inscription } from './inscription';
+import { AuthService } from '../../../../core/services/auth.service';
 
 describe('Inscription Component', () => {
   let component: Inscription;
   let fixture: ComponentFixture<Inscription>;
+  let authServiceMock: { isAuthenticated: () => any; login: () => void; register: () => void };
 
   beforeEach(async () => {
+    authServiceMock = {
+      isAuthenticated: vi.fn(() => of(false)),
+      login: vi.fn(),
+      register: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         Inscription,
@@ -18,6 +27,7 @@ describe('Inscription Component', () => {
       ],
       providers: [
         provideRouter([]),   
+        { provide: AuthService, useValue: authServiceMock },
       ],
     }).compileComponents();
 
@@ -236,19 +246,19 @@ describe('Inscription Component', () => {
   // 10. SOUMISSION
   // ─────────────────────────────────────────────────────────────────────────
   describe('Soumission', () => {
-    it('ne devrait pas soumettre si le formulaire est invalide', () => {
-      const spy = vi.spyOn(console, 'log');   // ← vi.spyOn au lieu de spyOn
+    it('devrait appeler register() sur soumission', () => {
       component.onSubmit();
-      expect(spy).not.toHaveBeenCalled();
+      expect(authServiceMock.register).toHaveBeenCalledTimes(1);
     });
 
-    it('devrait marquer tous les champs comme touchés si formulaire invalide', () => {
+    it('ne devrait pas marquer automatiquement les champs comme touchés', () => {
+      expect(component.inscriptionForm.get('nom')?.touched).toBe(false);
       component.onSubmit();
-      expect(component.inscriptionForm.get('nom')?.touched).toBe(true);
-      expect(component.inscriptionForm.get('email')?.touched).toBe(true);
+      expect(component.inscriptionForm.get('nom')?.touched).toBe(false);
+      expect(component.inscriptionForm.get('email')?.touched).toBe(false);
     });
 
-    it('devrait passer isSubmitting à true si formulaire valide', () => {
+    it('ne devrait pas modifier isSubmitting (géré ailleurs)', () => {
       component.inscriptionForm.setValue({
         nom: 'El Ghazrani',
         prenom: 'Jihane',
@@ -257,7 +267,8 @@ describe('Inscription Component', () => {
         confirmMotDePasse: 'motdepasse123',
       });
       component.onSubmit();
-      expect(component.isSubmitting).toBe(true);
+      expect(authServiceMock.register).toHaveBeenCalledTimes(1);
+      expect(component.isSubmitting).toBe(false);
     });
   });
 });

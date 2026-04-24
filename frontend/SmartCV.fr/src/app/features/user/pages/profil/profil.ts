@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, Observable } from 'rxjs';
-import { catchError, finalize, switchMap } from 'rxjs/operators';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import {
@@ -97,27 +97,34 @@ export class MonProfil implements OnInit {
           return of(null);
         })
       ),
-      sections: this.profilService.getSections().pipe(
-        catchError((err) => {
-          console.error('Erreur chargement sections', err);
-          return of(null);
-        })
-      ),
     })
-      .pipe(finalize(() => { this.loading = false; this.cdr.markForCheck(); }))
-      .subscribe(({ status, profil, sections }) => {
-        if (status) {
-          this.prenom = status.givenName ?? '';
-          this.nom = status.surname ?? '';
-          this.email = status.email ?? '';
-          this.initiales = this.computeInitiales(this.prenom, this.nom);
-        }
-        if (profil) {
-          this.applyProfil(profil);
-        }
-        if (sections) {
-          this.applySections(sections);
-        }
+      // Important: load sections AFTER profil/me so profil exists server-side
+      .pipe(
+        switchMap(({ status, profil }) => {
+          if (status) {
+            this.prenom = status.givenName ?? '';
+            this.nom = status.surname ?? '';
+            this.email = status.email ?? '';
+            this.initiales = this.computeInitiales(this.prenom, this.nom);
+          }
+          if (profil) {
+            this.applyProfil(profil);
+          }
+          return this.profilService.getSections().pipe(
+            catchError((err) => {
+              console.error('Erreur chargement sections', err);
+              return of([]);
+            }),
+            map((sections) => ({ status, profil, sections }))
+          );
+        }),
+        finalize(() => {
+          this.loading = false;
+          this.cdr.markForCheck();
+        })
+      )
+      .subscribe(({ sections }) => {
+        this.applySections(sections ?? []);
         this.recalcCompletude();
         this.cdr.markForCheck();
       });
@@ -536,7 +543,18 @@ export class MonProfil implements OnInit {
       ordre,
     };
 
-    this.profilService.createSection(payload).subscribe({
+    const create$ =
+      this.profilId === 0
+        ? this.profilService.getMe().pipe(
+            map((p) => {
+              this.applyProfil(p);
+              return p;
+            }),
+            switchMap(() => this.profilService.createSection(payload))
+          )
+        : this.profilService.createSection(payload);
+
+    create$.subscribe({
       next: (created) => {
         this.sections.push({
           id: created.id,
