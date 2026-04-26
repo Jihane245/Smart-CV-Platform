@@ -9,11 +9,12 @@ import { AdminService, AdminStatDto, AdminTemplateDto, AdminUtilisateurDetailDto
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { TemplatePreview } from '../template-editor/template-preview/template-preview';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TemplatePreview],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

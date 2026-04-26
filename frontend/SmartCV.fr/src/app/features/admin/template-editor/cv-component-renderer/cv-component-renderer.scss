@@ -1,0 +1,167 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// CV component renderer — rendu visuel d'un composant CV avec valeurs d'exemple.
+// ═══════════════════════════════════════════════════════════════════════════════
+:host {
+  display: block;
+  width: 100%;
+}
+
+.cv-cmp {
+  line-height: 1.45;
+  text-align: left;
+}
+
+// ─── Titre commun ──────────────────────────────────────────────────────
+.cv-cmp-title {
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.25rem;
+  font-size: 0.92em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid currentColor;
+  font-family: inherit;
+}
+
+// ─── Infos personnelles ────────────────────────────────────────────────
+.cv-infos {
+  .cv-infos-name {
+    font-size: 1.3em;
+    font-weight: 700;
+    margin-bottom: 0.45rem;
+    line-height: 1.2;
+    span + span { margin-left: 0.4ch; }
+  }
+  .cv-infos-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    font-size: 0.92em;
+    li { display: flex; gap: 0.4rem; align-items: center; }
+  }
+}
+
+// ─── Photo ─────────────────────────────────────────────────────────────
+.cv-photo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.4rem;
+  .cv-photo-circle {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    border: 3px solid;
+    background: rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    overflow: hidden;
+  }
+}
+
+// ─── Titre / poste ─────────────────────────────────────────────────────
+.cv-poste {
+  font-size: 1.05em;
+  font-style: italic;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+// ─── Résumé / centres-intérêt / texte-libre ────────────────────────────
+.cv-resume {
+  p { margin: 0; text-align: justify; }
+}
+
+// ─── Listes (expériences, formations, projets, certifs, références) ────
+.cv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+
+  .cv-list-item { display: flex; flex-direction: column; gap: 0.15rem; }
+
+  .cv-li-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem;
+    font-size: 0.95em;
+  }
+  .cv-li-strong { font-weight: 700; }
+  .cv-li-mid    { font-weight: 500; opacity: 0.92; }
+
+  .cv-li-dates {
+    font-size: 0.78em;
+    opacity: 0.7;
+    font-style: italic;
+  }
+  .cv-li-desc {
+    margin: 0.15rem 0 0;
+    font-size: 0.88em;
+    opacity: 0.95;
+  }
+  .cv-li-meta {
+    margin: 0.15rem 0 0;
+    font-size: 0.82em;
+    opacity: 0.85;
+    font-style: italic;
+  }
+}
+
+// ─── Compétences (avec rating dots) ────────────────────────────────────
+.cv-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  .cv-skill {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .cv-skill-name { font-weight: 600; font-size: 0.92em; }
+  .cv-skill-rating { display: flex; gap: 0.18rem; }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid;
+    box-sizing: border-box;
+  }
+}
+
+// ─── Champs personnalisés ──────────────────────────────────────────────
+.cv-custom-fields {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88em;
+
+  li { display: flex; gap: 0.4rem; align-items: baseline; }
+  .cv-cf-label  { font-weight: 700; }
+  .cv-cf-value  { opacity: 0.92; }
+}
+
+// ─── Langues ───────────────────────────────────────────────────────────
+.cv-langues {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  .cv-langue {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.9em;
+  }
+  .cv-langue-nom    { font-weight: 600; }
+  .cv-langue-niveau { font-style: italic; font-size: 0.82em; font-weight: 600; }
+}
