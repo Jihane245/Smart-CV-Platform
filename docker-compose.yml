@@ -22,6 +22,11 @@ services:
       - Keycloak__MetadataAddress=http://keycloak:8080/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration
       - Keycloak__ClientId=${KEYCLOAK_CLIENT_ID}
       - Keycloak__ClientSecret=${KEYCLOAK_CLIENT_SECRET}
+      - Keycloak__AdminBaseUrl=http://keycloak:8080
+      - Keycloak__Realm=${KEYCLOAK_REALM}
+      - Keycloak__AdminRealm=master
+      - Keycloak__AdminClientId=${KEYCLOAK_ADMIN_CLIENT_ID}
+      - Keycloak__AdminClientSecret=${KEYCLOAK_ADMIN_CLIENT_SECRET}
     depends_on:
       db:
         condition: service_healthy
