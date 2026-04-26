@@ -490,6 +490,10 @@ namespace SmartCV.API.Migrations
                     b.Property<string>("LinkedIn")
                         .HasColumnType("text");
 
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Telephone")
                         .HasColumnType("text");
 
@@ -544,12 +548,23 @@ namespace SmartCV.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Couleur")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Format")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Lignes")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Nom")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StructureJson")
                         .HasColumnType("text");
 
                     b.HasKey("IdTemp");

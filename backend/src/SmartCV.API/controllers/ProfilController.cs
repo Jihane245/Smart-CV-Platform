@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace API.controllers;
+namespace API.Controllers;
 
 [ApiController]
 [Route("api/profil")]
@@ -46,6 +46,7 @@ public class ProfilController : ControllerBase
         Telephone   = p.Telephone,
         Adresse     = p.Adresse,
         LinkedIn    = p.LinkedIn,
+         PhotoUrl    = p.PhotoUrl,
         Description = p.Description,
         Competences = p.Competences?.Select(c => new CompetenceDto
         {
@@ -133,6 +134,76 @@ public class ProfilController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(MapToDto(user.Profil));
     }
+    /// <summary>Upload photo de profil</summary>
+[HttpPost("me/photo")]
+public async Task<IActionResult> UploadPhoto(IFormFile photo)
+{
+    var user = await GetCurrentUser();
+    if (user == null) return Unauthorized();
+    if (user.Profil == null) return BadRequest("Profil introuvable. Appelez GET /api/profil/me d'abord.");
+
+    // Validation
+    var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+    if (!allowedTypes.Contains(photo.ContentType))
+        return BadRequest("Format non supporté. Utilisez jpg, png ou webp.");
+
+    if (photo.Length > 5 * 1024 * 1024)
+        return BadRequest("Image trop grande. Maximum 5MB.");
+
+    // Créer le dossier uploads s'il n'existe pas
+    var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "photos");
+    Directory.CreateDirectory(uploadsDir);
+
+    // Supprimer l'ancienne photo si elle existe
+    if (!string.IsNullOrEmpty(user.Profil.PhotoUrl))
+    {
+        var oldFileName = Path.GetFileName(user.Profil.PhotoUrl);
+        var oldFilePath = Path.Combine(uploadsDir, oldFileName);
+        if (System.IO.File.Exists(oldFilePath))
+            System.IO.File.Delete(oldFilePath);
+    }
+
+    // Sauvegarder la nouvelle photo
+    var extension = Path.GetExtension(photo.FileName).ToLower();
+    var fileName = $"{user.Id}_{Guid.NewGuid()}{extension}";
+    var filePath = Path.Combine(uploadsDir, fileName);
+
+    using (var stream = new FileStream(filePath, FileMode.Create))
+    {
+        await photo.CopyToAsync(stream);
+    }
+
+    // Mettre à jour le profil
+    user.Profil.PhotoUrl = $"/uploads/photos/{fileName}";
+    await _db.SaveChangesAsync();
+
+    return Ok(new { photoUrl = user.Profil.PhotoUrl });
+}
+
+/// <summary>Supprimer photo de profil</summary>
+[HttpDelete("me/photo")]
+public async Task<IActionResult> DeletePhoto()
+{
+    var user = await GetCurrentUser();
+    if (user == null) return Unauthorized();
+    if (user.Profil == null) return BadRequest("Profil introuvable.");
+
+    if (string.IsNullOrEmpty(user.Profil.PhotoUrl))
+        return NotFound("Aucune photo de profil.");
+
+    // Supprimer le fichier
+    var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "photos");
+    var fileName = Path.GetFileName(user.Profil.PhotoUrl);
+    var filePath = Path.Combine(uploadsDir, fileName);
+
+    if (System.IO.File.Exists(filePath))
+        System.IO.File.Delete(filePath);
+
+    user.Profil.PhotoUrl = null;
+    await _db.SaveChangesAsync();
+
+    return NoContent();
+}
 
     // ─── Compétences ────────────────────────────────────────────────────────────
 

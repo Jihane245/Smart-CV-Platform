@@ -25,6 +25,8 @@ public class Profil
     
     [MaxLength(2000)]
     public string? Description { get; set; }  // ← ? ajouté
+    [MaxLength(500)]
+    public string? PhotoUrl { get; set; }
     
     public ICollection<Competence> Competences { get; set; } = [];
     public ICollection<Experience> Experiences { get; set; } = [];

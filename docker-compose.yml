@@ -29,6 +29,8 @@ services:
         condition: service_started
     networks:
       - app-network
+    volumes:
+        - photos_data:/app/wwwroot/uploads/photos
 
   ia:
     build: ./ai-service
@@ -37,6 +39,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - GROQ_API_KEY=${GROQ_API_KEY} 
     depends_on:
       db:
         condition: service_healthy
@@ -114,6 +117,7 @@ services:
 volumes:
   pgdata:
   keycloak_pgdata:
+  photos_data:
 
 networks:
   app-network:

@@ -8,6 +8,7 @@ public class ProfilResponseDto
     public string Adresse { get; set; }
     public string LinkedIn { get; set; }
     public string Description { get; set; }
+    public string? PhotoUrl { get; set; }
     public List<CompetenceDto> Competences { get; set; }
     public List<ExperienceDto> Experiences { get; set; }
     public List<FormationDto> Formations { get; set; }

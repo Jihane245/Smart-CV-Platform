@@ -7,4 +7,5 @@ public class UpdateProfilDto
     public string Adresse { get; set; }
     public string LinkedIn { get; set; }
     public string Description { get; set; }
+    public string? PhotoUrl { get; set; }
 }

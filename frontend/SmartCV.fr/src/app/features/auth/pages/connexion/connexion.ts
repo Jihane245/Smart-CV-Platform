@@ -15,6 +15,9 @@ export class Connexion implements OnInit {
   connexionForm: FormGroup;
   showPassword = false;
 
+  // true tant qu'on n'a pas fini de déterminer la redirection → masque le formulaire
+  isRedirecting = true;
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
@@ -26,11 +29,25 @@ export class Connexion implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    this.authService.isAuthenticated().subscribe(isAuth => {
-      if (isAuth) this.router.navigate(['/user']);
-    });
-  }
+   ngOnInit(): void {
+      this.authService.isAuthenticated().subscribe({
+        next: (isAuth) => {
+          if (isAuth) {
+            // Déjà authentifié → redirection vers admin ou user
+            this.authService.isAdmin().subscribe((isAdmin) => {
+              this.router.navigate([isAdmin ? '/admin' : '/user']);
+            });
+          } else {
+            // Pas authentifié → redirection directe vers Keycloak
+            this.authService.login();
+          }
+        },
+        error: () => {
+          // En cas d'erreur on tente la redirection Keycloak quand même
+          this.authService.login();
+        }
+      });
+    }
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;

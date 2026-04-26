@@ -14,6 +14,11 @@ public class TemplateCv
     
     [Url]
     public string ApercuUrl { get; set; }
+
+    public string Couleur { get; set; }  
+
+    public string Lignes { get; set; }   
+     public string? StructureJson { get; set; }
     
     public ICollection<Cv> Cvs { get; set; }
 }

@@ -24,10 +24,58 @@
 
       <!-- Carte avatar -->
       <div class="card avatar-card">
-        <div class="avatar-circle">{{ initiales }}</div>
+        <!-- Avatar cliquable : affiche la photo en grand ou ouvre le sélecteur -->
+        <div
+          class="avatar-wrapper"
+          (click)="onAvatarClick()"
+          [class.clickable]="!uploadingPhoto"
+          [attr.title]="photoUrl ? 'Cliquer pour voir en grand' : 'Cliquer pour ajouter une photo'"
+        >
+          <div
+            class="avatar-circle"
+            [class.has-photo]="photoUrl"
+            [style.background-image]="photoUrl ? 'url(' + photoUrl + ')' : null"
+          >
+            <span *ngIf="!photoUrl">{{ initiales }}</span>
+          </div>
+          <!-- Overlay au hover -->
+          <div class="avatar-overlay" *ngIf="!uploadingPhoto">
+            <svg *ngIf="photoUrl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/>
+            </svg>
+            <svg *ngIf="!photoUrl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+              <path d="M9 3L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2h-3.17L15 3H9zm3 15a5 5 0 110-10 5 5 0 010 10z"/>
+            </svg>
+          </div>
+          <!-- Spinner de chargement -->
+          <div class="avatar-loading" *ngIf="uploadingPhoto">
+            <div class="spinner"></div>
+          </div>
+        </div>
+
         <div class="avatar-name">{{ prenom }} {{ nom }}</div>
         <div class="avatar-email">{{ email }}</div>
-        <button class="btn-photo" type="button">Changer la photo</button>
+
+        <!-- Input fichier caché (utilisé par la modale et le bouton initial) -->
+        <input
+          #fileInput
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          (change)="onFileSelected($event)"
+          hidden
+        />
+
+        <!-- Un seul bouton discret, uniquement si pas de photo -->
+        <button
+          *ngIf="!photoUrl && !uploadingPhoto"
+          class="btn-photo"
+          type="button"
+          (click)="ouvrirSelecteurPhoto()"
+        >
+          Ajouter une photo
+        </button>
+        <p class="photo-error" *ngIf="photoError">{{ photoError }}</p>
+
         <hr class="card-divider" />
         <div class="completude-label"><span>COMPLÉTUDE</span></div>
         <div class="completude-row">
@@ -259,6 +307,51 @@
         <button type="button" class="btn-add-section" (click)="ajouterSection()">Ajouter une Section</button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modale de visualisation de la photo de profil -->
+  <div
+    class="photo-modal-backdrop"
+    *ngIf="photoViewerOuvert && photoUrl"
+    (click)="fermerPhotoViewer()"
+  >
+    <div class="photo-modal" (click)="$event.stopPropagation()">
+      <button
+        class="photo-modal-close"
+        type="button"
+        (click)="fermerPhotoViewer()"
+        aria-label="Fermer"
+      >✕</button>
+
+      <div class="photo-modal-image">
+        <img [src]="photoUrl" alt="Photo de profil" />
+      </div>
+
+      <div class="photo-modal-actions">
+        <button
+          class="btn-photo-action change"
+          type="button"
+          (click)="ouvrirSelecteurPhoto()"
+          [disabled]="uploadingPhoto"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M9 3L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2h-3.17L15 3H9zm3 15a5 5 0 110-10 5 5 0 010 10z"/>
+          </svg>
+          {{ uploadingPhoto ? 'Envoi…' : 'Changer' }}
+        </button>
+        <button
+          class="btn-photo-action delete"
+          type="button"
+          (click)="supprimerPhoto()"
+          [disabled]="uploadingPhoto"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+          </svg>
+          Supprimer
+        </button>
+      </div>
     </div>
   </div>
 
