@@ -35,16 +35,17 @@
   "duplicateEmailsAllowed" : false,
   "resetPasswordAllowed" : true,
   "editUsernameAllowed" : false,
-  "bruteForceProtected" : false,
+  "bruteForceProtected" : true,
   "permanentLockout" : false,
   "maxTemporaryLockouts" : 0,
   "bruteForceStrategy" : "MULTIPLE",
-  "maxFailureWaitSeconds" : 900,
-  "minimumQuickLoginWaitSeconds" : 60,
-  "waitIncrementSeconds" : 60,
+  "maxFailureWaitSeconds" : 120,
+  "minimumQuickLoginWaitSeconds" : 120,
+  "waitIncrementSeconds" : 120,
   "quickLoginCheckMilliSeconds" : 1000,
   "maxDeltaTimeSeconds" : 43200,
-  "failureFactor" : 30,
+  "failureFactor" : 5,
+  "passwordPolicy" : "length(8) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1)",
   "roles" : {
     "realm" : [ {
       "id" : "ad5c5a1b-8f3f-4406-9e40-7098a90662b5",
@@ -604,6 +605,23 @@
     "notBefore" : 0,
     "groups" : [ ]
   }, {
+    "id" : "1b8a7f6b-6f6e-4b7f-a52b-5d0b0b0f2a11",
+    "username" : "service-account-smartcv-admin-api",
+    "emailVerified" : false,
+    "enabled" : true,
+    "createdTimestamp" : 1776611000000,
+    "totp" : false,
+    "serviceAccountClientId" : "smartcv-admin-api",
+    "credentials" : [ ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-cv-platform" ],
+    "clientRoles" : {
+      "realm-management" : [ "manage-users", "view-users" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
     "id" : "a8f1f8cb-75d5-4ac9-a72d-d4b85e743d86",
     "username" : "test@gmail.com",
     "firstName" : "test",
@@ -865,6 +883,41 @@
     "nodeReRegistrationTimeout" : -1,
     "defaultClientScopes" : [ "web-origins", "service_account", "acr", "roles", "profile", "basic", "email" ],
     "optionalClientScopes" : [ "address", "phone", "offline_access", "organization", "microprofile-jwt" ]
+  }, {
+    "id" : "9f2b2a4c-7b21-4f60-9a4d-2e2f1e3d4c55",
+    "clientId" : "smartcv-admin-api",
+    "name" : "SmartCV Admin API",
+    "description" : "Service account used by the backend to call Keycloak Admin API (client_credentials).",
+    "rootUrl" : "",
+    "adminUrl" : "",
+    "baseUrl" : "",
+    "surrogateAuthRequired" : false,
+    "enabled" : true,
+    "alwaysDisplayInConsole" : false,
+    "clientAuthenticatorType" : "client-secret",
+    "secret" : "ub2HSCiPvFq8DK3QyW00RRfZrAP27cwU",
+    "redirectUris" : [ ],
+    "webOrigins" : [ ],
+    "notBefore" : 0,
+    "bearerOnly" : false,
+    "consentRequired" : false,
+    "standardFlowEnabled" : false,
+    "implicitFlowEnabled" : false,
+    "directAccessGrantsEnabled" : false,
+    "serviceAccountsEnabled" : true,
+    "publicClient" : false,
+    "frontchannelLogout" : false,
+    "protocol" : "openid-connect",
+    "attributes" : {
+      "client_credentials.use_refresh_token" : "false",
+      "realm_client" : "false",
+      "post.logout.redirect.uris" : "+"
+    },
+    "authenticationFlowBindingOverrides" : { },
+    "fullScopeAllowed" : false,
+    "nodeReRegistrationTimeout" : -1,
+    "defaultClientScopes" : [ "roles" ],
+    "optionalClientScopes" : [ ]
   }, {
     "id" : "95e8b7a4-2e7c-45f7-a93f-dfd666b6b07f",
     "clientId" : "realm-management",
