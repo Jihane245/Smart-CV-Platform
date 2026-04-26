@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from app.models.analyze_models import OffreRequest, AnalyzeResponse
 from app.services.analyzer import analyze_offre, analyze_offre_image
-import json
+from app.services.ai_recommender import generate_ai_recommendations
 
 router = APIRouter(prefix="/analyze", tags=["Analyze"])
 
@@ -13,6 +13,13 @@ async def analyze_text(request: OffreRequest):
         raise HTTPException(status_code=400, detail="Texte trop court")
     try:
         result = analyze_offre(request.texte, request.profil_competences)
+        result["recommandations"] = await generate_ai_recommendations(
+            score=result["score_compatibilite"],
+            competences_manquantes=result["competences_manquantes"],
+            profil_competences=request.profil_competences,
+            niveau=result["niveau"],
+            resume=result["resume"]
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
@@ -44,6 +51,13 @@ async def analyze_image(
 
     try:
         result = analyze_offre_image(image_bytes, image.content_type, competences)
+        result["recommandations"] = await generate_ai_recommendations(
+            score=result["score_compatibilite"],
+            competences_manquantes=result["competences_manquantes"],
+            profil_competences=competences,
+            niveau=result["niveau"],
+            resume=result["resume"]
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
