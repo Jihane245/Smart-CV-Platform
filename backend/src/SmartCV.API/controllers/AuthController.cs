@@ -14,6 +14,11 @@ namespace API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly KeycloakAdminService _keycloakAdmin;
+        private static readonly HashSet<string> AllowedOrigins = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "http://localhost",
+            "http://localhost:80",
+        };
 
         public AuthController(KeycloakAdminService keycloakAdmin)
         {
@@ -29,9 +34,24 @@ namespace API.Controllers
             );
         }
 
-        [HttpGet("logout")]
+        [HttpPost("logout")]
+        [Authorize]
         public IActionResult Logout()
         {
+            // CSRF protection for cookie-based auth: only accept same-site requests.
+            // Browsers typically send Origin on POST; fall back to Referer for older clients.
+            var origin = Request.Headers.Origin.ToString();
+            if (!string.IsNullOrWhiteSpace(origin) && !AllowedOrigins.Contains(origin))
+                return Forbid();
+
+            var referer = Request.Headers.Referer.ToString();
+            if (string.IsNullOrWhiteSpace(origin) &&
+                !string.IsNullOrWhiteSpace(referer) &&
+                !AllowedOrigins.Any(o => referer.StartsWith(o + "/", StringComparison.OrdinalIgnoreCase)))
+            {
+                return Forbid();
+            }
+
             // Sign-out both the local cookie and the OIDC session.
             // Important: don't clear the cookie first, otherwise the OIDC handler can't access
             // the id_token claim used as id_token_hint for Keycloak logout.
