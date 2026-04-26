@@ -1,0 +1,60 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// Template preview — rendu read-only utilisé dans le modal du dashboard
+// ═══════════════════════════════════════════════════════════════════════════════
+:host {
+  display: block;
+  width: 100%;
+}
+
+.tpl-preview {
+  display: grid;
+  width: 100%;
+  background: white;
+  border: 1px solid #d4c9b4;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  min-height: 600px;
+
+  &[data-layout="single-column"]      { grid-template-columns: 1fr; }
+  &[data-layout="sidebar-left"]       { grid-template-columns: 35% 1fr; }
+  &[data-layout="sidebar-right"]      { grid-template-columns: 1fr 35%; }
+  &[data-layout="header-two-columns"] {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: auto;
+    [data-box="header"] { grid-column: 1 / -1; }
+  }
+}
+
+.tpl-preview-box {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-height: 200px;
+}
+
+.tpl-preview-cmp {
+  display: block;
+}
+
+.tpl-preview-empty {
+  opacity: 0.4;
+  font-style: italic;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.tpl-preview-no-data {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: #f5f0e8;
+  border: 2px dashed #d4c9b4;
+  border-radius: 8px;
+  color: #4a3728;
+  font-family: sans-serif;
+
+  p { margin: 0.4rem 0; line-height: 1.5; }
+  p:first-child { font-size: 0.95rem; }
+  p:last-child  { font-size: 0.85rem; color: #9e8a76; }
+}
