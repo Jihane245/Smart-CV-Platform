@@ -349,3 +349,42 @@ body {
     padding: 2rem 1.5rem;
   }
 }
+
+/* ── LOGOUT CONFIRM ── */
+.logout-form {
+  margin-top: 0.5rem;
+}
+
+.btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.btn-red {
+  background: var(--red-accent);
+  color: var(--cream);
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.85rem 2rem;
+  font-family: 'Inria Serif', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+
+.btn-red:hover {
+  background: #6e1414;
+}
+
+.btn-red:active {
+  transform: scale(0.98);
+}
+
+.btn-row .btn-back {
+  margin-top: 0;
+}
