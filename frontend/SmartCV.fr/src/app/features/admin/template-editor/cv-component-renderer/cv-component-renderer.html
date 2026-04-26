@@ -1,0 +1,192 @@
+<div
+  class="cv-cmp"
+  [attr.data-type]="component.type"
+  [style.color]="textColor"
+  [style.fontSize]="fontSize"
+  [style.fontFamily]="fontFamily">
+
+  <!-- Titre du composant (sauf pour photo / titre-poste / infos-personnelles compactes) -->
+  <h3
+    *ngIf="component.titre && component.type !== 'photo' && component.type !== 'titre-poste'"
+    class="cv-cmp-title"
+    [style.color]="titleColor"
+    [style.borderColor]="titleColor">
+    {{ component.titre }}
+  </h3>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- INFOS PERSONNELLES                                                -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'infos-personnelles'" class="cv-infos">
+    <div *ngIf="isVisible('prenom') || isVisible('nom')" class="cv-infos-name">
+      <span *ngIf="isVisible('prenom')">{{ data.prenom }}</span>
+      <span *ngIf="isVisible('nom')">{{ data.nom }}</span>
+    </div>
+    <ul class="cv-infos-list">
+      <li *ngIf="isVisible('email')">✉️ {{ data.email }}</li>
+      <li *ngIf="isVisible('tel')">📞 {{ data.tel }}</li>
+      <li *ngIf="isVisible('adresse')">📍 {{ data.adresse }}</li>
+      <li *ngIf="isVisible('linkedin')">🔗 {{ data.linkedin }}</li>
+      <li *ngIf="isVisible('github')">💻 {{ data.github }}</li>
+      <li *ngIf="isVisible('site')">🌐 {{ data.site }}</li>
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- PHOTO                                                             -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'photo'" class="cv-photo">
+    <div class="cv-photo-circle" [style.borderColor]="titleColor">
+      <span>{{ initiales() }}</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- TITRE / POSTE                                                     -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'titre-poste'" class="cv-poste">
+    <span [style.color]="titleColor">{{ data.titre }}</span>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- RÉSUMÉ                                                            -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'resume'" class="cv-resume">
+    <p>{{ data.texte }}</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- EXPÉRIENCES                                                       -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'experiences'" class="cv-list">
+    <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
+      <div class="cv-li-head">
+        <span *ngIf="isVisible('poste')" class="cv-li-strong">{{ item.poste }}</span>
+        <span *ngIf="isVisible('entreprise')" class="cv-li-mid">— {{ item.entreprise }}</span>
+        <span *ngIf="isVisible('lieu')" class="cv-li-mid">· {{ item.lieu }}</span>
+      </div>
+      <div class="cv-li-dates" *ngIf="isVisible('dateDebut') || isVisible('dateFin')">
+        <span *ngIf="isVisible('dateDebut')">{{ item.dateDebut }}</span>
+        <span *ngIf="isVisible('dateDebut') && isVisible('dateFin')"> – </span>
+        <span *ngIf="isVisible('dateFin')">{{ item.dateFin }}</span>
+      </div>
+      <p *ngIf="isVisible('description')" class="cv-li-desc">{{ item.description }}</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- FORMATIONS                                                        -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'formations'" class="cv-list">
+    <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
+      <div class="cv-li-head">
+        <span *ngIf="isVisible('diplome')" class="cv-li-strong">{{ item.diplome }}</span>
+        <span *ngIf="isVisible('etablissement')" class="cv-li-mid">— {{ item.etablissement }}</span>
+        <span *ngIf="isVisible('lieu')" class="cv-li-mid">· {{ item.lieu }}</span>
+      </div>
+      <div class="cv-li-dates" *ngIf="isVisible('dateDebut') || isVisible('dateFin')">
+        <span *ngIf="isVisible('dateDebut')">{{ item.dateDebut }}</span>
+        <span *ngIf="isVisible('dateDebut') && isVisible('dateFin')"> – </span>
+        <span *ngIf="isVisible('dateFin')">{{ item.dateFin }}</span>
+      </div>
+      <p *ngIf="isVisible('description') && item.description" class="cv-li-desc">{{ item.description }}</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- COMPÉTENCES                                                       -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'competences'" class="cv-skills">
+    <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-skill">
+      <span *ngIf="isVisible('nom')" class="cv-skill-name">{{ item.nom }}</span>
+      <div *ngIf="isVisible('niveau')" class="cv-skill-rating">
+        <span
+          *ngFor="let i of range(5)"
+          class="dot"
+          [class.full]="i < item.niveau"
+          [style.background]="i < item.niveau ? titleColor : 'transparent'"
+          [style.borderColor]="titleColor">
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- LANGUES                                                           -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'langues'" class="cv-langues">
+    <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-langue">
+      <span *ngIf="isVisible('nom')" class="cv-langue-nom">{{ item.nom }}</span>
+      <span *ngIf="isVisible('niveau')" class="cv-langue-niveau" [style.color]="titleColor">{{ item.niveau }}</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- PROJETS                                                           -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'projets'" class="cv-list">
+    <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
+      <div class="cv-li-head">
+        <span *ngIf="isVisible('nom')" class="cv-li-strong">{{ item.nom }}</span>
+        <span *ngIf="isVisible('lien') && item.lien" class="cv-li-mid">· {{ item.lien }}</span>
+      </div>
+      <p *ngIf="isVisible('description')" class="cv-li-desc">{{ item.description }}</p>
+      <p *ngIf="isVisible('technos') && item.technos" class="cv-li-meta">
+        <span [style.color]="titleColor">⚡</span> {{ item.technos }}
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- CERTIFICATIONS                                                    -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'certifications'" class="cv-list">
+    <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
+      <div class="cv-li-head">
+        <span *ngIf="isVisible('nom')" class="cv-li-strong">{{ item.nom }}</span>
+        <span *ngIf="isVisible('organisme')" class="cv-li-mid">— {{ item.organisme }}</span>
+      </div>
+      <div *ngIf="isVisible('date')" class="cv-li-dates">{{ item.date }}</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- CENTRES D'INTÉRÊT                                                 -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'centres-interet'" class="cv-resume">
+    <p>{{ data.items }}</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- RÉFÉRENCES                                                        -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'references'" class="cv-list">
+    <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
+      <div class="cv-li-head">
+        <span *ngIf="isVisible('nom')" class="cv-li-strong">{{ item.nom }}</span>
+        <span *ngIf="isVisible('poste')" class="cv-li-mid">— {{ item.poste }}</span>
+      </div>
+      <div *ngIf="isVisible('contact')" class="cv-li-meta">{{ item.contact }}</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- TEXTE LIBRE                                                       -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="component.type === 'texte-libre'" class="cv-resume">
+    <p>{{ data.texte }}</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- CHAMPS PERSONNALISÉS (admin)                                      -->
+  <!-- Affichés exactement comme les champs standards : un libellé +     -->
+  <!-- un placeholder. Le user remplira la valeur dans le CV final.      -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <ul *ngIf="visibleCustomFields.length" class="cv-custom-fields">
+    <li *ngFor="let f of visibleCustomFields">
+      <span class="cv-cf-label" [style.color]="titleColor">{{ f.label }} :</span>
+      <span class="cv-cf-value">—</span>
+    </li>
+  </ul>
+
+</div>

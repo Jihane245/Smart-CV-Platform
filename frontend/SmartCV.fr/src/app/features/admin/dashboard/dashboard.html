@@ -256,15 +256,35 @@
           <p><strong>ID :</strong> {{ templateDetail.id }}</p>
         </div>
 
-        <!-- Structure (sections + champs) -->
-        <div class="modal-section" *ngIf="templateDetail.structure?.sections?.length">
-          <h3>Structure du template</h3>
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Aperçu visuel du template (nouveau format builder)        -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="modal-section" *ngIf="templateDetail.structure?.boxes?.length">
+          <h3>Aperçu du template</h3>
+          <p class="modal-section-hint">
+            Données d'exemple. Côté utilisateur, ces champs seront remplis par l'IA depuis le profil.
+          </p>
+          <div class="template-preview-wrapper">
+            <app-template-preview
+              [structure]="templateDetail.structure"
+              [couleur]="templateDetail.couleur">
+            </app-template-preview>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Format legacy : tableau des sections + champs             -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="modal-section" *ngIf="!templateDetail.structure?.boxes?.length && templateDetail.structure?.sections?.length">
+          <h3>Structure (format ancien)</h3>
+          <p class="modal-section-hint">
+            Ce template a été créé avec l'ancien éditeur. Cliquez sur « Éditer » pour le reconstruire dans le builder visuel.
+          </p>
           <div *ngFor="let section of templateDetail.structure?.sections" class="detail-section">
             <div class="detail-section-header" [style.background]="section.couleur || '#6b8068'">
               <span class="detail-section-ordre">#{{ section.ordre }}</span>
               <span class="detail-section-titre">{{ section.titre }}</span>
             </div>
-
             <div class="detail-champs">
               <div *ngIf="section.champs?.length === 0" class="empty-fields">
                 Aucun champ dans cette section
@@ -272,13 +292,8 @@
               <table *ngIf="section.champs?.length" class="detail-champs-table">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Nom technique</th>
-                    <th>Label</th>
-                    <th>Type</th>
-                    <th>Placeholder</th>
-                    <th>Max</th>
-                    <th>Requis</th>
+                    <th>#</th><th>Nom technique</th><th>Label</th><th>Type</th>
+                    <th>Placeholder</th><th>Max</th><th>Requis</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -300,12 +315,14 @@
           </div>
         </div>
 
-        <!-- Si pas de structure -->
-        <div class="modal-section" *ngIf="!templateDetail.structure?.sections?.length">
-          <h3>Structure du template</h3>
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Aucune structure définie                                  -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="modal-section" *ngIf="!templateDetail.structure?.boxes?.length && !templateDetail.structure?.sections?.length">
+          <h3>Aperçu du template</h3>
           <p class="empty-message">
-            Ce template n'a pas encore de structure définie.
-            Cliquez sur "Éditer" pour ajouter des sections et des champs.
+            Ce template n'a pas encore été construit dans le builder visuel.
+            Cliquez sur « Éditer » pour ajouter des composants CV.
           </p>
         </div>
 
