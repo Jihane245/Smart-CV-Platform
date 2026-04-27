@@ -17,19 +17,29 @@ public class KeycloakAdminService
 
     private string BaseUrl => _config["Keycloak:AdminBaseUrl"] ?? "http://keycloak:8080";
     private string Realm   => _config["Keycloak:Realm"]        ?? "cv-platform";
+    private string AdminRealm => _config["Keycloak:AdminRealm"] ?? "master";
+    private string ClientId => _config["Keycloak:AdminClientId"] ?? "";
+    private string ClientSecret => _config["Keycloak:AdminClientSecret"] ?? "";
 
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
     {
         var client = _httpFactory.CreateClient();
 
+        if (string.IsNullOrWhiteSpace(ClientId) || string.IsNullOrWhiteSpace(ClientSecret))
+        {
+            throw new InvalidOperationException(
+                "Keycloak admin client credentials are missing. Set Keycloak:AdminClientId and Keycloak:AdminClientSecret."
+            );
+        }
+
+        // Service account / client credentials flow (no hardcoded admin user).
         var tokenResponse = await client.PostAsync(
-            $"{BaseUrl}/realms/master/protocol/openid-connect/token",
+            $"{BaseUrl}/realms/{AdminRealm}/protocol/openid-connect/token",
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["grant_type"] = "password",
-                ["client_id"]  = "admin-cli",
-                ["username"]   = "admin",
-                ["password"]   = "admin"
+                ["grant_type"] = "client_credentials",
+                ["client_id"]  = ClientId,
+                ["client_secret"] = ClientSecret,
             })
         );
 
@@ -86,6 +96,20 @@ public class KeycloakAdminService
         if (userId == null) return true; // already gone
 
         var resp = await client.DeleteAsync($"{BaseUrl}/admin/realms/{Realm}/users/{userId}");
+        return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> SendUpdatePasswordEmailAsync(string email)
+    {
+        var client = await CreateAuthenticatedClientAsync();
+        var userId = await FindUserIdByEmailAsync(client, email);
+        if (userId == null) return true; // do not reveal existence
+
+        var resp = await client.PutAsync(
+            $"{BaseUrl}/admin/realms/{Realm}/users/{userId}/execute-actions-email",
+            new StringContent("[\"UPDATE_PASSWORD\"]", Encoding.UTF8, "application/json")
+        );
+
         return resp.IsSuccessStatusCode;
     }
 }
