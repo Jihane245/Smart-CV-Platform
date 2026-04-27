@@ -13,6 +13,8 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
+
 // ===== DB =====
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
