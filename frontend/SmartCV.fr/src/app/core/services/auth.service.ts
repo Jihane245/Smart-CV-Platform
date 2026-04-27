@@ -45,7 +45,14 @@ export class AuthService {
   }
 
   logout(): void {
-    window.location.href = `${this.backendUrl}/api/auth/logout`;
+    // Use a top-level POST navigation to protect against logout CSRF.
+    // (XHR/fetch would not navigate through the Keycloak logout redirects.)
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `${this.backendUrl}/api/auth/logout`;
+    form.style.display = 'none';
+    document.body.appendChild(form);
+    form.submit();
   }
 
   isAuthenticated(): Observable<boolean> {
