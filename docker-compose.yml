@@ -36,6 +36,7 @@ services:
       - app-network
     volumes:
         - photos_data:/app/wwwroot/uploads/photos
+        - ./backend/wwwroot/pdfs:/app/wwwroot/pdfs
 
   ia:
     build: ./ai-service
