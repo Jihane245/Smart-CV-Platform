@@ -1,3 +1,5 @@
+
+namespace API.models;
 public class CvPdf
 {
     public int Id { get; set; }
