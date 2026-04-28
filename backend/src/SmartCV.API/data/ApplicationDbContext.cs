@@ -27,6 +27,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<SectionDynamique> SectionsDynamiques { get; set; }
     public DbSet<LigneDynamique> LignesDynamiques { get; set; }
     public DbSet<CvPersonnalise> CvsPersonnalises { get; set; }
+    public DbSet<CvPdf> CvPdf {get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
