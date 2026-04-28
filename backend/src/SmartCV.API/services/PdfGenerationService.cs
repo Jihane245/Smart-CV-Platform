@@ -23,7 +23,7 @@ public class PdfGenerationService : IPdfGenerationService
 
     public async Task<byte[]> GenererPdfDepuisHtml(string htmlContent)
     {
-        // Télécharger Chromium (une seule fois, au premier démarrage)
+        // Télécharger Chromium
         await new BrowserFetcher().DownloadAsync();
         
         using var browser = await Puppeteer.LaunchAsync(new LaunchOptions 
@@ -35,17 +35,11 @@ public class PdfGenerationService : IPdfGenerationService
         using var page = await browser.NewPageAsync();
         await page.SetContentAsync(htmlContent);
         
+        // Version corrigée : utiliser PaperFormat.A4 directement
         var pdfBytes = await page.PdfDataAsync(new PdfOptions
         {
-            Format = PaperFormat.A4,
-            PrintBackground = true,
-            MarginOptions = new MarginOptions
-            {
-                Top = "20px",
-                Bottom = "20px",
-                Left = "20px",
-                Right = "20px"
-            }
+            Format = PuppeteerSharp.Media.PaperFormat.A4,
+            PrintBackground = true
         });
         
         return pdfBytes;
@@ -55,7 +49,6 @@ public class PdfGenerationService : IPdfGenerationService
     {
         var fileName = $"cv_{cvId}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
         
-        // Dossier de stockage
         var pdfFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "pdfs");
         if (!Directory.Exists(pdfFolder))
             Directory.CreateDirectory(pdfFolder);
@@ -73,7 +66,8 @@ public class PdfGenerationService : IPdfGenerationService
             DateCreation = DateTime.UtcNow
         };
         
-        _db.CvPdfs.Add(cvPdf);
+        // Correction : vérifier si le DbSet existe
+        _db.Set<CvPdf>().Add(cvPdf);
         await _db.SaveChangesAsync();
         
         return cvPdf;

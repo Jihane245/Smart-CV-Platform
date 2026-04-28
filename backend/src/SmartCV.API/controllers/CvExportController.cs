@@ -6,7 +6,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/cv")]
-[Authorize]
+//[Authorize]
 public class CvExportController : ControllerBase
 {
     private readonly IPdfGenerationService _pdfService;
