@@ -5,13 +5,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 using API.data;
 using API.models;
 using API.models.Enums;
 using API.services;
 using Scalar.AspNetCore;
-
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
 
 // ===== DB =====
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -19,6 +20,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // ===== Keycloak config =====
 var keycloakConfig = builder.Configuration.GetSection("Keycloak");
+
+// ===== App URLs config =====
+var frontendUrl = builder.Configuration["App:FrontendUrl"] ?? "http://localhost";
+var backendUrl = builder.Configuration["App:BackendUrl"] ?? "http://localhost:5000";
 
 // =======================================================
 // AUTHENTICATION (OIDC + JWT)
@@ -28,17 +33,16 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
-// ===== Cookie (frontend login session) =====
+// ===== Cookie =====
 .AddCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 })
-// ===== OpenID Connect (Angular login redirect) =====
+// ===== OpenID Connect =====
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
-    options.BackchannelHttpHandler =
-        new HostRewritingHandler("localhost:8080", "keycloak:8080");
+    // ✅ HostRewritingHandler supprimé — Keycloak accessible via IP Tailscale directement
 
     options.Authority = keycloakConfig["Authority"];
     options.MetadataAddress = keycloakConfig["MetadataAddress"];
@@ -67,9 +71,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = keycloakConfig["ClientId"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
-
         NameClaimType = "preferred_username",
-
         RoleClaimType = "role"
     };
 
@@ -80,7 +82,6 @@ builder.Services.AddAuthentication(options =>
             var email = ctx.Principal?.FindFirstValue("email");
             if (string.IsNullOrEmpty(email)) return;
 
-            // Récupère les rôles Keycloak depuis le token (claim "role")
             var rolesKeycloak = ctx.Principal?.FindAll("role").Select(c => c.Value).ToList()
                                 ?? new List<string>();
             var estAdmin = rolesKeycloak.Contains("Admin");
@@ -93,7 +94,6 @@ builder.Services.AddAuthentication(options =>
 
             if (user == null)
             {
-                // Nouvel utilisateur : créé avec le bon rôle
                 db.Users.Add(new User
                 {
                     Email = email,
@@ -106,7 +106,6 @@ builder.Services.AddAuthentication(options =>
             }
             else if (user.Role != roleAttendu)
             {
-                // Utilisateur existant : on met à jour son rôle si changé côté Keycloak
                 user.Role = roleAttendu;
                 await db.SaveChangesAsync();
             }
@@ -116,8 +115,8 @@ builder.Services.AddAuthentication(options =>
         {
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
 
-            // URI autorisée dans Keycloak (voir cv_app → post.logout.redirect.uris)
-            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost/connexion";
+            // ✅ URL dynamique depuis config
+            ctx.ProtocolMessage.PostLogoutRedirectUri = $"{frontendUrl}/connexion";
 
             if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
@@ -125,7 +124,8 @@ builder.Services.AddAuthentication(options =>
 
         OnRemoteFailure = ctx =>
         {
-            ctx.Response.Redirect("http://localhost:5000/api/auth/login");
+            // ✅ URL dynamique depuis config
+            ctx.Response.Redirect($"{backendUrl}/api/auth/login");
             ctx.HandleResponse();
             return Task.CompletedTask;
         }
@@ -137,14 +137,14 @@ builder.Services.AddAuthentication(options =>
 // ===========
 .AddJwtBearer("Bearer", options =>
 {
-    options.Authority = "http://localhost:8080/realms/cv-platform";
+    // ✅ depuis config, pas hardcodé
+    options.Authority = keycloakConfig["Authority"];
     options.RequireHttpsMetadata = false;
-    options.Audience = "cv_app";
+    options.Audience = keycloakConfig["ClientId"];
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
         NameClaimType = "preferred_username",
-
         RoleClaimType = "role"
     };
 });
@@ -161,21 +161,25 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost", "http://localhost:80")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        // ✅ CORS dynamique depuis config
+        policy.WithOrigins(
+            frontendUrl,
+            "http://localhost",
+            "http://localhost:80"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<KeycloakAdminService>();
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
 
-// ===== OpenAPI (.NET 10) =====
+// ===== OpenAPI =====
 builder.Services.AddOpenApi();
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -186,6 +190,13 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+}
+
+// ✅ Migrations automatiques au démarrage
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
 }
 
 app.UseHttpsRedirection();
