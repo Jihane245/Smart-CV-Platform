@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using API.services;
 using System.Linq;
 using System.Security.Claims;
 
@@ -12,6 +13,18 @@ namespace API.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        private readonly KeycloakAdminService _keycloakAdmin;
+        private static readonly HashSet<string> AllowedOrigins = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "http://localhost",
+            "http://localhost:80",
+        };
+
+        public AuthController(KeycloakAdminService keycloakAdmin)
+        {
+            _keycloakAdmin = keycloakAdmin;
+        }
+
         [HttpGet("login")]
         public IActionResult Login(string returnUrl = "/")
         {
@@ -21,16 +34,33 @@ namespace API.Controllers
             );
         }
 
-        [HttpGet("logout")]
-        public async Task<IActionResult> Logout()
+        [HttpPost("logout")]
+        [Authorize]
+        public IActionResult Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            // CSRF protection for cookie-based auth: only accept same-site requests.
+            // Browsers typically send Origin on POST; fall back to Referer for older clients.
+            var origin = Request.Headers.Origin.ToString();
+            if (!string.IsNullOrWhiteSpace(origin) && !AllowedOrigins.Contains(origin))
+                return Forbid();
 
+            var referer = Request.Headers.Referer.ToString();
+            if (string.IsNullOrWhiteSpace(origin) &&
+                !string.IsNullOrWhiteSpace(referer) &&
+                !AllowedOrigins.Any(o => referer.StartsWith(o + "/", StringComparison.OrdinalIgnoreCase)))
+            {
+                return Forbid();
+            }
+
+            // Sign-out both the local cookie and the OIDC session.
+            // Important: don't clear the cookie first, otherwise the OIDC handler can't access
+            // the id_token claim used as id_token_hint for Keycloak logout.
             return SignOut(
                 new AuthenticationProperties
                 {
                     RedirectUri = "http://localhost/connexion"
                 },
+                CookieAuthenticationDefaults.AuthenticationScheme,
                 OpenIdConnectDefaults.AuthenticationScheme
             );
         }
@@ -46,68 +76,17 @@ namespace API.Controllers
         if (string.IsNullOrEmpty(request.Email))
             return BadRequest("Email requis");
 
-        var httpClient = new HttpClient();
-
-        // 1. On récupère un token admin pour pouvoir appeler l'API Keycloak
-        var adminTokenResponse = await httpClient.PostAsync(
-            "http://localhost:8080/realms/master/protocol/openid-connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["grant_type"] = "password",
-                ["client_id"]  = "admin-cli",
-                ["username"]   = "admin",
-                ["password"]   = "admin"
-            })
-        );
-
-        if (!adminTokenResponse.IsSuccessStatusCode)
+        // Sécurité : réponse identique que l'email existe ou non.
+        try
         {
-            var error = await adminTokenResponse.Content.ReadAsStringAsync();
-            Console.WriteLine($"Admin token error: {error}");
-            return StatusCode(500, new { message = "Erreur serveur", detail = error });
+            var ok = await _keycloakAdmin.SendUpdatePasswordEmailAsync(request.Email);
+            if (!ok)
+                return StatusCode(500, new { message = "Erreur lors de l'envoi de l'email" });
         }
-
-        var adminTokenJson = System.Text.Json.JsonDocument.Parse(
-            await adminTokenResponse.Content.ReadAsStringAsync());
-        var adminToken = adminTokenJson.RootElement
-            .GetProperty("access_token").GetString();
-
-        // 2. On cherche l'user par email dans Keycloak
-        httpClient.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
-
-        var usersResponse = await httpClient.GetAsync(
-            $"http://localhost:8080/admin/realms/cv-platform/users?email={request.Email}&exact=true"
-        );
-
-        var usersContent = await usersResponse.Content.ReadAsStringAsync();
-        Console.WriteLine($"Keycloak users response: {usersContent}");
-
-        if (!usersContent.TrimStart().StartsWith("["))
-            return StatusCode(500, new { message = "Erreur recherche", detail = usersContent });
-
-        var usersJson = System.Text.Json.JsonDocument.Parse(usersContent);
-        var users = usersJson.RootElement.EnumerateArray().ToList();
-
-        // 3. Même si l'email n'existe pas, on retourne le même message
-        // (sécurité : on ne révèle pas si l'email existe ou non)
-        if (users.Count == 0)
-            return Ok(new { message = "Si cet email existe, un lien de réinitialisation a été envoyé" });
-
-        var userId = users[0].GetProperty("id").GetString();
-
-        // 4. On demande à Keycloak d'envoyer l'email de reset
-        var resetResponse = await httpClient.PutAsync(
-            $"http://localhost:8080/admin/realms/plateformecv/users/{userId}/execute-actions-email",
-            new StringContent(
-                "[\"UPDATE_PASSWORD\"]",
-                System.Text.Encoding.UTF8,
-                "application/json"
-            )
-        );
-
-        if (!resetResponse.IsSuccessStatusCode)
-            return StatusCode(500, new { message = "Erreur lors de l'envoi de l'email" });
+        catch
+        {
+            return StatusCode(500, new { message = "Erreur serveur" });
+        }
 
         return Ok(new { message = "Si cet email existe, un lien de réinitialisation a été envoyé" });
     }

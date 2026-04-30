@@ -3,6 +3,7 @@ using System;
 using API.data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SmartCV.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260426160728_AddCvPersonnalise")]
+    partial class AddCvPersonnalise
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -295,35 +298,6 @@ namespace SmartCV.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Cvs");
-                });
-
-            modelBuilder.Entity("API.models.CvPdf", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CloudUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("CvId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("DateCreation")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CvId");
-
-                    b.ToTable("CvPdf");
                 });
 
             modelBuilder.Entity("API.models.CvPersonnalise", b =>
@@ -814,17 +788,6 @@ namespace SmartCV.API.Migrations
                     b.Navigation("Template");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("API.models.CvPdf", b =>
-                {
-                    b.HasOne("API.models.Cv", "Cv")
-                        .WithMany()
-                        .HasForeignKey("CvId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cv");
                 });
 
             modelBuilder.Entity("API.models.CvPersonnalise", b =>

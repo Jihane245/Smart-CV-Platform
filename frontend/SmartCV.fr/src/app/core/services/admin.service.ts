@@ -74,7 +74,58 @@ export interface TemplateSectionDto {
 }
 
 export interface TemplateStructureDto {
+  // Ancien format (rétro-compat)
   sections: TemplateSectionDto[];
+
+  // Nouveau format builder visuel
+  layout?: TemplateLayoutId;
+  couleurPrimaire?: string;
+  boxes?: TemplateBoxDto[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TEMPLATES — types pour le BUILDER VISUEL (Phase 2)
+// ─────────────────────────────────────────────────────────────────────────
+export type TemplateLayoutId =
+  | 'single-column'
+  | 'header-two-columns'
+  | 'sidebar-left'
+  | 'sidebar-right';
+
+export type TemplateComponentType =
+  | 'infos-personnelles'
+  | 'photo'
+  | 'titre-poste'
+  | 'resume'
+  | 'experiences'
+  | 'formations'
+  | 'competences'
+  | 'langues'
+  | 'projets'
+  | 'certifications'
+  | 'centres-interet'
+  | 'references'
+  | 'texte-libre';
+
+export interface TemplateBoxStyleDto {
+  background?: string;
+  textColor?: string;
+  accentColor?: string;
+  padding?: string;
+}
+
+export interface TemplateComponentDto {
+  id: string;
+  type: TemplateComponentType;
+  titre?: string;
+  config?: Record<string, unknown>;
+}
+
+export interface TemplateBoxDto {
+  id: string;
+  label: string;
+  style: TemplateBoxStyleDto;
+  components: TemplateComponentDto[];
 }
 
 export interface AdminTemplateDto {

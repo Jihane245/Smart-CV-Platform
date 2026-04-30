@@ -26,6 +26,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Candidature> Candidatures { get; set; }
     public DbSet<SectionDynamique> SectionsDynamiques { get; set; }
     public DbSet<LigneDynamique> LignesDynamiques { get; set; }
+    public DbSet<CvPersonnalise> CvsPersonnalises { get; set; }
+    public DbSet<CvPdf> CvPdf {get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +67,19 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().Property(u => u.IsActif).HasDefaultValue(true);
         modelBuilder.Entity<User>().Property(u => u.Role).HasDefaultValue(RoleUtilisateur.Candidat);
         modelBuilder.Entity<Cv>().Property(c => c.Statut).HasDefaultValue(StatutCVEnum.BROUILLON);
+     
         modelBuilder.Entity<Candidature>().Property(c => c.Statut).HasDefaultValue(StatutCandidature.enregistrée);
-    }
+        modelBuilder.Entity<CvPersonnalise>()
+            .HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CvPersonnalise>()
+            .HasOne(c => c.Template)
+            .WithMany()
+            .HasForeignKey(c => c.TemplateId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+    }   
 }

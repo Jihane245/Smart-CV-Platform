@@ -14,6 +14,9 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
 
+builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
+
+
 // ===== DB =====
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -37,7 +40,9 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 })
 // ===== OpenID Connect =====
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
@@ -50,8 +55,9 @@ builder.Services.AddAuthentication(options =>
     options.ClientSecret = keycloakConfig["ClientSecret"];
     options.ResponseType = OpenIdConnectResponseType.Code;
 
-    options.SaveTokens = true;
-    options.RequireHttpsMetadata = false;
+    // Don't persist tokens in the auth session unless strictly needed.
+    options.SaveTokens = false;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.CallbackPath = "/signin-oidc";
     options.SignedOutCallbackPath = "/signout-callback-oidc";
     options.GetClaimsFromUserInfoEndpoint = true;
@@ -65,7 +71,7 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
+        ValidateIssuer = true,
         ValidIssuer = keycloakConfig["Authority"],
         ValidateAudience = true,
         ValidAudience = keycloakConfig["ClientId"],
@@ -77,6 +83,20 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new OpenIdConnectEvents
     {
+        OnTokenResponseReceived = ctx =>
+        {
+            // We keep SaveTokens=false, but we still need the id_token for RP-initiated logout
+            // (Keycloak may require id_token_hint). Store only the id_token as an encrypted claim
+            // inside the ASP.NET auth cookie ticket.
+            var idToken = ctx.TokenEndpointResponse?.IdToken;
+            if (!string.IsNullOrWhiteSpace(idToken) && ctx.Principal?.Identity is ClaimsIdentity id)
+            {
+                // Avoid duplicating if the handler runs again.
+                if (!id.HasClaim(c => c.Type == "id_token"))
+                    id.AddClaim(new Claim("id_token", idToken));
+            }
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async ctx =>
         {
             var email = ctx.Principal?.FindFirstValue("email");
@@ -118,8 +138,16 @@ builder.Services.AddAuthentication(options =>
             // ✅ URL dynamique depuis config
             ctx.ProtocolMessage.PostLogoutRedirectUri = $"{frontendUrl}/connexion";
 
-            if (!string.IsNullOrEmpty(idToken))
+            // Keycloak requires either client_id or id_token_hint when post_logout_redirect_uri is used.
+            // Always send client_id to keep logout working even if id_token_hint isn't available.
+            ctx.ProtocolMessage.ClientId ??= keycloakConfig["ClientId"];
+
+            // Keycloak may require id_token_hint; we store it as a claim at sign-in time.
+            var idToken = ctx.HttpContext.User.FindFirst("id_token")?.Value;
+            if (!string.IsNullOrWhiteSpace(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
+
+            await Task.CompletedTask;
         },
 
         OnRemoteFailure = ctx =>
@@ -144,6 +172,12 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
+        ValidateIssuer = true,
+        ValidIssuer = keycloakConfig["Authority"],
+        ValidateAudience = true,
+        ValidAudience = keycloakConfig["ClientId"],
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero,
         NameClaimType = "preferred_username",
         RoleClaimType = "role"
     };
