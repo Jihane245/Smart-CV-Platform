@@ -1,0 +1,61 @@
+name: CI/CD SmartCV
+
+on:
+  push:
+    branches: [ "main" ] # Déclenche l'automatisation lors d'un push sur main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }} # ex: khadija11-was/backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # Utilise le token auto de GitHub
+
+      # --- Build & Push BACKEND ---
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/khadija11-was/backend:latest
+
+      # --- Build & Push IA SERVICE ---
+      - name: Build and push IA Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ai-service
+          file: ai-service/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/khadija11-was/ia-service:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VM via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_IP }} # Ton IP Tailscale
+          username: ${{ secrets.VM_USER }} # Ton user Kali
+          key: ${{ secrets.SSH_PRIVATE_KEY }} # Ta clé SSH privée
+          script: |
+            cd ~/smartcv
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
