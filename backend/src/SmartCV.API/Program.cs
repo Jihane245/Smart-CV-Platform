@@ -230,4 +230,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/", () => Results.Ok("API is running"));
 
+// Warm-up Chromium en arrière-plan pour que la 1ère génération PDF soit rapide
+_ = Task.Run(() => PdfGenerationService.WarmUpAsync());
+
 app.Run();

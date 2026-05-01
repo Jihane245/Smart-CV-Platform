@@ -80,6 +80,12 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(c => c.TemplateId)
             .OnDelete(DeleteBehavior.Restrict);
-        
-    }   
+
+        modelBuilder.Entity<CvPdf>()
+            .HasOne(p => p.Cv)
+            .WithMany()
+            .HasForeignKey(p => p.CvId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+    }
 }

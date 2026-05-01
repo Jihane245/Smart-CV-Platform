@@ -4,7 +4,7 @@ import { Component, OnInit, ElementRef, ViewChild, ChangeDetectorRef } from '@an
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AdminService, AdminTemplateDto } from '../../../../core/services/admin.service';
+import { AdminService, AdminTemplateDto, TemplateBoxDto, TemplateLayoutId } from '../../../../core/services/admin.service';
 import {
   ProfilService,
   ProfilMeResponse,
@@ -17,6 +17,8 @@ import {
 } from '../../../../core/services/cv.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { CvComponentRenderer } from '../../../admin/template-editor/cv-component-renderer/cv-component-renderer';
+import { CvData, buildCvDataFromProfil, presentLabelFor, ALL_PRESENT_VALUES } from './cv-data';
 
 interface CompetenceAnalysee {
   nom: string;
@@ -45,7 +47,7 @@ const LANGUE_CODE: Record<string, string> = {
 @Component({
   selector: 'app-generate-cv',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, CvComponentRenderer],
   templateUrl: './generate-cv.html',
   styleUrl: './generate-cv.scss',
 })
@@ -113,6 +115,12 @@ export class GenerateCv implements OnInit {
   scoreApresOptimisation = 0;
   pointsGagnes = 0;
 
+  // ─── Données mappées profil → composants CV (édition inline) ─────────────────
+  cvData: CvData | null = null;
+
+  // Champs masqués par le user — par type de composant (ex: { 'infos-personnelles': ['github', 'site'] })
+  userHiddenFields: Partial<Record<string, string[]>> = {};
+
   constructor(
     private adminService: AdminService,
     private profilService: ProfilService,
@@ -134,8 +142,9 @@ export class GenerateCv implements OnInit {
     forkJoin({
       profil: this.profilService.getMe(),
       status: this.authService.getStatus(),
+      sections: this.profilService.getSections(),
     }).subscribe({
-      next: ({ profil, status }) => {
+      next: ({ profil, status, sections }) => {
         this.titre = profil.titre ?? '';
         this.ville = profil.adresse ?? '';
         this.linkedIn = profil.linkedIn ?? '';
@@ -155,6 +164,13 @@ export class GenerateCv implements OnInit {
         this.nom = status.surname ?? '';
         this.email = status.email ?? '';
         this.titreCv = this.titre || `CV — ${this.prenom} ${this.nom}`.trim();
+
+        this.cvData = buildCvDataFromProfil(
+          profil,
+          { prenom: this.prenom, nom: this.nom, email: this.email },
+          this.langueCode,
+          sections,
+        );
 
         this.chargementProfil = false;
         this.cdr.detectChanges();
@@ -315,15 +331,8 @@ export class GenerateCv implements OnInit {
       return;
     }
 
-    const styles = Array.from(document.styleSheets)
-      .flatMap(sheet => {
-        try {
-          return Array.from(sheet.cssRules).map(rule => rule.cssText);
-        } catch {
-          return [];
-        }
-      })
-      .join('\n');
+    const cleanedHtml = this.cleanPreviewForPdf(previewEl);
+    const styles = this.collectRelevantStyles(previewEl);
 
     const htmlContent = `<!DOCTYPE html>
 <html>
@@ -332,7 +341,7 @@ export class GenerateCv implements OnInit {
   <style>${styles}</style>
 </head>
 <body>
-  ${previewEl.outerHTML}
+  ${cleanedHtml}
 </body>
 </html>`;
 
@@ -364,6 +373,117 @@ export class GenerateCv implements OnInit {
     this.notifService.info(
       'Enregistrement candidature — disponible prochainement.'
     );
+  }
+
+  // ─── Récupère uniquement les CSS pertinentes pour l'aperçu CV ────────────────
+  // Filtrage : on ne garde que les règles dont le sélecteur matche au moins
+  // un élément à l'intérieur du previewEl. Ça réduit drastiquement la taille
+  // du HTML envoyé au backend (et donc le temps de transfert + parsing).
+  private collectRelevantStyles(previewEl: HTMLElement): string {
+    const out: string[] = [];
+
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules: CSSRuleList;
+      try { rules = sheet.cssRules; } catch { continue; } // CSS cross-origin → skip
+
+      for (const rule of Array.from(rules)) {
+        if (rule instanceof CSSStyleRule) {
+          if (this.selectorMatchesPreview(rule.selectorText, previewEl)) {
+            out.push(rule.cssText);
+          }
+        } else if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule) {
+          // Règles @media / @supports : on garde si au moins un sous-sélecteur match
+          const inner: string[] = [];
+          for (const sub of Array.from(rule.cssRules)) {
+            if (sub instanceof CSSStyleRule &&
+                this.selectorMatchesPreview(sub.selectorText, previewEl)) {
+              inner.push(sub.cssText);
+            }
+          }
+          if (inner.length) {
+            const cond = rule instanceof CSSMediaRule ? `@media ${rule.media.mediaText}` : `@supports ${(rule as any).conditionText}`;
+            out.push(`${cond} { ${inner.join(' ')} }`);
+          }
+        } else if (rule instanceof CSSFontFaceRule || rule instanceof CSSKeyframesRule) {
+          // Toujours conserver les @font-face et @keyframes
+          out.push(rule.cssText);
+        }
+      }
+    }
+    return out.join('\n');
+  }
+
+  private selectorMatchesPreview(selectorText: string, previewEl: HTMLElement): boolean {
+    // Découpe les sélecteurs composés ".a, .b" et teste chacun
+    const selectors = selectorText.split(',').map(s => s.trim()).filter(Boolean);
+    for (const sel of selectors) {
+      try {
+        if (previewEl.matches(sel) || previewEl.querySelector(sel)) return true;
+      } catch { /* sélecteur invalide (pseudo non supporté…) → ignore */ }
+    }
+    return false;
+  }
+
+  // ─── Nettoie l'aperçu pour le PDF ────────────────────────────────────────────
+  // - inputs/textareas non vides → remplacés par leur valeur (span)
+  // - inputs/textareas vides     → supprimés (+ leur conteneur "orphelin")
+  // - boutons + Ajouter / × Supprimer → supprimés
+  private cleanPreviewForPdf(previewEl: HTMLElement): string {
+    const root = previewEl.cloneNode(true) as HTMLElement;
+
+    // 1. Remplacer les inputs/textareas par des spans (ou les supprimer si vides)
+    //    NB: outerHTML d'un input ne contient pas la valeur tapée → il faut la
+    //    récupérer depuis le DOM original via les positions.
+    const liveInputs = previewEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+      'input.ed, textarea.ed-area'
+    );
+    const cloneInputs = root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+      'input.ed, textarea.ed-area'
+    );
+
+    cloneInputs.forEach((cloneEl, i) => {
+      const live = liveInputs[i];
+      const value = (live?.value ?? '').trim();
+
+      if (value) {
+        const span = document.createElement('span');
+        span.textContent = value;
+        cloneEl.classList.forEach(c => {
+          if (c !== 'ed' && c !== 'ed-area') span.classList.add(c);
+        });
+        cloneEl.replaceWith(span);
+      } else {
+        cloneEl.remove();
+      }
+    });
+
+    // 2. Supprimer tous les boutons d'édition
+    root.querySelectorAll('.ed-rm, .ed-add').forEach(el => el.remove());
+
+    // 3. Nettoyer les conteneurs orphelins (séparateurs sans contenu)
+    //    Les <span class="cv-li-mid"> qui ne contiennent que "—" ou "·"
+    root.querySelectorAll<HTMLElement>('span.cv-li-mid').forEach(el => {
+      if (el.children.length === 0 && /^\s*[—·–\-]?\s*$/.test(el.textContent || '')) {
+        el.remove();
+      }
+    });
+
+    // 4. <li> de cv-infos-list dont l'input a été supprimé : ne reste que l'emoji
+    root.querySelectorAll<HTMLElement>('li').forEach(el => {
+      if (el.children.length === 0) {
+        const txt = (el.textContent || '').trim();
+        if (txt.length <= 2 && !/[a-zA-ZÀ-ÿ0-9]/.test(txt)) {
+          el.remove();
+        }
+      }
+    });
+
+    // 5. Items de liste (.cv-list-item, .cv-skill, .cv-langue) sans contenu
+    root.querySelectorAll<HTMLElement>('.cv-list-item, .cv-skill, .cv-langue').forEach(el => {
+      if (!el.textContent?.trim()) el.remove();
+    });
+
+    return root.outerHTML;
   }
 
   // ─── Navigation helpers ───────────────────────────────────────────────────────
@@ -404,6 +524,58 @@ export class GenerateCv implements OnInit {
   get formationPrincipale() {
     return this.formationsCv[0] ?? null;
   }
+
+  // ─── Code langue (fr/en/ar/es) calculé depuis la langue sélectionnée ──────────
+  get langueCode(): string {
+    return LANGUE_CODE[this.langueSelectionnee] ?? 'fr';
+  }
+
+  // ─── Changement de langue : retraduit les labels auto-générés (ex: "Présent") ─
+  onLanguageChange(): void {
+    if (!this.cvData) return;
+    const newPresent = presentLabelFor(this.langueCode);
+
+    // Cherche dans expériences toutes les dateFin qui correspondent à un ancien
+    // "Présent"/"Present"/etc. et les remplace par celui de la nouvelle langue.
+    // Si l'user a tapé autre chose (ex: "12/2024"), on n'y touche pas.
+    for (const exp of this.cvData['experiences'] ?? []) {
+      if (ALL_PRESENT_VALUES.includes(exp.dateFin)) {
+        exp.dateFin = newPresent;
+      }
+    }
+  }
+
+  // ─── Masquage d'un champ admin par le user ────────────────────────────────────
+  onFieldHide(componentType: string, fieldKey: string): void {
+    const list = this.userHiddenFields[componentType] ?? [];
+    if (!list.includes(fieldKey)) {
+      this.userHiddenFields = {
+        ...this.userHiddenFields,
+        [componentType]: [...list, fieldKey],
+      };
+    }
+  }
+
+  hiddenFieldsFor(componentType: string): string[] {
+    return this.userHiddenFields[componentType] ?? [];
+  }
+
+  // ─── Template structure helpers ───────────────────────────────────────────────
+  get templateBoxes(): TemplateBoxDto[] {
+    return this.templateSelectionne?.structure?.boxes ?? [];
+  }
+
+  get templateLayoutId(): TemplateLayoutId {
+    return (this.templateSelectionne?.structure?.layout as TemplateLayoutId) || 'sidebar-left';
+  }
+
+  get hasTemplateStructure(): boolean {
+    const boxes = this.templateBoxes;
+    return boxes.length > 0 && boxes.some(b => b.components.length > 0);
+  }
+
+  trackBoxById = (_: number, b: TemplateBoxDto) => b.id;
+  trackComponentById = (_: number, c: { id: string }) => c.id;
 
   formatPeriode(exp: ProfilMeResponse['experiences'][0]): string {
     const debut = exp.dateDebut
