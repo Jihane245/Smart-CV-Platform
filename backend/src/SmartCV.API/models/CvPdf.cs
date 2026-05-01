@@ -7,6 +7,6 @@ public class CvPdf
     public string CloudUrl { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
     public DateTime DateCreation { get; set; } = DateTime.UtcNow;
-    
-    public Cv Cv { get; set; }
+
+    public CvPersonnalise? Cv { get; set; }
 }

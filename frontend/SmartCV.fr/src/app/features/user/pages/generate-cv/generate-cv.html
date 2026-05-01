@@ -238,7 +238,7 @@
           </div>
           <div class="perso-row">
             <span class="perso-label">Langue du CV</span>
-            <select class="select-langue" [(ngModel)]="langueSelectionnee">
+            <select class="select-langue" [(ngModel)]="langueSelectionnee" (ngModelChange)="onLanguageChange()">
               <option *ngFor="let l of langues" [value]="l">{{ l }}</option>
             </select>
           </div>
@@ -320,65 +320,82 @@
       </div>
 
       <div class="cv-preview" #cvPreview [style.--accent]="couleurAccent">
-        <!-- En-tête CV -->
-        <div class="cv-head">
-          <h3 class="cv-nom">{{ prenom }} {{ nom }}</h3>
-          <p class="cv-titre-poste">{{ titre }}</p>
-          <div class="cv-meta">
-            <span>✉ {{ email }}</span>
-            <span>📍 {{ ville }}</span>
-            <span *ngIf="linkedIn">🔗 {{ linkedIn }}</span>
+
+        <!-- ══ Cas 1 : template avec une structure construite via le builder admin ══ -->
+        <div
+          *ngIf="hasTemplateStructure && cvData; else fallbackTpl"
+          class="tpl-render"
+          [attr.data-layout]="templateLayoutId">
+          <div
+            *ngFor="let box of templateBoxes; trackBy: trackBoxById"
+            class="tpl-box"
+            [attr.data-box]="box.id"
+            [style.background]="box.style.background"
+            [style.color]="box.style.textColor"
+            [style.padding]="box.style.padding">
+            <div
+              *ngFor="let cmp of box.components; trackBy: trackComponentById"
+              class="tpl-cmp">
+              <app-cv-component-renderer
+                [component]="cmp"
+                [accentColor]="couleurAccent"
+                [lang]="langueCode"
+                [realData]="cvData[cmp.type]"
+                [userHiddenFields]="hiddenFieldsFor(cmp.type)"
+                [editable]="etapeActive === 4"
+                (fieldHide)="onFieldHide(cmp.type, $event)">
+              </app-cv-component-renderer>
+            </div>
           </div>
         </div>
 
-        <!-- Corps CV -->
-        <div class="cv-body">
-          <!-- Colonne gauche CV -->
-          <div class="cv-col-left">
-            <div class="cv-section" *ngIf="competencesCv.length > 0">
-              <p class="cv-section-label">COMPÉTENCES</p>
-              <div *ngFor="let c of competencesCv" class="cv-comp-item">
-                <span class="cv-comp-nom">{{ c.nom }}</span>
-                <div class="cv-comp-bar">
-                  <div
-                    class="cv-comp-fill"
-                    [style.width.%]="c.pct"
-                  ></div>
+        <!-- ══ Cas 2 : fallback (template sans structure) ══ -->
+        <ng-template #fallbackTpl>
+          <div class="cv-head">
+            <h3 class="cv-nom">{{ prenom }} {{ nom }}</h3>
+            <p class="cv-titre-poste">{{ titre }}</p>
+            <div class="cv-meta">
+              <span>✉ {{ email }}</span>
+              <span>📍 {{ ville }}</span>
+              <span *ngIf="linkedIn">🔗 {{ linkedIn }}</span>
+            </div>
+          </div>
+          <div class="cv-body">
+            <div class="cv-col-left">
+              <div class="cv-section" *ngIf="competencesCv.length > 0">
+                <p class="cv-section-label">COMPÉTENCES</p>
+                <div *ngFor="let c of competencesCv" class="cv-comp-item">
+                  <span class="cv-comp-nom">{{ c.nom }}</span>
+                  <div class="cv-comp-bar">
+                    <div class="cv-comp-fill" [style.width.%]="c.pct"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="cv-section" *ngIf="formationPrincipale">
+                <p class="cv-section-label">FORMATION</p>
+                <p class="cv-bold">{{ formationPrincipale.etablissement }}</p>
+                <p class="cv-small">{{ formationPrincipale.diplome }}</p>
+                <p class="cv-small muted">{{ formationPrincipale.annee }}</p>
+              </div>
+            </div>
+            <div class="cv-col-right">
+              <div class="cv-section">
+                <p class="cv-section-label">RÉSUMÉ PROFESSIONNEL</p>
+                <p class="cv-small">{{ etapeActive === 4 ? resumeEdite : resume }}</p>
+              </div>
+              <div class="cv-section" *ngIf="experiencesCv.length > 0">
+                <p class="cv-section-label">EXPÉRIENCES</p>
+                <div *ngFor="let e of experiencesCv" class="cv-exp-item">
+                  <p class="cv-bold">{{ e.poste }}</p>
+                  <p class="cv-small">{{ e.entreprise }}</p>
+                  <p class="cv-small muted">{{ formatPeriode(e) }}</p>
+                  <p class="cv-small">{{ e.description }}</p>
                 </div>
               </div>
             </div>
-
-            <div class="cv-section" *ngIf="formationPrincipale">
-              <p class="cv-section-label">FORMATION</p>
-              <p class="cv-bold">{{ formationPrincipale.etablissement }}</p>
-              <p class="cv-small">{{ formationPrincipale.diplome }}</p>
-              <p class="cv-small muted">{{ formationPrincipale.annee }}</p>
-            </div>
           </div>
+        </ng-template>
 
-          <!-- Colonne droite CV -->
-          <div class="cv-col-right">
-            <div class="cv-section">
-              <p class="cv-section-label">RÉSUMÉ PROFESSIONNEL</p>
-              <p class="cv-small">
-                {{ etapeActive === 4 ? resumeEdite : resume }}
-              </p>
-            </div>
-
-            <div class="cv-section" *ngIf="experiencesCv.length > 0">
-              <p class="cv-section-label">EXPÉRIENCES</p>
-              <div
-                *ngFor="let e of experiencesCv"
-                class="cv-exp-item"
-              >
-                <p class="cv-bold">{{ e.poste }}</p>
-                <p class="cv-small">{{ e.entreprise }}</p>
-                <p class="cv-small muted">{{ formatPeriode(e) }}</p>
-                <p class="cv-small">{{ e.description }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
