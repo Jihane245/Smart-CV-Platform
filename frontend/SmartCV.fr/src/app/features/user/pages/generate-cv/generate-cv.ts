@@ -1,12 +1,46 @@
-import { Component } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnInit, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { AdminService, AdminTemplateDto } from '../../../../core/services/admin.service';
+import {
+  ProfilService,
+  ProfilMeResponse,
+  normalizeCompetenceNiveau,
+} from '../../../../core/services/profil.service';
+import {
+  CvService,
+  AnalyseOffreResponse,
+  RecommandationsDto,
+} from '../../../../core/services/cv.service';
+import { NotificationService } from '../../../../core/services/notification.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 interface CompetenceAnalysee {
   nom: string;
   statut: 'maitrise' | 'partiel' | 'renforcer';
 }
+
+interface CompetenceCvPreview {
+  nom: string;
+  pct: number;
+}
+
+const NIVEAU_PCT: Record<string, number> = {
+  Debutant: 30,
+  Intermediaire: 55,
+  Avance: 75,
+  Expert: 95,
+};
+
+const LANGUE_CODE: Record<string, string> = {
+  'Français': 'fr',
+  'Anglais': 'en',
+  'Arabe': 'ar',
+  'Espagnol': 'es',
+};
 
 @Component({
   selector: 'app-generate-cv',
@@ -15,9 +49,12 @@ interface CompetenceAnalysee {
   templateUrl: './generate-cv.html',
   styleUrl: './generate-cv.scss',
 })
-export class GenerateCv {
+export class GenerateCv implements OnInit {
 
-  // ─── Navigation ────────────────────────────────────────────────────────────
+  @ViewChild('cvPreview') cvPreviewRef!: ElementRef<HTMLElement>;
+  @ViewChild('imageInput') imageInput!: ElementRef<HTMLInputElement>;
+
+  // ─── Navigation ──────────────────────────────────────────────────────────────
   etapeActive = 1;
   etapesCompletes: number[] = [];
 
@@ -28,35 +65,40 @@ export class GenerateCv {
     { num: 4, label: 'Validation & export' },
   ];
 
-  // ─── Étape 1 — Offre d'emploi ───────────────────────────────────────────
-  offreTexte = '';
+  // ─── Loading states ──────────────────────────────────────────────────────────
+  chargementProfil = true;
+  chargementTemplates = false;
   analyseEnCours = false;
+  generationEnCours = false;
+  telechargementEnCours = false;
 
-  // ─── Étape 2 — Analyse IA ───────────────────────────────────────────────
-  // TODO: remplacer par les données retournées par POST /api/cv/analyser-offre
-  scoreCompatibilite = 78;
-  scoreLabel = 'Bon match';
+  // ─── Profil réel ─────────────────────────────────────────────────────────────
+  prenom = '';
+  nom = '';
+  email = '';
+  titre = '';
+  ville = '';
+  linkedIn = '';
+  resume = '';
+  competencesCv: CompetenceCvPreview[] = [];
+  competencesNoms: string[] = [];
+  experiencesCv: ProfilMeResponse['experiences'] = [];
+  formationsCv: ProfilMeResponse['formations'] = [];
 
-  competencesAnalysees: CompetenceAnalysee[] = [
-    { nom: 'React.js', statut: 'maitrise' },
-    { nom: 'Node.js', statut: 'maitrise' },
-    { nom: 'Git', statut: 'maitrise' },
-    { nom: 'PostgreSQL', statut: 'maitrise' },
-    { nom: 'Docker', statut: 'partiel' },
-    { nom: 'CI/CD', statut: 'partiel' },
-    { nom: 'Next.js', statut: 'renforcer' },
-    { nom: 'MongoDB', statut: 'renforcer' },
-  ];
+  // ─── Étape 1 ─────────────────────────────────────────────────────────────────
+  offreTexte = '';
 
-  recommandations = [
-    'Mettez en avant votre expérience React dans le résumé',
-    'Mentionnez vos notions Docker même partielles',
-    'Ajoutez MongoDB si vous avez des bases',
-  ];
+  // ─── Étape 2 ─────────────────────────────────────────────────────────────────
+  scoreCompatibilite = 0;
+  scoreLabel = '';
+  niveauLabel = '';
+  competencesAnalysees: CompetenceAnalysee[] = [];
+  recommandations: RecommandationsDto | null = null;
+  resumeIA = '';
 
-  // ─── Étape 3 — Template ─────────────────────────────────────────────────
-  templates = ['Moderne', 'Classique', 'Minimaliste'];
-  templateSelectionne = 'Moderne';
+  // ─── Étape 3 ─────────────────────────────────────────────────────────────────
+  templatesDisponibles: AdminTemplateDto[] = [];
+  templateSelectionne: AdminTemplateDto | null = null;
 
   couleurs = ['#6B4E2A', '#3B5E3A', '#8B1A1A', '#1A3A5E'];
   couleurAccent = '#6B4E2A';
@@ -64,60 +106,267 @@ export class GenerateCv {
   langues = ['Français', 'Anglais', 'Arabe', 'Espagnol'];
   langueSelectionnee = 'Français';
 
-  // ─── Étape 4 — Validation ───────────────────────────────────────────────
-  // TODO: résumé optimisé retourné par l'IA POST /api/cv/generer
-  resumeEdite = "Développeur Full Stack avec 2 ans d'expérience en React et Node.js, à la recherche d'un poste stimulant pour contribuer à des projets innovants.";
-  titreCv = 'Développeur Full Stack – Capgemini';
-  scoreApresOptimisation = 84;
-  pointsGagnes = 6;
+  // ─── Étape 4 ─────────────────────────────────────────────────────────────────
+  cvCreéId: number | null = null;
+  resumeEdite = '';
+  titreCv = '';
+  scoreApresOptimisation = 0;
+  pointsGagnes = 0;
 
-  // ─── Données mock profil (CV preview) ──────────────────────────────────
-  // TODO: charger depuis GET /api/profil/me
-  prenomMock = 'Jihane';
-  nomMock = 'El Ghazrani';
-  titreMock = 'Développeur Full Stack';
-  emailMock = 'jihane@email.com';
-  villeMock = 'Casablanca';
-  linkedinMock = 'linkedin.com/in/jihane';
-  resumeMock = "Développeur Full Stack avec 2 ans d'expérience en React et Node.js. Habitué aux environnements Agile, je cherche à contribuer à des projets innovants chez Capgemini.";
+  constructor(
+    private adminService: AdminService,
+    private profilService: ProfilService,
+    private cvService: CvService,
+    private notifService: NotificationService,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient,
+  ) {}
 
-  competencesMock = [
-    { nom: 'React.js', pct: 90 },
-    { nom: 'Node.js', pct: 80 },
-    { nom: 'PostgreSQL', pct: 70 },
-    { nom: 'Docker', pct: 60 },
-    { nom: 'Git / CI-CD', pct: 75 },
-  ];
+  ngOnInit(): void {
+    this.chargerProfil();
+  }
 
-  experiencesMock = [
-    {
-      poste: 'Développeur Full Stack',
-      entreprise: 'StartupTech Casablanca',
-      periode: 'Jan 2023 – Présent',
-      description: 'Développement React/Node.js, APIs REST, déploiement Docker.',
-    },
-    {
-      poste: 'Stage Développeur Web',
-      entreprise: 'Agence Digitale Rabat',
-      periode: 'Juin – Août 2022',
-      description: 'Refonte UI, optimisation requêtes PostgreSQL.',
-    },
-  ];
+  // ─── Chargement profil ───────────────────────────────────────────────────────
+  private chargerProfil(): void {
+    this.chargementProfil = true;
 
-  formationMock = {
-    etablissement: 'ENSA Tanger',
-    diplome: 'Génie Informatique',
-    debut: '2021',
-    fin: '2024',
-  };
+    forkJoin({
+      profil: this.profilService.getMe(),
+      status: this.authService.getStatus(),
+    }).subscribe({
+      next: ({ profil, status }) => {
+        this.titre = profil.titre ?? '';
+        this.ville = profil.adresse ?? '';
+        this.linkedIn = profil.linkedIn ?? '';
+        this.resume = profil.description ?? '';
+        this.resumeEdite = profil.description ?? '';
 
-  languesMock = [
-    { langue: 'Arabe', niveau: 'Natif' },
-    { langue: 'Français', niveau: 'Courant' },
-    { langue: 'Anglais', niveau: 'Pro' },
-  ];
+        this.competencesNoms = (profil.competences ?? []).map(c => c.nom);
+        this.competencesCv = (profil.competences ?? []).map(c => ({
+          nom: c.nom,
+          pct: NIVEAU_PCT[normalizeCompetenceNiveau(c.niveau)] ?? 50,
+        }));
 
-  // ─── Méthodes navigation ────────────────────────────────────────────────
+        this.experiencesCv = profil.experiences ?? [];
+        this.formationsCv = profil.formations ?? [];
+
+        this.prenom = status.givenName ?? '';
+        this.nom = status.surname ?? '';
+        this.email = status.email ?? '';
+        this.titreCv = this.titre || `CV — ${this.prenom} ${this.nom}`.trim();
+
+        this.chargementProfil = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Impossible de charger votre profil.');
+        this.chargementProfil = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 1 — Analyse texte ─────────────────────────────────────────────────
+  analyser(): void {
+    if (!this.offreTexte.trim()) return;
+    this.analyseEnCours = true;
+
+    this.cvService.analyserTexte(this.offreTexte, this.competencesNoms).subscribe({
+      next: (res) => this.traiterResultatAnalyse(res),
+      error: () => {
+        this.notifService.error("Erreur lors de l'analyse. Veuillez réessayer.");
+        this.analyseEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 1 — Analyse image ─────────────────────────────────────────────────
+  analyserImage(): void {
+    this.imageInput.nativeElement.click();
+  }
+
+  onImageSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    this.analyseEnCours = true;
+
+    this.cvService.analyserImage(file, this.competencesNoms).subscribe({
+      next: (res) => this.traiterResultatAnalyse(res),
+      error: () => {
+        this.notifService.error("Erreur lors de l'analyse de l'image.");
+        this.analyseEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private traiterResultatAnalyse(res: AnalyseOffreResponse): void {
+    this.scoreCompatibilite = res.score_compatibilite;
+    this.scoreLabel = this.calculerScoreLabel(res.score_compatibilite);
+    this.niveauLabel = res.niveau ?? '';
+    this.resumeIA = res.resume ?? this.resume;
+    this.resumeEdite = res.resume ?? this.resume;
+    this.recommandations = res.recommandations ?? null;
+
+    const matchSet = new Set(
+      (res.competences_match ?? []).map(n => n.toLowerCase())
+    );
+    const manquantSet = new Set(
+      (res.competences_manquantes ?? []).map(n => n.toLowerCase())
+    );
+
+    this.competencesAnalysees = [
+      ...(res.competences_match ?? []).map(nom => ({
+        nom,
+        statut: 'maitrise' as const,
+      })),
+      ...(res.competences_manquantes ?? []).map(nom => ({
+        nom,
+        statut: 'renforcer' as const,
+      })),
+      ...this.competencesNoms
+        .filter(n =>
+          !matchSet.has(n.toLowerCase()) &&
+          !manquantSet.has(n.toLowerCase())
+        )
+        .map(nom => ({ nom, statut: 'partiel' as const })),
+    ];
+
+    this.analyseEnCours = false;
+    this.etapesCompletes.push(1);
+    this.etapeActive = 2;
+    this.cdr.detectChanges();
+  }
+
+  // ─── Étape 2 → 3 ─────────────────────────────────────────────────────────────
+  allerEtape3(): void {
+    this.etapesCompletes.push(2);
+    this.chargementTemplates = true;
+    this.etapeActive = 3;
+
+    this.http.get<AdminTemplateDto[]>('http://localhost:5000/api/templates', {
+      withCredentials: true
+    }).subscribe({
+      next: (templates) => {
+        this.templatesDisponibles = templates;
+        this.templateSelectionne = templates[0] ?? null;
+        this.chargementTemplates = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Impossible de charger les templates.');
+        this.chargementTemplates = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 3 → 4 — Génération CV ─────────────────────────────────────────────
+  generer(): void {
+    if (!this.templateSelectionne) {
+      this.notifService.warning('Veuillez sélectionner un template.');
+      return;
+    }
+
+    this.generationEnCours = true;
+
+    this.cvService.creerCv({
+      templateId: this.templateSelectionne.id,
+      couleurPrimaire: this.couleurAccent,
+      langue: LANGUE_CODE[this.langueSelectionnee] ?? 'fr',
+    }).subscribe({
+      next: (cv) => {
+        this.cvCreéId = cv.id;
+        this.scoreApresOptimisation = Math.min(
+          100,
+          this.scoreCompatibilite + 6
+        );
+        this.pointsGagnes =
+          this.scoreApresOptimisation - this.scoreCompatibilite;
+        this.generationEnCours = false;
+        this.etapesCompletes.push(3);
+        this.etapeActive = 4;
+        this.notifService.success('CV généré avec succès !');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error(
+          'Erreur lors de la génération du CV. Veuillez réessayer.'
+        );
+        this.generationEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 4 — Téléchargement PDF ────────────────────────────────────────────
+  telechargerPdf(): void {
+    if (!this.cvCreéId) {
+      this.notifService.warning('Aucun CV généré à télécharger.');
+      return;
+    }
+
+    const previewEl = this.cvPreviewRef?.nativeElement;
+    if (!previewEl) {
+      this.notifService.error('Aperçu CV introuvable.');
+      return;
+    }
+
+    const styles = Array.from(document.styleSheets)
+      .flatMap(sheet => {
+        try {
+          return Array.from(sheet.cssRules).map(rule => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .join('\n');
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>${styles}</style>
+</head>
+<body>
+  ${previewEl.outerHTML}
+</body>
+</html>`;
+
+    this.telechargementEnCours = true;
+
+    this.cvService.exporterPdf(this.cvCreéId, htmlContent).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CV_${this.prenom}_${this.nom}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.telechargementEnCours = false;
+        this.notifService.success('CV téléchargé avec succès !');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Erreur lors de la génération du PDF.');
+        this.telechargementEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  enregistrerCandidature(): void {
+    this.notifService.info(
+      'Enregistrement candidature — disponible prochainement.'
+    );
+  }
+
+  // ─── Navigation helpers ───────────────────────────────────────────────────────
   allerEtape(n: number): void {
     if (n <= Math.max(...this.etapesCompletes, 1) + 1) {
       this.etapeActive = n;
@@ -128,44 +377,6 @@ export class GenerateCv {
     if (this.etapeActive > 1) this.etapeActive--;
   }
 
-  analyser(): void {
-    if (!this.offreTexte.trim()) return;
-    this.analyseEnCours = true;
-    // TODO: appel API → POST /api/cv/analyser-offre { texteOffre: this.offreTexte }
-    // this.cvService.analyserOffre(this.offreTexte).subscribe({ next: (res) => { ... } })
-    setTimeout(() => {
-      this.analyseEnCours = false;
-      this.etapesCompletes.push(1);
-      this.etapeActive = 2;
-    }, 1200);
-  }
-
-  analyserImage(): void {
-    // TODO: ouvrir file picker, envoyer image → POST /api/cv/analyser-image
-    console.log('Analyse image — TODO');
-  }
-
-  allerEtape3(): void {
-    this.etapesCompletes.push(2);
-    this.etapeActive = 3;
-  }
-
-  generer(): void {
-    // TODO: appel API → POST /api/cv/generer { templateId, couleur, langue }
-    this.etapesCompletes.push(3);
-    this.etapeActive = 4;
-  }
-
-  telechargerPdf(): void {
-    // TODO: GET /api/cv/:id/pdf → télécharger le fichier
-    console.log('Télécharger PDF — TODO');
-  }
-
-  enregistrerCandidature(): void {
-    // TODO: POST /api/candidatures { cvId, offreId }
-    console.log('Enregistrer candidature — TODO');
-  }
-
   estComplete(n: number): boolean {
     return this.etapesCompletes.includes(n);
   }
@@ -174,5 +385,39 @@ export class GenerateCv {
     if (statut === 'maitrise') return '✓';
     if (statut === 'partiel') return '~';
     return '✕';
+  }
+
+  couleurPriorite(priorite: string): string {
+    if (priorite === 'haute') return '#8B1A1A';
+    if (priorite === 'moyenne') return '#B8720A';
+    return '#3B5E3A';
+  }
+
+  private calculerScoreLabel(score: number): string {
+    if (score >= 85) return 'Excellent match';
+    if (score >= 70) return 'Bon match';
+    if (score >= 50) return 'Match partiel';
+    return 'Match faible';
+  }
+
+  // ─── CV Preview helpers ───────────────────────────────────────────────────────
+  get formationPrincipale() {
+    return this.formationsCv[0] ?? null;
+  }
+
+  formatPeriode(exp: ProfilMeResponse['experiences'][0]): string {
+    const debut = exp.dateDebut
+      ? new Date(exp.dateDebut).toLocaleDateString('fr-FR', {
+          month: 'short',
+          year: 'numeric',
+        })
+      : '';
+    const fin = exp.dateFin
+      ? new Date(exp.dateFin).toLocaleDateString('fr-FR', {
+          month: 'short',
+          year: 'numeric',
+        })
+      : 'Présent';
+    return `${debut} – ${fin}`;
   }
 }
