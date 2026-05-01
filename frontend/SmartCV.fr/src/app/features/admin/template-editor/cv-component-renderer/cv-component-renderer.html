@@ -17,7 +17,7 @@
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- INFOS PERSONNELLES                                                -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'infos-personnelles'" class="cv-infos">
+  <div *ngIf="component.type === 'infos-personnelles' && !editable" class="cv-infos">
     <div *ngIf="isVisible('prenom') || isVisible('nom')" class="cv-infos-name">
       <span *ngIf="isVisible('prenom')">{{ data.prenom }}</span>
       <span *ngIf="isVisible('nom')">{{ data.nom }}</span>
@@ -31,34 +31,79 @@
       <li *ngIf="isVisible('site')">🌐 {{ data.site }}</li>
     </ul>
   </div>
+  <div *ngIf="component.type === 'infos-personnelles' && editable" class="cv-infos">
+    <div *ngIf="isVisible('prenom') || isVisible('nom')" class="cv-infos-name">
+      <span *ngIf="isVisible('prenom')" class="ed-field">
+        <input class="ed" [(ngModel)]="data.prenom" (ngModelChange)="onChange()" [placeholder]="t('prenom')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('prenom')">×</button>
+      </span>
+      <span *ngIf="isVisible('nom')" class="ed-field">
+        <input class="ed" [(ngModel)]="data.nom" (ngModelChange)="onChange()" [placeholder]="t('nom')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('nom')">×</button>
+      </span>
+    </div>
+    <ul class="cv-infos-list">
+      <li *ngIf="isVisible('email')" class="ed-field">
+        ✉️ <input class="ed" [(ngModel)]="data.email" (ngModelChange)="onChange()" [placeholder]="t('email')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('email')">×</button>
+      </li>
+      <li *ngIf="isVisible('tel')" class="ed-field">
+        📞 <input class="ed" [(ngModel)]="data.tel" (ngModelChange)="onChange()" [placeholder]="t('tel')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('tel')">×</button>
+      </li>
+      <li *ngIf="isVisible('adresse')" class="ed-field">
+        📍 <input class="ed" [(ngModel)]="data.adresse" (ngModelChange)="onChange()" [placeholder]="t('adresse')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('adresse')">×</button>
+      </li>
+      <li *ngIf="isVisible('linkedin')" class="ed-field">
+        🔗 <input class="ed" [(ngModel)]="data.linkedin" (ngModelChange)="onChange()" [placeholder]="t('linkedin')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('linkedin')">×</button>
+      </li>
+      <li *ngIf="isVisible('github')" class="ed-field">
+        💻 <input class="ed" [(ngModel)]="data.github" (ngModelChange)="onChange()" [placeholder]="t('github')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('github')">×</button>
+      </li>
+      <li *ngIf="isVisible('site')" class="ed-field">
+        🌐 <input class="ed" [(ngModel)]="data.site" (ngModelChange)="onChange()" [placeholder]="t('site')" />
+        <button type="button" class="ed-rm-field" [title]="t('remove')" (click)="hideField('site')">×</button>
+      </li>
+    </ul>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- PHOTO                                                             -->
   <!-- ════════════════════════════════════════════════════════════════ -->
   <div *ngIf="component.type === 'photo'" class="cv-photo">
     <div class="cv-photo-circle" [style.borderColor]="titleColor">
-      <span>{{ initiales() }}</span>
+      <img *ngIf="data?.url; else initialsTpl" [src]="data.url" alt="photo" class="cv-photo-img" />
+      <ng-template #initialsTpl><span>{{ initiales() }}</span></ng-template>
     </div>
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- TITRE / POSTE                                                     -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'titre-poste'" class="cv-poste">
+  <div *ngIf="component.type === 'titre-poste' && !editable" class="cv-poste">
     <span [style.color]="titleColor">{{ data.titre }}</span>
+  </div>
+  <div *ngIf="component.type === 'titre-poste' && editable" class="cv-poste">
+    <input class="ed" [style.color]="titleColor" [(ngModel)]="data.titre" (ngModelChange)="onChange()" [placeholder]="t('titrePoste')" />
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- RÉSUMÉ                                                            -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'resume'" class="cv-resume">
+  <div *ngIf="component.type === 'resume' && !editable" class="cv-resume">
     <p>{{ data.texte }}</p>
+  </div>
+  <div *ngIf="component.type === 'resume' && editable" class="cv-resume">
+    <textarea class="ed ed-area" rows="4" [(ngModel)]="data.texte" (ngModelChange)="onChange()" [placeholder]="t('resume')"></textarea>
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- EXPÉRIENCES                                                       -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'experiences'" class="cv-list">
+  <div *ngIf="component.type === 'experiences' && !editable" class="cv-list">
     <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
       <div class="cv-li-head">
         <span *ngIf="isVisible('poste')" class="cv-li-strong">{{ item.poste }}</span>
@@ -73,11 +118,28 @@
       <p *ngIf="isVisible('description')" class="cv-li-desc">{{ item.description }}</p>
     </div>
   </div>
+  <div *ngIf="component.type === 'experiences' && editable" class="cv-list">
+    <div *ngFor="let item of asArray(data); let i = index; trackBy: trackByIndex" class="cv-list-item">
+      <button type="button" class="ed-rm" [title]="t('remove')" (click)="removeItem(i)">×</button>
+      <div class="cv-li-head">
+        <input *ngIf="isVisible('poste')"      class="ed cv-li-strong" [(ngModel)]="item.poste"      (ngModelChange)="onChange()" [placeholder]="t('poste')" />
+        <span  *ngIf="isVisible('entreprise')" class="cv-li-mid">— <input class="ed" [(ngModel)]="item.entreprise" (ngModelChange)="onChange()" [placeholder]="t('entreprise')" /></span>
+        <span  *ngIf="isVisible('lieu')"       class="cv-li-mid">· <input class="ed" [(ngModel)]="item.lieu"       (ngModelChange)="onChange()" [placeholder]="t('lieu')" /></span>
+      </div>
+      <div class="cv-li-dates" *ngIf="isVisible('dateDebut') || isVisible('dateFin')">
+        <input *ngIf="isVisible('dateDebut')" class="ed" [(ngModel)]="item.dateDebut" (ngModelChange)="onChange()" [placeholder]="t('dateDebut')" />
+        <span *ngIf="isVisible('dateDebut') && isVisible('dateFin')"> – </span>
+        <input *ngIf="isVisible('dateFin')"   class="ed" [(ngModel)]="item.dateFin"   (ngModelChange)="onChange()" [placeholder]="t('dateFin')" />
+      </div>
+      <textarea *ngIf="isVisible('description')" class="ed ed-area cv-li-desc" rows="2" [(ngModel)]="item.description" (ngModelChange)="onChange()" [placeholder]="t('description')"></textarea>
+    </div>
+    <button type="button" class="ed-add" (click)="addItem()">{{ t('addExperience') }}</button>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- FORMATIONS                                                        -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'formations'" class="cv-list">
+  <div *ngIf="component.type === 'formations' && !editable" class="cv-list">
     <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
       <div class="cv-li-head">
         <span *ngIf="isVisible('diplome')" class="cv-li-strong">{{ item.diplome }}</span>
@@ -92,11 +154,28 @@
       <p *ngIf="isVisible('description') && item.description" class="cv-li-desc">{{ item.description }}</p>
     </div>
   </div>
+  <div *ngIf="component.type === 'formations' && editable" class="cv-list">
+    <div *ngFor="let item of asArray(data); let i = index; trackBy: trackByIndex" class="cv-list-item">
+      <button type="button" class="ed-rm" [title]="t('remove')" (click)="removeItem(i)">×</button>
+      <div class="cv-li-head">
+        <input *ngIf="isVisible('diplome')"       class="ed cv-li-strong" [(ngModel)]="item.diplome"       (ngModelChange)="onChange()" [placeholder]="t('diplome')" />
+        <span  *ngIf="isVisible('etablissement')" class="cv-li-mid">— <input class="ed" [(ngModel)]="item.etablissement" (ngModelChange)="onChange()" [placeholder]="t('etablissement')" /></span>
+        <span  *ngIf="isVisible('lieu')"          class="cv-li-mid">· <input class="ed" [(ngModel)]="item.lieu"          (ngModelChange)="onChange()" [placeholder]="t('lieu')" /></span>
+      </div>
+      <div class="cv-li-dates" *ngIf="isVisible('dateDebut') || isVisible('dateFin')">
+        <input *ngIf="isVisible('dateDebut')" class="ed" [(ngModel)]="item.dateDebut" (ngModelChange)="onChange()" [placeholder]="t('dateDebut')" />
+        <span *ngIf="isVisible('dateDebut') && isVisible('dateFin')"> – </span>
+        <input *ngIf="isVisible('dateFin')"   class="ed" [(ngModel)]="item.dateFin"   (ngModelChange)="onChange()" [placeholder]="t('dateFin')" />
+      </div>
+      <textarea *ngIf="isVisible('description')" class="ed ed-area cv-li-desc" rows="2" [(ngModel)]="item.description" (ngModelChange)="onChange()" [placeholder]="t('mention')"></textarea>
+    </div>
+    <button type="button" class="ed-add" (click)="addItem()">{{ t('addFormation') }}</button>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- COMPÉTENCES                                                       -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'competences'" class="cv-skills">
+  <div *ngIf="component.type === 'competences' && !editable" class="cv-skills">
     <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-skill">
       <span *ngIf="isVisible('nom')" class="cv-skill-name">{{ item.nom }}</span>
       <div *ngIf="isVisible('niveau')" class="cv-skill-rating">
@@ -110,21 +189,46 @@
       </div>
     </div>
   </div>
+  <div *ngIf="component.type === 'competences' && editable" class="cv-skills">
+    <div *ngFor="let item of asArray(data); let i = index; trackBy: trackByIndex" class="cv-skill">
+      <input *ngIf="isVisible('nom')" class="ed cv-skill-name" [(ngModel)]="item.nom" (ngModelChange)="onChange()" [placeholder]="t('competence')" />
+      <div *ngIf="isVisible('niveau')" class="cv-skill-rating">
+        <span
+          *ngFor="let n of range(5)"
+          class="dot dot-clickable"
+          [class.full]="n < item.niveau"
+          [style.background]="n < item.niveau ? titleColor : 'transparent'"
+          [style.borderColor]="titleColor"
+          (click)="item.niveau = n + 1; onChange()">
+        </span>
+      </div>
+      <button type="button" class="ed-rm ed-rm-inline" [title]="t('remove')" (click)="removeItem(i)">×</button>
+    </div>
+    <button type="button" class="ed-add" (click)="addItem()">{{ t('addCompetence') }}</button>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- LANGUES                                                           -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'langues'" class="cv-langues">
+  <div *ngIf="component.type === 'langues' && !editable" class="cv-langues">
     <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-langue">
       <span *ngIf="isVisible('nom')" class="cv-langue-nom">{{ item.nom }}</span>
       <span *ngIf="isVisible('niveau')" class="cv-langue-niveau" [style.color]="titleColor">{{ item.niveau }}</span>
     </div>
   </div>
+  <div *ngIf="component.type === 'langues' && editable" class="cv-langues">
+    <div *ngFor="let item of asArray(data); let i = index; trackBy: trackByIndex" class="cv-langue">
+      <input *ngIf="isVisible('nom')"    class="ed cv-langue-nom"    [(ngModel)]="item.nom"    (ngModelChange)="onChange()" [placeholder]="t('langue')" />
+      <input *ngIf="isVisible('niveau')" class="ed cv-langue-niveau" [style.color]="titleColor" [(ngModel)]="item.niveau" (ngModelChange)="onChange()" [placeholder]="t('niveau')" />
+      <button type="button" class="ed-rm ed-rm-inline" [title]="t('remove')" (click)="removeItem(i)">×</button>
+    </div>
+    <button type="button" class="ed-add" (click)="addItem()">{{ t('addLangue') }}</button>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- PROJETS                                                           -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'projets'" class="cv-list">
+  <div *ngIf="component.type === 'projets' && !editable" class="cv-list">
     <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
       <div class="cv-li-head">
         <span *ngIf="isVisible('nom')" class="cv-li-strong">{{ item.nom }}</span>
@@ -136,11 +240,26 @@
       </p>
     </div>
   </div>
+  <div *ngIf="component.type === 'projets' && editable" class="cv-list">
+    <div *ngFor="let item of asArray(data); let i = index; trackBy: trackByIndex" class="cv-list-item">
+      <button type="button" class="ed-rm" [title]="t('remove')" (click)="removeItem(i)">×</button>
+      <div class="cv-li-head">
+        <input *ngIf="isVisible('nom')"  class="ed cv-li-strong" [(ngModel)]="item.nom"  (ngModelChange)="onChange()" [placeholder]="t('projet')" />
+        <span  *ngIf="isVisible('lien')" class="cv-li-mid">· <input class="ed" [(ngModel)]="item.lien" (ngModelChange)="onChange()" [placeholder]="t('lien')" /></span>
+      </div>
+      <textarea *ngIf="isVisible('description')" class="ed ed-area cv-li-desc" rows="2" [(ngModel)]="item.description" (ngModelChange)="onChange()" [placeholder]="t('description')"></textarea>
+      <p *ngIf="isVisible('technos')" class="cv-li-meta">
+        <span [style.color]="titleColor">⚡</span>
+        <input class="ed" [(ngModel)]="item.technos" (ngModelChange)="onChange()" [placeholder]="t('technos')" />
+      </p>
+    </div>
+    <button type="button" class="ed-add" (click)="addItem()">{{ t('addProjet') }}</button>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- CERTIFICATIONS                                                    -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'certifications'" class="cv-list">
+  <div *ngIf="component.type === 'certifications' && !editable" class="cv-list">
     <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
       <div class="cv-li-head">
         <span *ngIf="isVisible('nom')" class="cv-li-strong">{{ item.nom }}</span>
@@ -149,18 +268,32 @@
       <div *ngIf="isVisible('date')" class="cv-li-dates">{{ item.date }}</div>
     </div>
   </div>
+  <div *ngIf="component.type === 'certifications' && editable" class="cv-list">
+    <div *ngFor="let item of asArray(data); let i = index; trackBy: trackByIndex" class="cv-list-item">
+      <button type="button" class="ed-rm" [title]="t('remove')" (click)="removeItem(i)">×</button>
+      <div class="cv-li-head">
+        <input *ngIf="isVisible('nom')"       class="ed cv-li-strong" [(ngModel)]="item.nom"       (ngModelChange)="onChange()" [placeholder]="t('certification')" />
+        <span  *ngIf="isVisible('organisme')" class="cv-li-mid">— <input class="ed" [(ngModel)]="item.organisme" (ngModelChange)="onChange()" [placeholder]="t('organisme')" /></span>
+      </div>
+      <input *ngIf="isVisible('date')" class="ed cv-li-dates" [(ngModel)]="item.date" (ngModelChange)="onChange()" [placeholder]="t('date')" />
+    </div>
+    <button type="button" class="ed-add" (click)="addItem()">{{ t('addCertification') }}</button>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- CENTRES D'INTÉRÊT                                                 -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'centres-interet'" class="cv-resume">
+  <div *ngIf="component.type === 'centres-interet' && !editable" class="cv-resume">
     <p>{{ data.items }}</p>
+  </div>
+  <div *ngIf="component.type === 'centres-interet' && editable" class="cv-resume">
+    <textarea class="ed ed-area" rows="2" [(ngModel)]="data.items" (ngModelChange)="onChange()" [placeholder]="t('interets')"></textarea>
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- RÉFÉRENCES                                                        -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'references'" class="cv-list">
+  <div *ngIf="component.type === 'references' && !editable" class="cv-list">
     <div *ngFor="let item of asArray(data); trackBy: trackByIndex" class="cv-list-item">
       <div class="cv-li-head">
         <span *ngIf="isVisible('nom')" class="cv-li-strong">{{ item.nom }}</span>
@@ -169,12 +302,26 @@
       <div *ngIf="isVisible('contact')" class="cv-li-meta">{{ item.contact }}</div>
     </div>
   </div>
+  <div *ngIf="component.type === 'references' && editable" class="cv-list">
+    <div *ngFor="let item of asArray(data); let i = index; trackBy: trackByIndex" class="cv-list-item">
+      <button type="button" class="ed-rm" [title]="t('remove')" (click)="removeItem(i)">×</button>
+      <div class="cv-li-head">
+        <input *ngIf="isVisible('nom')"   class="ed cv-li-strong" [(ngModel)]="item.nom"   (ngModelChange)="onChange()" [placeholder]="t('nom')" />
+        <span  *ngIf="isVisible('poste')" class="cv-li-mid">— <input class="ed" [(ngModel)]="item.poste" (ngModelChange)="onChange()" [placeholder]="t('poste')" /></span>
+      </div>
+      <input *ngIf="isVisible('contact')" class="ed cv-li-meta" [(ngModel)]="item.contact" (ngModelChange)="onChange()" [placeholder]="t('contact')" />
+    </div>
+    <button type="button" class="ed-add" (click)="addItem()">{{ t('addReference') }}</button>
+  </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->
   <!-- TEXTE LIBRE                                                       -->
   <!-- ════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="component.type === 'texte-libre'" class="cv-resume">
+  <div *ngIf="component.type === 'texte-libre' && !editable" class="cv-resume">
     <p>{{ data.texte }}</p>
+  </div>
+  <div *ngIf="component.type === 'texte-libre' && editable" class="cv-resume">
+    <textarea class="ed ed-area" rows="3" [(ngModel)]="data.texte" (ngModelChange)="onChange()" [placeholder]="t('texteLibre')"></textarea>
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════ -->

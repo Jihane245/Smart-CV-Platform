@@ -15,34 +15,55 @@ public class PdfGenerationService : IPdfGenerationService
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
 
+    // Browser Chromium partagé entre toutes les requêtes — lancé 1 fois, réutilisé.
+    private static IBrowser? _browser;
+    private static readonly SemaphoreSlim _browserLock = new(1, 1);
+
     public PdfGenerationService(ApplicationDbContext db, IWebHostEnvironment env)
     {
         _db = db;
         _env = env;
     }
 
+    // Warm-up à appeler au démarrage de l'app pour pré-lancer Chromium
+    public static Task WarmUpAsync() => GetBrowserAsync();
+
+    private static async Task<IBrowser> GetBrowserAsync()
+    {
+        if (_browser is { IsConnected: true }) return _browser;
+
+        await _browserLock.WaitAsync();
+        try
+        {
+            if (_browser is { IsConnected: true }) return _browser;
+
+            // Vérifie/télécharge Chromium si absent (no-op s'il est déjà téléchargé)
+            await new BrowserFetcher().DownloadAsync();
+
+            _browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                Headless = true,
+                Args = new[] { "--no-sandbox" }
+            });
+            return _browser;
+        }
+        finally
+        {
+            _browserLock.Release();
+        }
+    }
+
     public async Task<byte[]> GenererPdfDepuisHtml(string htmlContent)
     {
-        // Télécharger Chromium
-        await new BrowserFetcher().DownloadAsync();
-        
-        using var browser = await Puppeteer.LaunchAsync(new LaunchOptions 
-        { 
-            Headless = true,
-            Args = new[] { "--no-sandbox" }
-        });
-        
-        using var page = await browser.NewPageAsync();
+        var browser = await GetBrowserAsync();
+        await using var page = await browser.NewPageAsync();
         await page.SetContentAsync(htmlContent);
-        
-        // Version corrigée : utiliser PaperFormat.A4 directement
-        var pdfBytes = await page.PdfDataAsync(new PdfOptions
+
+        return await page.PdfDataAsync(new PdfOptions
         {
             Format = PuppeteerSharp.Media.PaperFormat.A4,
             PrintBackground = true
         });
-        
-        return pdfBytes;
     }
 
     public async Task<CvPdf> SauvegarderPdf(int cvId, byte[] pdfBytes)
