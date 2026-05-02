@@ -28,6 +28,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<LigneDynamique> LignesDynamiques { get; set; }
     public DbSet<CvPersonnalise> CvsPersonnalises { get; set; }
     public DbSet<CvPdf> CvPdf {get; set; }
+    public DbSet<TestCompetence> TestsCompetences { get; set; }
+    public DbSet<Roadmap> Roadmaps { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,12 +82,24 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(c => c.TemplateId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<CvPdf>()
-            .HasOne(p => p.Cv)
+        
+        // Dans OnModelCreating
+        modelBuilder.Entity<TestCompetence>()
+            .HasOne(t => t.User)
             .WithMany()
-            .HasForeignKey(p => p.CvId)
+            .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-    }
+        modelBuilder.Entity<Roadmap>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Roadmap>()
+            .HasOne(r => r.Test)
+            .WithMany()
+            .HasForeignKey(r => r.TestId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }   
 }
