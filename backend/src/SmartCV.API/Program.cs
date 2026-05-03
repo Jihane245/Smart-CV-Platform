@@ -53,7 +53,7 @@ builder.Services.AddAuthentication(options =>
     options.ResponseType = OpenIdConnectResponseType.Code;
 
     // Don't persist tokens in the auth session unless strictly needed.
-    options.SaveTokens = false;
+    options.SaveTokens = true;
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.CallbackPath = "/signin-oidc";
     options.SignedOutCallbackPath = "/signout-callback-oidc";
@@ -68,10 +68,9 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
+        ValidateIssuer = false,
         ValidIssuer = keycloakConfig["Authority"],
-        ValidateAudience = true,
-        ValidAudience = keycloakConfig["ClientId"],
+        ValidateAudience = false,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
 
@@ -84,9 +83,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnTokenResponseReceived = ctx =>
         {
-            // We keep SaveTokens=false, but we still need the id_token for RP-initiated logout
-            // (Keycloak may require id_token_hint). Store only the id_token as an encrypted claim
-            // inside the ASP.NET auth cookie ticket.
+            
             var idToken = ctx.TokenEndpointResponse?.IdToken;
             if (!string.IsNullOrWhiteSpace(idToken) && ctx.Principal?.Identity is ClaimsIdentity id)
             {
@@ -135,19 +132,10 @@ builder.Services.AddAuthentication(options =>
 
         OnRedirectToIdentityProviderForSignOut = async ctx =>
         {
-            // URI autorisée dans Keycloak (voir cv_app → post.logout.redirect.uris)
-            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost/connexion";
-
-            // Keycloak requires either client_id or id_token_hint when post_logout_redirect_uri is used.
-            // Always send client_id to keep logout working even if id_token_hint isn't available.
-            ctx.ProtocolMessage.ClientId ??= keycloakConfig["ClientId"];
-
-            // Keycloak may require id_token_hint; we store it as a claim at sign-in time.
-            var idToken = ctx.HttpContext.User.FindFirst("id_token")?.Value;
-            if (!string.IsNullOrWhiteSpace(idToken))
+            var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
+            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost:80/";
+            if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
-
-            await Task.CompletedTask;
         },
 
         OnRemoteFailure = ctx =>
@@ -166,14 +154,21 @@ builder.Services.AddAuthentication(options =>
 {
     options.Authority = keycloakConfig["Authority"];
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-    options.Audience = keycloakConfig["ClientId"];
+    
+    // Empêche .NET de renommer la claim "email" en "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+    options.MapInboundClaims = false; 
+
+    options.BackchannelHttpHandler = new HostRewritingHandler("localhost:8080", "keycloak:8080");
+    
+    if (!string.IsNullOrEmpty(keycloakConfig["MetadataAddress"]))
+    {
+        options.MetadataAddress = keycloakConfig["MetadataAddress"];
+    }
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidIssuer = keycloakConfig["Authority"],
-        ValidateAudience = true,
-        ValidAudience = keycloakConfig["ClientId"],
+        ValidateIssuer = false, // Désactivé car l'issuer Keycloak diffère entre Docker (keycloak:8080) et le frontend (localhost:8080)
+        ValidateAudience = false,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         NameClaimType = "preferred_username",
