@@ -10,11 +10,12 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TemplatePreview } from '../template-editor/template-preview/template-preview';
+import { AdminSidebarComponent } from '../../../shared/layout/admin-sidebar/admin-sidebar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TemplatePreview],
+  imports: [CommonModule, FormsModule, TemplatePreview, AdminSidebarComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

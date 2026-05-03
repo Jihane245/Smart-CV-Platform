@@ -1,4 +1,5 @@
 export const environment = {
     production: true,
-    backendUrl: 'https://smartcv.duckdns.org/api'  // ← l'URL fournie par ton responsable cloud
+    backendUrl: 'https://smartcv.duckdns.org' ,
+    aiUrl: 'https://smartcv.duckdns.org'
   }

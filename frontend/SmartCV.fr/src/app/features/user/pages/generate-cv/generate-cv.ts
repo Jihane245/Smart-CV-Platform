@@ -4,6 +4,7 @@ import { Component, OnInit, ElementRef, ViewChild, ChangeDetectorRef } from '@an
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+  import { environment } from '../../../../../environments/environment'
 import { AdminService, AdminTemplateDto, TemplateBoxDto, TemplateLayoutId } from '../../../../core/services/admin.service';
 import {
   ProfilService,
@@ -166,7 +167,7 @@ export class GenerateCv implements OnInit {
       sections: this.profilService.getSections(),
       cv: this.cvService.getCv(cvId),
       templates: this.http.get<AdminTemplateDto[]>(
-        'http://localhost:5000/api/templates',
+       `${environment.backendUrl}/api/templates`,
         { withCredentials: true },
       ),
     }).subscribe({
@@ -360,7 +361,7 @@ export class GenerateCv implements OnInit {
     this.chargementTemplates = true;
     this.etapeActive = 3;
 
-    this.http.get<AdminTemplateDto[]>('http://localhost:5000/api/templates', {
+    this.http.get<AdminTemplateDto[]>(`${environment.backendUrl}/api/templates`, {
       withCredentials: true
     }).subscribe({
       next: (templates) => {

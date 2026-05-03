@@ -1,12 +1,8 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { CvService, PdfHistorique, BACKEND_ORIGIN } from '../../../../core/services/cv.service';
 import { Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import {
-  CvService,
-  PdfHistorique,
-  BACKEND_ORIGIN,
-} from '../../../../core/services/cv.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ConfirmService } from '../../../../core/services/confirm.service';

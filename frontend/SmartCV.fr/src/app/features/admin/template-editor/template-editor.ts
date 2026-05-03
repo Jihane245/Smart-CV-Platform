@@ -31,6 +31,7 @@ import {
   findLayout,
 } from './template-catalog';
 import { CvComponentRenderer } from './cv-component-renderer/cv-component-renderer';
+import { AdminSidebarComponent } from '../../../shared/layout/admin-sidebar/admin-sidebar.component';
 import {
   GOOGLE_FONTS,
   GoogleFont,
@@ -56,7 +57,7 @@ export interface DisplayField {
 @Component({
   selector: 'app-template-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, CvComponentRenderer],
+  imports: [CommonModule, FormsModule, DragDropModule, CvComponentRenderer, AdminSidebarComponent],
   templateUrl: './template-editor.html',
   styleUrl: './template-editor.scss',
 })
