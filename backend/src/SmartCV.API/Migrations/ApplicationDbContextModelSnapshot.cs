@@ -104,10 +104,13 @@ namespace SmartCV.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CVId")
+                    b.Property<int?>("CVId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("DateEnvoi")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("DateModification")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Entreprise")
@@ -115,11 +118,10 @@ namespace SmartCV.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
-                    b.Property<int>("OffreId")
+                    b.Property<int?>("OffreId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Poste")
@@ -317,6 +319,12 @@ namespace SmartCV.API.Migrations
 
                     b.Property<string>("FileName")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nom")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Prenom")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -823,14 +831,11 @@ namespace SmartCV.API.Migrations
                     b.HasOne("API.models.Cv", "Cv")
                         .WithMany("Candidatures")
                         .HasForeignKey("CVId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("API.models.Offre", "Offre")
+                    b.HasOne("API.models.Offre", null)
                         .WithMany("Candidatures")
-                        .HasForeignKey("OffreId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("OffreId");
 
                     b.HasOne("API.models.User", "User")
                         .WithMany("Candidatures")
@@ -839,8 +844,6 @@ namespace SmartCV.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Cv");
-
-                    b.Navigation("Offre");
 
                     b.Navigation("User");
                 });

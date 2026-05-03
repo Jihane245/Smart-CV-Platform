@@ -7,7 +7,7 @@ namespace API.services;
 public interface IPdfGenerationService
 {
     Task<byte[]> GenererPdfDepuisHtml(string htmlContent);
-    Task<CvPdf> SauvegarderPdf(int cvId, byte[] pdfBytes);
+    Task<CvPdf> SauvegarderPdf(int cvId, byte[] pdfBytes, string? prenom = null, string? nom = null);
 }
 
 public class PdfGenerationService : IPdfGenerationService
@@ -66,31 +66,32 @@ public class PdfGenerationService : IPdfGenerationService
         });
     }
 
-    public async Task<CvPdf> SauvegarderPdf(int cvId, byte[] pdfBytes)
+    public async Task<CvPdf> SauvegarderPdf(int cvId, byte[] pdfBytes, string? prenom = null, string? nom = null)
     {
         var fileName = $"cv_{cvId}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
-        
+
         var pdfFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "pdfs");
         if (!Directory.Exists(pdfFolder))
             Directory.CreateDirectory(pdfFolder);
-        
+
         var filePath = Path.Combine(pdfFolder, fileName);
         await File.WriteAllBytesAsync(filePath, pdfBytes);
-        
+
         var pdfUrl = $"/pdfs/{fileName}";
-        
+
         var cvPdf = new CvPdf
         {
             CvId = cvId,
             CloudUrl = pdfUrl,
             FileName = fileName,
-            DateCreation = DateTime.UtcNow
+            DateCreation = DateTime.UtcNow,
+            Prenom = string.IsNullOrWhiteSpace(prenom) ? null : prenom.Trim(),
+            Nom = string.IsNullOrWhiteSpace(nom) ? null : nom.Trim(),
         };
-        
-        // Correction : vérifier si le DbSet existe
+
         _db.Set<CvPdf>().Add(cvPdf);
         await _db.SaveChangesAsync();
-        
+
         return cvPdf;
     }
 }

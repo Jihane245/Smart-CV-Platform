@@ -13,19 +13,21 @@ public class Candidature
     [ForeignKey("UserId")]
     public User User { get; set; }
     
-    public int CVId { get; set; }
+    public int? CVId { get; set; }
     [ForeignKey("CVId")]
-    public Cv Cv { get; set; }
+    public Cv? Cv { get; set; }
     
-    public int OffreId { get; set; }
-    [ForeignKey("OffreId")]
-    public Offre Offre { get; set; }
+    [Required]
+    public string Entreprise { get; set; } = string.Empty;
     
-    public string Entreprise { get; set; }
-    public string Poste { get; set; }
+    [Required]
+    public string Poste { get; set; } = string.Empty;
+    
     public DateTime DateEnvoi { get; set; }
     public StatutCandidature Statut { get; set; }
     
     [MaxLength(2000)]
-    public string Notes { get; set; }
+    public string? Notes { get; set; }
+    
+    public DateTime DateModification { get; set; } = DateTime.UtcNow;
 }
