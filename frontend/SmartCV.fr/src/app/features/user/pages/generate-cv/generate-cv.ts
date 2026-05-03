@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AdminService, AdminTemplateDto, TemplateBoxDto, TemplateLayoutId } from '../../../../core/services/admin.service';
 import {
   ProfilService,
@@ -42,6 +42,14 @@ const LANGUE_CODE: Record<string, string> = {
   'Anglais': 'en',
   'Arabe': 'ar',
   'Espagnol': 'es',
+};
+
+// Inverse de LANGUE_CODE — utilisé pour pré-remplir le select quand on charge un CV existant
+const LANGUE_NAME: Record<string, string> = {
+  'fr': 'Français',
+  'en': 'Anglais',
+  'ar': 'Arabe',
+  'es': 'Espagnol',
 };
 
 @Component({
@@ -129,10 +137,99 @@ export class GenerateCv implements OnInit {
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
-    this.chargerProfil();
+    // Si la page est ouverte avec ?cvId=X depuis l'historique, on charge le
+    // CV existant et on saute directement à l'étape 4 (validation/export).
+    const cvIdParam = this.route.snapshot.queryParamMap.get('cvId');
+    const cvId = cvIdParam ? Number(cvIdParam) : NaN;
+
+    if (!isNaN(cvId)) {
+      this.chargerCvExistant(cvId);
+    } else {
+      this.chargerProfil();
+    }
+  }
+
+  // ─── Chargement d'un CV existant (depuis l'historique) ───────────────────────
+  // → Charge profil + sections + status + le CV + les templates en parallèle,
+  //   pré-remplit l'éditeur avec le template/couleur/langue du CV, puis saute
+  //   directement à l'étape 4 où l'user peut éditer et re-télécharger.
+  private chargerCvExistant(cvId: number): void {
+    this.chargementProfil = true;
+
+    forkJoin({
+      profil: this.profilService.getMe(),
+      status: this.authService.getStatus(),
+      sections: this.profilService.getSections(),
+      cv: this.cvService.getCv(cvId),
+      templates: this.http.get<AdminTemplateDto[]>(
+        'http://localhost:5000/api/templates',
+        { withCredentials: true },
+      ),
+    }).subscribe({
+      next: ({ profil, status, sections, cv, templates }) => {
+        // 1. Données de profil (identique à chargerProfil)
+        this.titre = profil.titre ?? '';
+        this.ville = profil.adresse ?? '';
+        this.linkedIn = profil.linkedIn ?? '';
+        this.resume = profil.description ?? '';
+
+        this.competencesNoms = (profil.competences ?? []).map(c => c.nom);
+        this.competencesCv = (profil.competences ?? []).map(c => ({
+          nom: c.nom,
+          pct: NIVEAU_PCT[normalizeCompetenceNiveau(c.niveau)] ?? 50,
+        }));
+
+        this.experiencesCv = profil.experiences ?? [];
+        this.formationsCv = profil.formations ?? [];
+
+        this.prenom = status.givenName ?? '';
+        this.nom = status.surname ?? '';
+        this.email = status.email ?? '';
+
+        // 2. Données issues du CV existant : on pré-remplit le template, la
+        //    couleur et la langue choisis lors de la 1ère génération.
+        this.cvCreéId = cv.id;
+        this.templatesDisponibles = templates;
+        this.templateSelectionne =
+          templates.find(t => t.id === cv.templateId) ?? templates[0] ?? null;
+        this.couleurAccent = cv.styles?.couleurPrimaire || this.couleurAccent;
+        this.langueSelectionnee = LANGUE_NAME[cv.langue] ?? 'Français';
+
+        // 3. Titre du CV : on récupère celui stocké si dispo, sinon on construit
+        this.resumeEdite = (cv.contenu?.resume as string) || profil.description || '';
+        this.titreCv = (cv.contenu?.titre as string)
+                    || this.titre
+                    || `CV — ${this.prenom} ${this.nom}`.trim();
+
+        // 4. cvData : on reconstruit depuis le profil courant (l'utilisateur
+        //    pourra éditer ses champs inline). Le contenu est éphémère côté
+        //    frontend de toute façon — l'export PDF se fait depuis le DOM.
+        this.cvData = buildCvDataFromProfil(
+          profil,
+          { prenom: this.prenom, nom: this.nom, email: this.email },
+          this.langueCode,
+          sections,
+        );
+
+        // 5. On marque les 3 premières étapes comme complètes et on saute à la 4ème
+        this.etapesCompletes = [1, 2, 3];
+        this.etapeActive = 4;
+        this.scoreApresOptimisation = 0;
+        this.pointsGagnes = 0;
+
+        this.chargementProfil = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Impossible de charger ce CV. Démarrage d\'un nouveau CV à la place.');
+        // Fallback : flux normal depuis l'étape 1
+        this.chargerProfil();
+      }
+    });
   }
 
   // ─── Chargement profil ───────────────────────────────────────────────────────
@@ -347,12 +444,25 @@ export class GenerateCv implements OnInit {
 
     this.telechargementEnCours = true;
 
-    this.cvService.exporterPdf(this.cvCreéId, htmlContent).subscribe({
+    // Capture le prénom/nom RÉELLEMENT présents dans le PDF (= ce que l'user a
+    // tapé inline dans l'aperçu, ou les valeurs initiales venant du profil).
+    const infosPerso = (this.cvData?.['infos-personnelles'] ?? {}) as { prenom?: string; nom?: string };
+    const prenomPdf = (infosPerso.prenom ?? this.prenom).trim();
+    const nomPdf    = (infosPerso.nom    ?? this.nom).trim();
+
+    // Construit le nom du fichier dans l'ordre CV_Nom_Prenom.pdf
+    // en utilisant les valeurs réellement présentes dans le PDF
+    let downloadName = 'CV.pdf';
+    if (nomPdf && prenomPdf)      downloadName = `CV_${nomPdf}_${prenomPdf}.pdf`;
+    else if (nomPdf)              downloadName = `CV_${nomPdf}.pdf`;
+    else if (prenomPdf)           downloadName = `CV_${prenomPdf}.pdf`;
+
+    this.cvService.exporterPdf(this.cvCreéId, htmlContent, prenomPdf, nomPdf).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `CV_${this.prenom}_${this.nom}.pdf`;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

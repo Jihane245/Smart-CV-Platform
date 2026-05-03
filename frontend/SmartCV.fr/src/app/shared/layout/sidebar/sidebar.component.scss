@@ -13,9 +13,12 @@
 }
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
+// height: 100vh + overflow: hidden → la layout ne grandit JAMAIS avec le contenu
+// Seul le main-content scroll en interne (voir overflow: auto plus bas)
 .layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
@@ -26,7 +29,9 @@
   flex-direction: column;
   flex-shrink: 0;
   transition: width var(--transition);
-  overflow: hidden;
+  // Hauteur fixée à la viewport — la sidebar reste figée même si la page descend
+  height: 100vh;
+  overflow-y: auto;  // sécurité si beaucoup d'items dans la nav
 }
 
 .collapsed .sidebar {
@@ -142,6 +147,21 @@
   font-weight: 700;
   flex-shrink: 0;
   border: 1.5px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+
+  // Image de profil — remplit l'avatar circulaire
+  img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  // Quand il y a une photo, le fond marron foncé devient inutile
+  &.has-photo {
+    background: transparent;
+  }
 }
 
 .user-name {

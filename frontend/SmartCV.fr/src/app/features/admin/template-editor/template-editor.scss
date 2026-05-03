@@ -63,13 +63,12 @@ $radius:           12px;
     }
   }
 
-  .settings { margin-top: auto; }
-
   .sidebar-avatar {
     width: 34px;
     height: 34px;
     border-radius: 50%;
     background: $color-green;
+    margin-top: auto;  // pousse l'avatar et le logout en bas de la sidebar
     color: $color-cream;
     display: flex;
     align-items: center;

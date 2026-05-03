@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 const CV_BASE = 'http://localhost:5000/api/cv';
 const AI_BASE = 'http://localhost:8000/analyze';
+export const BACKEND_ORIGIN = 'http://localhost:5000';
 
 // ─── AI Response types ────────────────────────────────────────────────────────
 
@@ -63,6 +64,18 @@ export interface CvResponse {
     cssVariables: string;
   };
   contenu: any;
+}
+
+// ─── PDFs historisés ──────────────────────────────────────────────────────────
+export interface PdfHistorique {
+  id: number;
+  cvId: number;
+  fileName: string;
+  cloudUrl: string;        // ex: "/pdfs/cv_9_xxx.pdf"
+  dateCreation: string;
+  nomTemplate: string;
+  prenom?: string | null;  // nom et prénom capturés au moment de l'export
+  nom?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -140,14 +153,26 @@ export class CvService {
     });
   }
 
-  exporterPdf(id: number, htmlContent: string): Observable<Blob> {
+  // Liste des PDFs générés par l'utilisateur (du plus récent au plus ancien)
+  getMesPdfs(): Observable<PdfHistorique[]> {
+    return this.http.get<PdfHistorique[]>(`${CV_BASE}/pdfs/me`, {
+      withCredentials: true,
+    });
+  }
+
+  exporterPdf(
+    id: number,
+    htmlContent: string,
+    prenom?: string,
+    nom?: string,
+  ): Observable<Blob> {
     return this.http.post(
-        `http://localhost:5000/api/cv/${id}/export-pdf`,
-        { htmlContent },
-        {
+      `http://localhost:5000/api/cv/${id}/export-pdf`,
+      { htmlContent, prenom, nom },
+      {
         withCredentials: true,
         responseType: 'blob',
-        }
+      }
     );
   }
 }
