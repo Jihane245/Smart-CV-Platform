@@ -56,7 +56,6 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Cv>().HasOne(c => c.Template).WithMany(t => t.Cvs).HasForeignKey(c => c.TemplateId).OnDelete(DeleteBehavior.SetNull);
         modelBuilder.Entity<LettreMotivation>().HasOne(l => l.User).WithMany(u => u.LettresMotivation).HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<Candidature>().HasOne(c => c.User).WithMany(u => u.Candidatures).HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<Candidature>().HasOne(c => c.Offre).WithMany(o => o.Candidatures).HasForeignKey(c => c.OffreId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Candidature>().HasOne(c => c.Cv).WithMany(cv => cv.Candidatures).HasForeignKey(c => c.CVId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<AnalyseOffre>().HasOne(a => a.Offre).WithMany(o => o.Analyses).HasForeignKey(a => a.OffreId).OnDelete(DeleteBehavior.Cascade);
 

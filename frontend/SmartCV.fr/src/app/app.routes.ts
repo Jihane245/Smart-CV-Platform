@@ -65,6 +65,12 @@ export const routes: Routes = [
           import('./features/user/pages/generate-cv/generate-cv').then(
             (m) => m.GenerateCv
           ),
+          
+      },
+      {
+    path: 'historique',
+    loadComponent: () =>
+      import('./features/user/pages/historique/historique').then(m => m.Historique)
       },
       {
         path: 'competence-upgrade',
