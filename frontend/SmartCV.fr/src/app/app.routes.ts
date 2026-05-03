@@ -67,6 +67,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'competence-upgrade',
+        loadComponent: () =>
+          import('./features/user/pages/competence-upgrade/competence-upgrade').then(
+            (m) => m.CompetenceUpgrade
+          ),
+      },
+      {
         path: 'applications',
         loadComponent: () =>
           import('./features/user/pages/applications/applications').then(
@@ -90,7 +97,7 @@ export const routes: Routes = [
         (m) => m.Dashboard
       ),
   },
-    {
+  {
     path: 'admin/templates/nouveau',
     canActivate: [authGuard, adminGuard],
     loadComponent: () =>
