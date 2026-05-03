@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import analyze
+from app.routes import analyze, competence
+
+
 
 app = FastAPI(title="SmartCV AI Service")
 app.add_middleware(
@@ -12,6 +15,8 @@ app.add_middleware(
 )
 
 app.include_router(analyze.router)
+app.include_router(competence.router)
+
 
 @app.get("/")
 def root():
