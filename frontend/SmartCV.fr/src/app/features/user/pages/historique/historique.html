@@ -1,0 +1,142 @@
+<main class="main-content">
+
+  <!-- Header (même style que la page Profil) -->
+  <div class="page-header">
+    <div class="header-title-block">
+      <h1 class="page-title">
+        Historique de mes CVs
+        <span *ngIf="!chargement && totalPdfs > 0" class="title-counter">{{ totalPdfs }}</span>
+      </h1>
+      <p class="page-subtitle">Retrouvez tous les PDFs que vous avez générés.</p>
+    </div>
+    <a class="btn-primary" routerLink="/user/generate-cv">
+      <span class="btn-plus">+</span> Nouveau CV
+    </a>
+  </div>
+
+  <!-- Bandeau récap : plage affichée sur le total -->
+  <div *ngIf="!chargement && totalPdfs > 0" class="recent-banner">
+    <div class="recent-banner-left">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span>
+        Affichage <strong>{{ firstIndexAffiche }}–{{ lastIndexAffiche }}</strong>
+        sur <strong>{{ totalPdfs }}</strong> PDFs
+      </span>
+    </div>
+    <span class="recent-banner-right">Triés du plus récent au plus ancien</span>
+  </div>
+
+  <!-- Loading -->
+  <p *ngIf="chargement" class="page-subtitle">Chargement de votre historique…</p>
+
+  <!-- Empty -->
+  <div *ngIf="!chargement && pdfs.length === 0" class="empty-state">
+    <svg class="empty-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="14" y="10" width="36" height="44" rx="3"/>
+      <path d="M22 22h20M22 30h20M22 38h14"/>
+    </svg>
+    <h2 class="empty-title">Votre bibliothèque est vide</h2>
+    <p class="empty-desc">
+      Aucun CV n'a encore été créé.<br>
+      Utilisez le bouton <strong>+ Nouveau CV</strong> pour démarrer votre premier modèle.
+    </p>
+  </div>
+
+  <!-- Liste horizontale des PDFs -->
+  <div *ngIf="!chargement && pdfs.length > 0" class="pdf-list">
+    <div
+      *ngFor="let pdf of pdfs"
+      class="pdf-row"
+      (click)="voir(pdf)"
+      [title]="'Cliquer pour ouvrir : ' + displayName(pdf)"
+    >
+      <!-- Icône PDF -->
+      <div class="pdf-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span class="pdf-tag">PDF</span>
+      </div>
+
+      <!-- Identité du document : nom convivial en haut, modèle en bas -->
+      <div class="pdf-main">
+        <p class="pdf-name">{{ displayName(pdf) }}</p>
+        <p class="pdf-template">
+          <span class="pdf-template-label">Modèle :</span>
+          {{ pdf.nomTemplate || '—' }}
+        </p>
+      </div>
+
+      <!-- Date de génération -->
+      <div class="pdf-date">
+        <span class="pdf-date-label">Généré le</span>
+        <span class="pdf-date-value">
+          {{ pdf.dateCreation | date: 'dd MMM yyyy à HH:mm' }}
+        </span>
+      </div>
+
+      <!-- Actions -->
+      <div class="pdf-actions" (click)="$event.stopPropagation()">
+        <button class="btn-action btn-voir" type="button" (click)="voir(pdf)" title="Voir le PDF">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Voir</span>
+        </button>
+        <button class="btn-action btn-modifier" type="button" (click)="modifier(pdf)" title="Modifier le CV">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          <span>Modifier</span>
+        </button>
+        <button class="btn-action btn-supprimer" type="button" (click)="supprimer(pdf)" title="Supprimer le CV">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+            <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+          </svg>
+          <span>Supprimer</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination — visible uniquement s'il y a plus d'une page -->
+  <div *ngIf="!chargement && totalPages > 1" class="pagination">
+    <button
+      type="button"
+      class="page-btn"
+      (click)="pagePrecedente()"
+      [disabled]="!hasPagePrecedente"
+      title="Page précédente"
+      aria-label="Page précédente">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+    <div class="page-indicator">
+      Page <strong>{{ pageCourante + 1 }}</strong> / {{ totalPages }}
+    </div>
+
+    <button
+      type="button"
+      class="page-btn"
+      (click)="pageSuivante()"
+      [disabled]="!hasPageSuivante"
+      title="Page suivante"
+      aria-label="Page suivante">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </button>
+  </div>
+
+</main>

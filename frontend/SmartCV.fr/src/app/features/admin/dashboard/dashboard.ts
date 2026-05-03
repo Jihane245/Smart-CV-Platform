@@ -303,7 +303,15 @@ export class Dashboard implements OnInit {
   // ─────────────────────────────────────────────────────────────────────────
   // DÉCONNEXION (immédiate, sans confirmation)
   // ─────────────────────────────────────────────────────────────────────────
-  logout(): void {
+  async logout(): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Se déconnecter ?',
+      message: 'Voulez-vous vraiment vous déconnecter ? Toutes vos modifications non enregistrées seront perdues.',
+      confirmText: 'Se déconnecter',
+      cancelText: 'Annuler',
+      type: 'danger',
+    });
+    if (!ok) return;
     this.authService.logout();
   }
 
