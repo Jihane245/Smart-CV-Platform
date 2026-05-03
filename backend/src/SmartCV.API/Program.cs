@@ -14,8 +14,6 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
 
-builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
-
 
 // ===== DB =====
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -133,8 +131,6 @@ builder.Services.AddAuthentication(options =>
 
         OnRedirectToIdentityProviderForSignOut = async ctx =>
         {
-            var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
-
             // ✅ URL dynamique depuis config
             ctx.ProtocolMessage.PostLogoutRedirectUri = $"{frontendUrl}/connexion";
 
