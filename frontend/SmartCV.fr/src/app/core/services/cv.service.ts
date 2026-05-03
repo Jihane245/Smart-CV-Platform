@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
-const CV_BASE = 'http://localhost:5000/api/cv';
-const AI_BASE = 'http://localhost:8000/analyze';
-export const BACKEND_ORIGIN = 'http://localhost:5000';
-
+  const CV_BASE = `${environment.backendUrl}/api/cv`;
+  const AI_BASE = `${environment.aiUrl}/analyze`;
+  export const BACKEND_ORIGIN = environment.backendUrl;
 // ─── AI Response types ────────────────────────────────────────────────────────
 
 export interface RecommandationsDto {
@@ -167,7 +167,7 @@ export class CvService {
     nom?: string,
   ): Observable<Blob> {
     return this.http.post(
-      `http://localhost:5000/api/cv/${id}/export-pdf`,
+      `${CV_BASE}/${id}/export-pdf`,
       { htmlContent, prenom, nom },
       {
         withCredentials: true,
