@@ -90,7 +90,7 @@ namespace API.Controllers
 
         return Ok(new { message = "Si cet email existe, un lien de réinitialisation a été envoyé" });
     }
-        [HttpGet("admin")]  // TA TÂCHE 3 - Role security
+        [HttpGet("admin")]  
         [Authorize(Policy = "Admin")]
         public IActionResult AdminOnly()
         {

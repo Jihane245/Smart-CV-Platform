@@ -6,6 +6,7 @@ RUN dotnet restore ./src/SmartCV.API/SmartCV.API.csproj
 
 COPY src/ ./src/
 RUN dotnet publish ./src/SmartCV.API/SmartCV.API.csproj -c Release -o /out
+
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
 # Installer Google Chrome (correction : gnupg au lieu de gnupf)
