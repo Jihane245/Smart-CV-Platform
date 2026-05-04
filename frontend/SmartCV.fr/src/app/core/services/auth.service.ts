@@ -15,39 +15,33 @@ export interface AuthStatus {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
-
-
-
   constructor(private http: HttpClient) {}
 
   getStatus(): Observable<AuthStatus> {
     return this.http.get<AuthStatus>(
-     `${environment.backendUrl}/api/auth/status`, 
-      { withCredentials: true }
+      `${environment.backendUrl}/api/auth/status`,
+      { withCredentials: true },
     );
   }
 
   getMe(): Observable<any> {
-    return this.http.get<any>(
-      `${environment.backendUrl}/api/auth/me`,
-      { withCredentials: true }
-    );
+    return this.http.get<any>(`${environment.backendUrl}/api/auth/me`, {
+      withCredentials: true,
+    });
   }
 
   login(): void {
-  window.location.href = `${environment.backendUrl}/api/auth/login?returnUrl=${window.location.origin}`;
+    window.location.href = `${environment.backendUrl}/api/auth/login?returnUrl=${window.location.origin}`;
   }
 
   register(): void {
-   window.location.href = `${environment.backendUrl}/api/auth/login?returnUrl=${window.location.origin}&action=register`;
+    window.location.href = `${environment.backendUrl}/api/auth/login?returnUrl=${window.location.origin}&action=register`;
   }
 
   logout(): void {
-    // Use a top-level POST navigation to protect against logout CSRF.
-    // (XHR/fetch would not navigate through the Keycloak logout redirects.)
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = `${environment.backendUrl}/api/auth/logout`;
@@ -58,21 +52,23 @@ export class AuthService {
 
   isAuthenticated(): Observable<boolean> {
     return this.getStatus().pipe(
-      map(status => status.isAuthenticated),
-      catchError(() => of(false))
+      map((status) => status.isAuthenticated),
+      catchError(() => of(false)),
     );
   }
 
   isAdmin(): Observable<boolean> {
     return this.getMe().pipe(
-      map(data => {
+      map((data) => {
         const claims = data.claims as { type: string; value: string }[];
-        return claims?.some(c =>
-          (c.type === 'roles' || c.type === 'role') &&
-          c.value === 'Admin'
-        ) ?? false;
+        return (
+          claims?.some(
+            (c) =>
+              (c.type === 'roles' || c.type === 'role') && c.value === 'Admin',
+          ) ?? false
+        );
       }),
-      catchError(() => of(false))
+      catchError(() => of(false)),
     );
   }
 }

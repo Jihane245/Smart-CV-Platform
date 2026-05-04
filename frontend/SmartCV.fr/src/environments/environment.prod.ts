@@ -1,5 +1,5 @@
 export const environment = {
-    production: true,
-    backendUrl: 'https://smartcv.duckdns.org' ,
-    aiUrl: 'https://smartcv.duckdns.org'
-  }
+  production: true,
+  backendUrl: 'https://smartcv.duckdns.org',
+  aiUrl: 'https://smartcv.duckdns.org',
+};
