@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export interface AuthStatus {
   isAuthenticated: boolean;
@@ -18,7 +19,7 @@ export interface AuthStatus {
 })
 export class AuthService {
 
-  private readonly backendUrl = 'http://localhost:5000';
+  private readonly backendUrl = environment.backendUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -37,11 +38,13 @@ export class AuthService {
   }
 
   login(): void {
-    window.location.href = `${this.backendUrl}/api/auth/login?returnUrl=http://localhost:80`;
+    const returnUrl = encodeURIComponent(window.location.origin);
+    window.location.href = `${this.backendUrl}/api/auth/login?returnUrl=${returnUrl}`;
   }
 
   register(): void {
-    window.location.href = `${this.backendUrl}/api/auth/login?returnUrl=http://localhost:80&action=register`;
+    const returnUrl = encodeURIComponent(window.location.origin);
+    window.location.href = `${this.backendUrl}/api/auth/login?returnUrl=${returnUrl}&action=register`;
   }
 
   logout(): void {

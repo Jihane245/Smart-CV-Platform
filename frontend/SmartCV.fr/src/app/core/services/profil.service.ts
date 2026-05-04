@@ -2,16 +2,17 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Experience, Formation, NiveauCompetence } from '../models/models';
+import { environment } from '../../../environments/environment';
 
-const API_BASE = 'http://localhost:5000/api/profil';
-const SECTIONS_BASE = 'http://localhost:5000/api/profil/me/sections';
-const BACKEND_ORIGIN = 'http://localhost:5000';
+const API_BASE = `${environment.backendUrl}/api/profil`;
+const SECTIONS_BASE = `${environment.backendUrl}/api/profil/me/sections`;
 
 /** Construit l'URL absolue d'une photo à partir de l'URL relative renvoyée par le backend */
 export function toAbsolutePhotoUrl(relative: string | null | undefined): string | null {
   if (!relative) return null;
   if (/^https?:\/\//i.test(relative)) return relative;
-  return `${BACKEND_ORIGIN}${relative.startsWith('/') ? '' : '/'}${relative}`;
+  const origin = environment.backendUrl || '';
+  return `${origin}${relative.startsWith('/') ? '' : '/'}${relative}`;
 }
 
 /** Corps attendu par POST /api/profil/me/competences (niveau = index enum backend) */
