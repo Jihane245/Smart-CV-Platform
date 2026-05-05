@@ -154,21 +154,20 @@ builder.Services.AddAuthentication(options =>
 {
     options.Authority = keycloakConfig["Authority"];
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-    
-    // Empêche .NET de renommer la claim "email" en "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-    options.MapInboundClaims = false; 
-
-    options.BackchannelHttpHandler = new HostRewritingHandler("localhost:8080", "keycloak:8080");
-    
-    if (!string.IsNullOrEmpty(keycloakConfig["MetadataAddress"]))
-    {
-        options.MetadataAddress = keycloakConfig["MetadataAddress"];
-    }
+    //options.Audience = keycloakConfig["ClientId"];
+    options.BackchannelHttpHandler = 
+        new HostRewritingHandler("localhost:8080", "keycloak:8080"); 
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false, // Désactivé car l'issuer Keycloak diffère entre Docker (keycloak:8080) et le frontend (localhost:8080)
+        ValidateIssuer = true,
+        ValidIssuers = new[]
+        {
+            "http://localhost:8080/realms/cv-platform",
+            "http://keycloak:8080/realms/cv-platform"
+        },
         ValidateAudience = false,
+        ValidAudience = keycloakConfig["ClientId"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         NameClaimType = "preferred_username",
@@ -198,6 +197,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<KeycloakAdminService>();
+builder.Services.AddScoped<ICoverLetterAiClient, CoverLetterAiClient>();
+builder.Services.AddScoped<ICoverLetterService, CoverLetterService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -216,7 +217,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors();
 app.UseStaticFiles();
 app.UseAuthentication();
