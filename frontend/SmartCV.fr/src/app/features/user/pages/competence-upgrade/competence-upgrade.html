@@ -248,11 +248,12 @@
 
       <!-- ÉTAPE 6 : Test de certification -->
       <ng-container *ngIf="etapeActive === 6">
-        <p class="etape-label">Etape 3 : TEST DE CERTIFICATION</p>
+        <p class="etape-label">Etape 6 : TEST DE CERTIFICATION</p>
         <h2 class="etape-titre">Validez votre maîtrise</h2>
-        <p class="etape-desc">Score requis : 80% minimum pour ajouter la compétence à votre profil.</p>
+        <p class="etape-desc">Score requis : 80% minimum (10/12 bonnes réponses) pour ajouter la compétence à votre profil.</p>
 
-        <ng-container *ngIf="questionsCertif.length">
+        <!-- QUESTIONS -->
+        <ng-container *ngIf="!resultatCertifAffiche && questionsCertif.length">
           <div class="question-card">
             <div class="question-header">
               <span class="question-num">Question {{ questionCouranteCertif + 1 }}</span>
@@ -286,6 +287,35 @@
               (click)="voirResultat()"
             >
               Voir résultat →
+            </button>
+          </div>
+        </ng-container>
+
+        <!-- RÉSULTAT (score insuffisant) -->
+        <ng-container *ngIf="resultatCertifAffiche">
+          <div class="profil-card" style="text-align:center; padding:2rem;">
+            <p class="card-mini-label">Votre score</p>
+            <div style="font-size:3rem; font-weight:700; margin:0.5rem 0; color:#d97706;">
+              {{ scoreFinale }}/100
+            </div>
+            <p class="etape-desc" style="margin-bottom:1rem;">
+              {{ bonnesReponsesCertif }} bonnes réponses sur {{ totalQuestionsCertif }} —
+              il vous manque <strong>{{ pointsManquantsCertif }} points</strong> pour atteindre 80%.
+            </p>
+
+            <div class="manquantes-banner" style="margin: 1rem auto; max-width: 480px;">
+              {{ messageCertif }}
+            </div>
+
+            <p class="etape-desc">Niveau actuel détecté : <strong>{{ niveauCertif }}</strong></p>
+          </div>
+
+          <div class="btn-row-right" style="gap: 0.75rem;">
+            <button class="btn-outline" (click)="reessayerCertification()">
+              Réessayer le test
+            </button>
+            <button class="btn-primary" (click)="revoirRoadmap()">
+              ← Revoir la roadmap
             </button>
           </div>
         </ng-container>
