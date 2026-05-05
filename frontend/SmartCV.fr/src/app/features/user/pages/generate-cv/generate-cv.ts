@@ -1,23 +1,71 @@
-import { Component } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnInit, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+  import { environment } from '../../../../../environments/environment'
+import { AdminService, AdminTemplateDto, TemplateBoxDto, TemplateLayoutId } from '../../../../core/services/admin.service';
+import {
+  ProfilService,
+  ProfilMeResponse,
+  normalizeCompetenceNiveau,
+} from '../../../../core/services/profil.service';
+import {
+  CvService,
+  AnalyseOffreResponse,
+  RecommandationsDto,
+} from '../../../../core/services/cv.service';
+import { NotificationService } from '../../../../core/services/notification.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { CvComponentRenderer } from '../../../admin/template-editor/cv-component-renderer/cv-component-renderer';
+import { CvData, buildCvDataFromProfil, presentLabelFor, ALL_PRESENT_VALUES } from './cv-data';
 
 interface CompetenceAnalysee {
   nom: string;
   statut: 'maitrise' | 'partiel' | 'renforcer';
 }
 
+interface CompetenceCvPreview {
+  nom: string;
+  pct: number;
+}
+
+const NIVEAU_PCT: Record<string, number> = {
+  Debutant: 30,
+  Intermediaire: 55,
+  Avance: 75,
+  Expert: 95,
+};
+
+const LANGUE_CODE: Record<string, string> = {
+  'Français': 'fr',
+  'Anglais': 'en',
+  'Arabe': 'ar',
+  'Espagnol': 'es',
+};
+
+// Inverse de LANGUE_CODE — utilisé pour pré-remplir le select quand on charge un CV existant
+const LANGUE_NAME: Record<string, string> = {
+  'fr': 'Français',
+  'en': 'Anglais',
+  'ar': 'Arabe',
+  'es': 'Espagnol',
+};
+
 @Component({
   selector: 'app-generate-cv',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, CvComponentRenderer],
   templateUrl: './generate-cv.html',
   styleUrl: './generate-cv.scss',
 })
-export class GenerateCv {
+export class GenerateCv implements OnInit {
 
-  // ─── Navigation ────────────────────────────────────────────────────────────
+  @ViewChild('cvPreview') cvPreviewRef!: ElementRef<HTMLElement>;
+  @ViewChild('imageInput') imageInput!: ElementRef<HTMLInputElement>;
+
+  // ─── Navigation ──────────────────────────────────────────────────────────────
   etapeActive = 1;
   etapesCompletes: number[] = [];
 
@@ -28,35 +76,40 @@ export class GenerateCv {
     { num: 4, label: 'Validation & export' },
   ];
 
-  // ─── Étape 1 — Offre d'emploi ───────────────────────────────────────────
-  offreTexte = '';
+  // ─── Loading states ──────────────────────────────────────────────────────────
+  chargementProfil = true;
+  chargementTemplates = false;
   analyseEnCours = false;
+  generationEnCours = false;
+  telechargementEnCours = false;
 
-  // ─── Étape 2 — Analyse IA ───────────────────────────────────────────────
-  // TODO: remplacer par les données retournées par POST /api/cv/analyser-offre
-  scoreCompatibilite = 78;
-  scoreLabel = 'Bon match';
+  // ─── Profil réel ─────────────────────────────────────────────────────────────
+  prenom = '';
+  nom = '';
+  email = '';
+  titre = '';
+  ville = '';
+  linkedIn = '';
+  resume = '';
+  competencesCv: CompetenceCvPreview[] = [];
+  competencesNoms: string[] = [];
+  experiencesCv: ProfilMeResponse['experiences'] = [];
+  formationsCv: ProfilMeResponse['formations'] = [];
 
-  competencesAnalysees: CompetenceAnalysee[] = [
-    { nom: 'React.js', statut: 'maitrise' },
-    { nom: 'Node.js', statut: 'maitrise' },
-    { nom: 'Git', statut: 'maitrise' },
-    { nom: 'PostgreSQL', statut: 'maitrise' },
-    { nom: 'Docker', statut: 'partiel' },
-    { nom: 'CI/CD', statut: 'partiel' },
-    { nom: 'Next.js', statut: 'renforcer' },
-    { nom: 'MongoDB', statut: 'renforcer' },
-  ];
+  // ─── Étape 1 ─────────────────────────────────────────────────────────────────
+  offreTexte = '';
 
-  recommandations = [
-    'Mettez en avant votre expérience React dans le résumé',
-    'Mentionnez vos notions Docker même partielles',
-    'Ajoutez MongoDB si vous avez des bases',
-  ];
+  // ─── Étape 2 ─────────────────────────────────────────────────────────────────
+  scoreCompatibilite = 0;
+  scoreLabel = '';
+  niveauLabel = '';
+  competencesAnalysees: CompetenceAnalysee[] = [];
+  recommandations: RecommandationsDto | null = null;
+  resumeIA = '';
 
-  // ─── Étape 3 — Template ─────────────────────────────────────────────────
-  templates = ['Moderne', 'Classique', 'Minimaliste'];
-  templateSelectionne = 'Moderne';
+  // ─── Étape 3 ─────────────────────────────────────────────────────────────────
+  templatesDisponibles: AdminTemplateDto[] = [];
+  templateSelectionne: AdminTemplateDto | null = null;
 
   couleurs = ['#6B4E2A', '#3B5E3A', '#8B1A1A', '#1A3A5E'];
   couleurAccent = '#6B4E2A';
@@ -64,60 +117,487 @@ export class GenerateCv {
   langues = ['Français', 'Anglais', 'Arabe', 'Espagnol'];
   langueSelectionnee = 'Français';
 
-  // ─── Étape 4 — Validation ───────────────────────────────────────────────
-  // TODO: résumé optimisé retourné par l'IA POST /api/cv/generer
-  resumeEdite = "Développeur Full Stack avec 2 ans d'expérience en React et Node.js, à la recherche d'un poste stimulant pour contribuer à des projets innovants.";
-  titreCv = 'Développeur Full Stack – Capgemini';
-  scoreApresOptimisation = 84;
-  pointsGagnes = 6;
+  // ─── Étape 4 ─────────────────────────────────────────────────────────────────
+  cvCreéId: number | null = null;
+  resumeEdite = '';
+  titreCv = '';
+  scoreApresOptimisation = 0;
+  pointsGagnes = 0;
 
-  // ─── Données mock profil (CV preview) ──────────────────────────────────
-  // TODO: charger depuis GET /api/profil/me
-  prenomMock = 'Jihane';
-  nomMock = 'El Ghazrani';
-  titreMock = 'Développeur Full Stack';
-  emailMock = 'jihane@email.com';
-  villeMock = 'Casablanca';
-  linkedinMock = 'linkedin.com/in/jihane';
-  resumeMock = "Développeur Full Stack avec 2 ans d'expérience en React et Node.js. Habitué aux environnements Agile, je cherche à contribuer à des projets innovants chez Capgemini.";
+  // ─── Données mappées profil → composants CV (édition inline) ─────────────────
+  cvData: CvData | null = null;
 
-  competencesMock = [
-    { nom: 'React.js', pct: 90 },
-    { nom: 'Node.js', pct: 80 },
-    { nom: 'PostgreSQL', pct: 70 },
-    { nom: 'Docker', pct: 60 },
-    { nom: 'Git / CI-CD', pct: 75 },
-  ];
+  // Champs masqués par le user — par type de composant (ex: { 'infos-personnelles': ['github', 'site'] })
+  userHiddenFields: Partial<Record<string, string[]>> = {};
 
-  experiencesMock = [
-    {
-      poste: 'Développeur Full Stack',
-      entreprise: 'StartupTech Casablanca',
-      periode: 'Jan 2023 – Présent',
-      description: 'Développement React/Node.js, APIs REST, déploiement Docker.',
-    },
-    {
-      poste: 'Stage Développeur Web',
-      entreprise: 'Agence Digitale Rabat',
-      periode: 'Juin – Août 2022',
-      description: 'Refonte UI, optimisation requêtes PostgreSQL.',
-    },
-  ];
+  constructor(
+    private adminService: AdminService,
+    private profilService: ProfilService,
+    private cvService: CvService,
+    private notifService: NotificationService,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient,
+    private route: ActivatedRoute,
+  ) {}
 
-  formationMock = {
-    etablissement: 'ENSA Tanger',
-    diplome: 'Génie Informatique',
-    debut: '2021',
-    fin: '2024',
-  };
+  ngOnInit(): void {
+    // Si la page est ouverte avec ?cvId=X depuis l'historique, on charge le
+    // CV existant et on saute directement à l'étape 4 (validation/export).
+    const cvIdParam = this.route.snapshot.queryParamMap.get('cvId');
+    const cvId = cvIdParam ? Number(cvIdParam) : NaN;
 
-  languesMock = [
-    { langue: 'Arabe', niveau: 'Natif' },
-    { langue: 'Français', niveau: 'Courant' },
-    { langue: 'Anglais', niveau: 'Pro' },
-  ];
+    if (!isNaN(cvId)) {
+      this.chargerCvExistant(cvId);
+    } else {
+      this.chargerProfil();
+    }
+  }
 
-  // ─── Méthodes navigation ────────────────────────────────────────────────
+  // ─── Chargement d'un CV existant (depuis l'historique) ───────────────────────
+  // → Charge profil + sections + status + le CV + les templates en parallèle,
+  //   pré-remplit l'éditeur avec le template/couleur/langue du CV, puis saute
+  //   directement à l'étape 4 où l'user peut éditer et re-télécharger.
+  private chargerCvExistant(cvId: number): void {
+    this.chargementProfil = true;
+
+    forkJoin({
+      profil: this.profilService.getMe(),
+      status: this.authService.getStatus(),
+      sections: this.profilService.getSections(),
+      cv: this.cvService.getCv(cvId),
+      templates: this.http.get<AdminTemplateDto[]>(
+       `${environment.backendUrl}/api/templates`,
+        { withCredentials: true },
+      ),
+    }).subscribe({
+      next: ({ profil, status, sections, cv, templates }) => {
+        // 1. Données de profil (identique à chargerProfil)
+        this.titre = profil.titre ?? '';
+        this.ville = profil.adresse ?? '';
+        this.linkedIn = profil.linkedIn ?? '';
+        this.resume = profil.description ?? '';
+
+        this.competencesNoms = (profil.competences ?? []).map(c => c.nom);
+        this.competencesCv = (profil.competences ?? []).map(c => ({
+          nom: c.nom,
+          pct: NIVEAU_PCT[normalizeCompetenceNiveau(c.niveau)] ?? 50,
+        }));
+
+        this.experiencesCv = profil.experiences ?? [];
+        this.formationsCv = profil.formations ?? [];
+
+        this.prenom = status.givenName ?? '';
+        this.nom = status.surname ?? '';
+        this.email = status.email ?? '';
+
+        // 2. Données issues du CV existant : on pré-remplit le template, la
+        //    couleur et la langue choisis lors de la 1ère génération.
+        this.cvCreéId = cv.id;
+        this.templatesDisponibles = templates;
+        this.templateSelectionne =
+          templates.find(t => t.id === cv.templateId) ?? templates[0] ?? null;
+        this.couleurAccent = cv.styles?.couleurPrimaire || this.couleurAccent;
+        this.langueSelectionnee = LANGUE_NAME[cv.langue] ?? 'Français';
+
+        // 3. Titre du CV : on récupère celui stocké si dispo, sinon on construit
+        this.resumeEdite = (cv.contenu?.resume as string) || profil.description || '';
+        this.titreCv = (cv.contenu?.titre as string)
+                    || this.titre
+                    || `CV — ${this.prenom} ${this.nom}`.trim();
+
+        // 4. cvData : on reconstruit depuis le profil courant (l'utilisateur
+        //    pourra éditer ses champs inline). Le contenu est éphémère côté
+        //    frontend de toute façon — l'export PDF se fait depuis le DOM.
+        this.cvData = buildCvDataFromProfil(
+          profil,
+          { prenom: this.prenom, nom: this.nom, email: this.email },
+          this.langueCode,
+          sections,
+        );
+
+        // 5. On marque les 3 premières étapes comme complètes et on saute à la 4ème
+        this.etapesCompletes = [1, 2, 3];
+        this.etapeActive = 4;
+        this.scoreApresOptimisation = 0;
+        this.pointsGagnes = 0;
+
+        this.chargementProfil = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Impossible de charger ce CV. Démarrage d\'un nouveau CV à la place.');
+        // Fallback : flux normal depuis l'étape 1
+        this.chargerProfil();
+      }
+    });
+  }
+
+  // ─── Chargement profil ───────────────────────────────────────────────────────
+  private chargerProfil(): void {
+    this.chargementProfil = true;
+
+    forkJoin({
+      profil: this.profilService.getMe(),
+      status: this.authService.getStatus(),
+      sections: this.profilService.getSections(),
+    }).subscribe({
+      next: ({ profil, status, sections }) => {
+        this.titre = profil.titre ?? '';
+        this.ville = profil.adresse ?? '';
+        this.linkedIn = profil.linkedIn ?? '';
+        this.resume = profil.description ?? '';
+        this.resumeEdite = profil.description ?? '';
+
+        this.competencesNoms = (profil.competences ?? []).map(c => c.nom);
+        this.competencesCv = (profil.competences ?? []).map(c => ({
+          nom: c.nom,
+          pct: NIVEAU_PCT[normalizeCompetenceNiveau(c.niveau)] ?? 50,
+        }));
+
+        this.experiencesCv = profil.experiences ?? [];
+        this.formationsCv = profil.formations ?? [];
+
+        this.prenom = status.givenName ?? '';
+        this.nom = status.surname ?? '';
+        this.email = status.email ?? '';
+        this.titreCv = this.titre || `CV — ${this.prenom} ${this.nom}`.trim();
+
+        this.cvData = buildCvDataFromProfil(
+          profil,
+          { prenom: this.prenom, nom: this.nom, email: this.email },
+          this.langueCode,
+          sections,
+        );
+
+        this.chargementProfil = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Impossible de charger votre profil.');
+        this.chargementProfil = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 1 — Analyse texte ─────────────────────────────────────────────────
+  analyser(): void {
+    if (!this.offreTexte.trim()) return;
+    this.analyseEnCours = true;
+
+    this.cvService.analyserTexte(this.offreTexte, this.competencesNoms).subscribe({
+      next: (res) => this.traiterResultatAnalyse(res),
+      error: () => {
+        this.notifService.error("Erreur lors de l'analyse. Veuillez réessayer.");
+        this.analyseEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 1 — Analyse image ─────────────────────────────────────────────────
+  analyserImage(): void {
+    this.imageInput.nativeElement.click();
+  }
+
+  onImageSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    this.analyseEnCours = true;
+
+    this.cvService.analyserImage(file, this.competencesNoms).subscribe({
+      next: (res) => this.traiterResultatAnalyse(res),
+      error: () => {
+        this.notifService.error("Erreur lors de l'analyse de l'image.");
+        this.analyseEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private traiterResultatAnalyse(res: AnalyseOffreResponse): void {
+    this.scoreCompatibilite = res.score_compatibilite;
+    this.scoreLabel = this.calculerScoreLabel(res.score_compatibilite);
+    this.niveauLabel = res.niveau ?? '';
+    this.resumeIA = res.resume ?? this.resume;
+    this.resumeEdite = res.resume ?? this.resume;
+    this.recommandations = res.recommandations ?? null;
+
+    const matchSet = new Set(
+      (res.competences_match ?? []).map(n => n.toLowerCase())
+    );
+    const manquantSet = new Set(
+      (res.competences_manquantes ?? []).map(n => n.toLowerCase())
+    );
+
+    this.competencesAnalysees = [
+      ...(res.competences_match ?? []).map(nom => ({
+        nom,
+        statut: 'maitrise' as const,
+      })),
+      ...(res.competences_manquantes ?? []).map(nom => ({
+        nom,
+        statut: 'renforcer' as const,
+      })),
+      ...this.competencesNoms
+        .filter(n =>
+          !matchSet.has(n.toLowerCase()) &&
+          !manquantSet.has(n.toLowerCase())
+        )
+        .map(nom => ({ nom, statut: 'partiel' as const })),
+    ];
+
+    this.analyseEnCours = false;
+    this.etapesCompletes.push(1);
+    this.etapeActive = 2;
+    this.cdr.detectChanges();
+  }
+
+  // ─── Étape 2 → 3 ─────────────────────────────────────────────────────────────
+  allerEtape3(): void {
+    this.etapesCompletes.push(2);
+    this.chargementTemplates = true;
+    this.etapeActive = 3;
+
+    this.http.get<AdminTemplateDto[]>(`${environment.backendUrl}/api/templates`, {
+      withCredentials: true
+    }).subscribe({
+      next: (templates) => {
+        this.templatesDisponibles = templates;
+        this.templateSelectionne = templates[0] ?? null;
+        this.chargementTemplates = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Impossible de charger les templates.');
+        this.chargementTemplates = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 3 → 4 — Génération CV ─────────────────────────────────────────────
+  generer(): void {
+    if (!this.templateSelectionne) {
+      this.notifService.warning('Veuillez sélectionner un template.');
+      return;
+    }
+
+    this.generationEnCours = true;
+
+    this.cvService.creerCv({
+      templateId: this.templateSelectionne.id,
+      couleurPrimaire: this.couleurAccent,
+      langue: LANGUE_CODE[this.langueSelectionnee] ?? 'fr',
+    }).subscribe({
+      next: (cv) => {
+        this.cvCreéId = cv.id;
+        this.scoreApresOptimisation = Math.min(
+          100,
+          this.scoreCompatibilite + 6
+        );
+        this.pointsGagnes =
+          this.scoreApresOptimisation - this.scoreCompatibilite;
+        this.generationEnCours = false;
+        this.etapesCompletes.push(3);
+        this.etapeActive = 4;
+        this.notifService.success('CV généré avec succès !');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error(
+          'Erreur lors de la génération du CV. Veuillez réessayer.'
+        );
+        this.generationEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ─── Étape 4 — Téléchargement PDF ────────────────────────────────────────────
+  telechargerPdf(): void {
+    if (!this.cvCreéId) {
+      this.notifService.warning('Aucun CV généré à télécharger.');
+      return;
+    }
+
+    const previewEl = this.cvPreviewRef?.nativeElement;
+    if (!previewEl) {
+      this.notifService.error('Aperçu CV introuvable.');
+      return;
+    }
+
+    const cleanedHtml = this.cleanPreviewForPdf(previewEl);
+    const styles = this.collectRelevantStyles(previewEl);
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>${styles}</style>
+</head>
+<body>
+  ${cleanedHtml}
+</body>
+</html>`;
+
+    this.telechargementEnCours = true;
+
+    // Capture le prénom/nom RÉELLEMENT présents dans le PDF (= ce que l'user a
+    // tapé inline dans l'aperçu, ou les valeurs initiales venant du profil).
+    const infosPerso = (this.cvData?.['infos-personnelles'] ?? {}) as { prenom?: string; nom?: string };
+    const prenomPdf = (infosPerso.prenom ?? this.prenom).trim();
+    const nomPdf    = (infosPerso.nom    ?? this.nom).trim();
+
+    // Construit le nom du fichier dans l'ordre CV_Nom_Prenom.pdf
+    // en utilisant les valeurs réellement présentes dans le PDF
+    let downloadName = 'CV.pdf';
+    if (nomPdf && prenomPdf)      downloadName = `CV_${nomPdf}_${prenomPdf}.pdf`;
+    else if (nomPdf)              downloadName = `CV_${nomPdf}.pdf`;
+    else if (prenomPdf)           downloadName = `CV_${prenomPdf}.pdf`;
+
+    this.cvService.exporterPdf(this.cvCreéId, htmlContent, prenomPdf, nomPdf).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = downloadName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.telechargementEnCours = false;
+        this.notifService.success('CV téléchargé avec succès !');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notifService.error('Erreur lors de la génération du PDF.');
+        this.telechargementEnCours = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  enregistrerCandidature(): void {
+    this.notifService.info(
+      'Enregistrement candidature — disponible prochainement.'
+    );
+  }
+
+  // ─── Récupère uniquement les CSS pertinentes pour l'aperçu CV ────────────────
+  // Filtrage : on ne garde que les règles dont le sélecteur matche au moins
+  // un élément à l'intérieur du previewEl. Ça réduit drastiquement la taille
+  // du HTML envoyé au backend (et donc le temps de transfert + parsing).
+  private collectRelevantStyles(previewEl: HTMLElement): string {
+    const out: string[] = [];
+
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules: CSSRuleList;
+      try { rules = sheet.cssRules; } catch { continue; } // CSS cross-origin → skip
+
+      for (const rule of Array.from(rules)) {
+        if (rule instanceof CSSStyleRule) {
+          if (this.selectorMatchesPreview(rule.selectorText, previewEl)) {
+            out.push(rule.cssText);
+          }
+        } else if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule) {
+          // Règles @media / @supports : on garde si au moins un sous-sélecteur match
+          const inner: string[] = [];
+          for (const sub of Array.from(rule.cssRules)) {
+            if (sub instanceof CSSStyleRule &&
+                this.selectorMatchesPreview(sub.selectorText, previewEl)) {
+              inner.push(sub.cssText);
+            }
+          }
+          if (inner.length) {
+            const cond = rule instanceof CSSMediaRule ? `@media ${rule.media.mediaText}` : `@supports ${(rule as any).conditionText}`;
+            out.push(`${cond} { ${inner.join(' ')} }`);
+          }
+        } else if (rule instanceof CSSFontFaceRule || rule instanceof CSSKeyframesRule) {
+          // Toujours conserver les @font-face et @keyframes
+          out.push(rule.cssText);
+        }
+      }
+    }
+    return out.join('\n');
+  }
+
+  private selectorMatchesPreview(selectorText: string, previewEl: HTMLElement): boolean {
+    // Découpe les sélecteurs composés ".a, .b" et teste chacun
+    const selectors = selectorText.split(',').map(s => s.trim()).filter(Boolean);
+    for (const sel of selectors) {
+      try {
+        if (previewEl.matches(sel) || previewEl.querySelector(sel)) return true;
+      } catch { /* sélecteur invalide (pseudo non supporté…) → ignore */ }
+    }
+    return false;
+  }
+
+  // ─── Nettoie l'aperçu pour le PDF ────────────────────────────────────────────
+  // - inputs/textareas non vides → remplacés par leur valeur (span)
+  // - inputs/textareas vides     → supprimés (+ leur conteneur "orphelin")
+  // - boutons + Ajouter / × Supprimer → supprimés
+  private cleanPreviewForPdf(previewEl: HTMLElement): string {
+    const root = previewEl.cloneNode(true) as HTMLElement;
+
+    // 1. Remplacer les inputs/textareas par des spans (ou les supprimer si vides)
+    //    NB: outerHTML d'un input ne contient pas la valeur tapée → il faut la
+    //    récupérer depuis le DOM original via les positions.
+    const liveInputs = previewEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+      'input.ed, textarea.ed-area'
+    );
+    const cloneInputs = root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+      'input.ed, textarea.ed-area'
+    );
+
+    cloneInputs.forEach((cloneEl, i) => {
+      const live = liveInputs[i];
+      const value = (live?.value ?? '').trim();
+
+      if (value) {
+        const span = document.createElement('span');
+        span.textContent = value;
+        cloneEl.classList.forEach(c => {
+          if (c !== 'ed' && c !== 'ed-area') span.classList.add(c);
+        });
+        cloneEl.replaceWith(span);
+      } else {
+        cloneEl.remove();
+      }
+    });
+
+    // 2. Supprimer tous les boutons d'édition
+    root.querySelectorAll('.ed-rm, .ed-add').forEach(el => el.remove());
+
+    // 3. Nettoyer les conteneurs orphelins (séparateurs sans contenu)
+    //    Les <span class="cv-li-mid"> qui ne contiennent que "—" ou "·"
+    root.querySelectorAll<HTMLElement>('span.cv-li-mid').forEach(el => {
+      if (el.children.length === 0 && /^\s*[—·–\-]?\s*$/.test(el.textContent || '')) {
+        el.remove();
+      }
+    });
+
+    // 4. <li> de cv-infos-list dont l'input a été supprimé : ne reste que l'emoji
+    root.querySelectorAll<HTMLElement>('li').forEach(el => {
+      if (el.children.length === 0) {
+        const txt = (el.textContent || '').trim();
+        if (txt.length <= 2 && !/[a-zA-ZÀ-ÿ0-9]/.test(txt)) {
+          el.remove();
+        }
+      }
+    });
+
+    // 5. Items de liste (.cv-list-item, .cv-skill, .cv-langue) sans contenu
+    root.querySelectorAll<HTMLElement>('.cv-list-item, .cv-skill, .cv-langue').forEach(el => {
+      if (!el.textContent?.trim()) el.remove();
+    });
+
+    return root.outerHTML;
+  }
+
+  // ─── Navigation helpers ───────────────────────────────────────────────────────
   allerEtape(n: number): void {
     if (n <= Math.max(...this.etapesCompletes, 1) + 1) {
       this.etapeActive = n;
@@ -128,44 +608,6 @@ export class GenerateCv {
     if (this.etapeActive > 1) this.etapeActive--;
   }
 
-  analyser(): void {
-    if (!this.offreTexte.trim()) return;
-    this.analyseEnCours = true;
-    // TODO: appel API → POST /api/cv/analyser-offre { texteOffre: this.offreTexte }
-    // this.cvService.analyserOffre(this.offreTexte).subscribe({ next: (res) => { ... } })
-    setTimeout(() => {
-      this.analyseEnCours = false;
-      this.etapesCompletes.push(1);
-      this.etapeActive = 2;
-    }, 1200);
-  }
-
-  analyserImage(): void {
-    // TODO: ouvrir file picker, envoyer image → POST /api/cv/analyser-image
-    console.log('Analyse image — TODO');
-  }
-
-  allerEtape3(): void {
-    this.etapesCompletes.push(2);
-    this.etapeActive = 3;
-  }
-
-  generer(): void {
-    // TODO: appel API → POST /api/cv/generer { templateId, couleur, langue }
-    this.etapesCompletes.push(3);
-    this.etapeActive = 4;
-  }
-
-  telechargerPdf(): void {
-    // TODO: GET /api/cv/:id/pdf → télécharger le fichier
-    console.log('Télécharger PDF — TODO');
-  }
-
-  enregistrerCandidature(): void {
-    // TODO: POST /api/candidatures { cvId, offreId }
-    console.log('Enregistrer candidature — TODO');
-  }
-
   estComplete(n: number): boolean {
     return this.etapesCompletes.includes(n);
   }
@@ -174,5 +616,91 @@ export class GenerateCv {
     if (statut === 'maitrise') return '✓';
     if (statut === 'partiel') return '~';
     return '✕';
+  }
+
+  couleurPriorite(priorite: string): string {
+    if (priorite === 'haute') return '#8B1A1A';
+    if (priorite === 'moyenne') return '#B8720A';
+    return '#3B5E3A';
+  }
+
+  private calculerScoreLabel(score: number): string {
+    if (score >= 85) return 'Excellent match';
+    if (score >= 70) return 'Bon match';
+    if (score >= 50) return 'Match partiel';
+    return 'Match faible';
+  }
+
+  // ─── CV Preview helpers ───────────────────────────────────────────────────────
+  get formationPrincipale() {
+    return this.formationsCv[0] ?? null;
+  }
+
+  // ─── Code langue (fr/en/ar/es) calculé depuis la langue sélectionnée ──────────
+  get langueCode(): string {
+    return LANGUE_CODE[this.langueSelectionnee] ?? 'fr';
+  }
+
+  // ─── Changement de langue : retraduit les labels auto-générés (ex: "Présent") ─
+  onLanguageChange(): void {
+    if (!this.cvData) return;
+    const newPresent = presentLabelFor(this.langueCode);
+
+    // Cherche dans expériences toutes les dateFin qui correspondent à un ancien
+    // "Présent"/"Present"/etc. et les remplace par celui de la nouvelle langue.
+    // Si l'user a tapé autre chose (ex: "12/2024"), on n'y touche pas.
+    for (const exp of this.cvData['experiences'] ?? []) {
+      if (ALL_PRESENT_VALUES.includes(exp.dateFin)) {
+        exp.dateFin = newPresent;
+      }
+    }
+  }
+
+  // ─── Masquage d'un champ admin par le user ────────────────────────────────────
+  onFieldHide(componentType: string, fieldKey: string): void {
+    const list = this.userHiddenFields[componentType] ?? [];
+    if (!list.includes(fieldKey)) {
+      this.userHiddenFields = {
+        ...this.userHiddenFields,
+        [componentType]: [...list, fieldKey],
+      };
+    }
+  }
+
+  hiddenFieldsFor(componentType: string): string[] {
+    return this.userHiddenFields[componentType] ?? [];
+  }
+
+  // ─── Template structure helpers ───────────────────────────────────────────────
+  get templateBoxes(): TemplateBoxDto[] {
+    return this.templateSelectionne?.structure?.boxes ?? [];
+  }
+
+  get templateLayoutId(): TemplateLayoutId {
+    return (this.templateSelectionne?.structure?.layout as TemplateLayoutId) || 'sidebar-left';
+  }
+
+  get hasTemplateStructure(): boolean {
+    const boxes = this.templateBoxes;
+    return boxes.length > 0 && boxes.some(b => b.components.length > 0);
+  }
+
+  trackBoxById = (_: number, b: TemplateBoxDto) => b.id;
+  trackComponentById = (_: number, c: { id: string }) => c.id;
+
+  formatPeriode(exp: ProfilMeResponse['experiences'][0]): string {
+    const debut = exp.dateDebut
+      ? new Date(exp.dateDebut).toLocaleDateString('fr-FR', {
+          month: 'short',
+          year: 'numeric',
+        })
+      : '';
+    const fin = exp.dateFin
+      ? new Date(exp.dateFin).toLocaleDateString('fr-FR', {
+          month: 'short',
+          year: 'numeric',
+        })
+      : 'Présent';
+    return `${debut} – ${fin}`;
   }
 }

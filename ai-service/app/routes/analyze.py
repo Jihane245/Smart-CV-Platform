@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from app.models.analyze_models import OffreRequest, AnalyzeResponse
 from app.services.analyzer import analyze_offre, analyze_offre_image
 from app.services.ai_recommender import generate_ai_recommendations
+import json
 
 router = APIRouter(prefix="/analyze", tags=["Analyze"])
 
