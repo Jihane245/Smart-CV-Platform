@@ -395,7 +395,7 @@ public async Task<IActionResult> RetestAfterRoadmap(
     bool competenceAjoutee = false;
     string message;
 
-    if (score >= 60 && user.Profil != null)
+    if (score >= 80 && user.Profil != null)
     {
         var existeDeja = await _db.Competences
             .AnyAsync(c => c.ProfilId == user.Profil.Id &&
@@ -421,17 +421,21 @@ public async Task<IActionResult> RetestAfterRoadmap(
             roadmap.Completee    = true;
             roadmap.Test!.Statut = StatutParcours.Valide;
             competenceAjoutee    = true;
-            message = $" Bravo ! {roadmap.NomCompetence} ajoutée à ton profil avec le niveau {niveau} !";
+            message = $"Bravo ! {roadmap.NomCompetence} ajoutée à ton profil avec le niveau {niveau} !";
         }
         else
         {
-            message = $" Score suffisant ({score}/100) mais la compétence existe déjà dans ton profil.";
+            message = $"Score suffisant ({score}/100) mais la compétence existe déjà dans ton profil.";
         }
     }
     else
     {
         roadmap.Test!.Statut = StatutParcours.Echoue;
-        message = $" Score insuffisant ({score}/100). Tu peux réessayer après avoir revu la roadmap.";
+        message = score >= 60
+            ? $"Tu progresses bien ({score}/100) — encore un petit effort pour atteindre 80%."
+            : score >= 40
+                ? $"Niveau intermédiaire ({score}/100). Révise la roadmap avant de retenter."
+                : $"Tu es encore débutant(e) ({score}/100). Reprends la roadmap depuis le début.";
     }
 
     await _db.SaveChangesAsync();
@@ -442,7 +446,7 @@ public async Task<IActionResult> RetestAfterRoadmap(
         Niveau            = niveau,
         CompetenceAjoutee = competenceAjoutee,
         Message           = message,
-        PeutReessayer     = !competenceAjoutee && score < 60
+        PeutReessayer     = !competenceAjoutee && score < 80
     });
 }
 /// <summary>Marquer la roadmap comme suivie (prêt pour le retest)</summary>

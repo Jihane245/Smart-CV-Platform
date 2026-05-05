@@ -91,6 +91,9 @@ export class CompetenceUpgrade implements OnInit {
   scoreFinale = 0;
   competenceValidee = false;
   peutReessayer = false;
+  resultatCertifAffiche = false;
+  messageCertif = '';
+  niveauCertif = '';
 
   // ─── Étape 7 : Succès ─────────────────────────────────────────────────────
   niveauValide = '';
@@ -307,6 +310,9 @@ export class CompetenceUpgrade implements OnInit {
     this.questionCouranteCertif = 0;
     this.reponsesCertif = [];
     this.reponseSelectionnoCertif = null;
+    this.resultatCertifAffiche = false;
+    this.messageCertif = '';
+    this.niveauCertif = '';
     this.cdr.detectChanges();
   }
 
@@ -338,18 +344,44 @@ export class CompetenceUpgrade implements OnInit {
         this.scoreFinale = res.score;
         this.competenceValidee = res.competenceAjoutee;
         this.peutReessayer = res.peutReessayer;
+        this.niveauCertif = res.niveau;
+        this.messageCertif = res.message || '';
         if (this.competenceValidee) {
           this.niveauValide = res.niveau;
           this.profilCompetences = [...this.profilCompetences, this.competenceSelectionnee!.nom + ' ✓'];
           this.etapeActive = 7;
         } else {
-          this.notif.error(res.message || 'Score insuffisant (< 60%). Révisez et réessayez.');
+          this.resultatCertifAffiche = true;
         }
+        this.cdr.detectChanges();
       },
       error: () => {
         this.notif.error('Erreur lors de l\'évaluation finale.');
       },
     });
+  }
+
+  get bonnesReponsesCertif(): number {
+    const total = this.questionsCertif.length || 12;
+    return Math.round((this.scoreFinale / 100) * total);
+  }
+
+  get totalQuestionsCertif(): number {
+    return this.questionsCertif.length || 12;
+  }
+
+  get pointsManquantsCertif(): number {
+    return Math.max(0, 80 - this.scoreFinale);
+  }
+
+  revoirRoadmap(): void {
+    this.resultatCertifAffiche = false;
+    this.etapeActive = 5;
+    this.cdr.detectChanges();
+  }
+
+  reessayerCertification(): void {
+    this.lancerCertification();
   }
 
   // ─── Étape 7 : Continuer ──────────────────────────────────────────────────
