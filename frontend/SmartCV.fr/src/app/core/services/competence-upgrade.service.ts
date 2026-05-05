@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
-const BASE = 'http://localhost:5000/api/competences';
+const BASE = `${environment.backendUrl}/api/competences`;
 
-// ─── DTOs alignés sur le backend C# ──────────────────────────────────────────
+// ─── DTOs alignés exactement sur CompetenceGapDto.cs (camelCase JSON) ────────
 
 export interface CompetenceGapDto {
   nom: string;
@@ -15,16 +16,17 @@ export interface CompetenceGapDto {
 export interface QuestionDto {
   numero: number;
   enonce: string;
-  options: string[];   // le backend renvoie "options", pas "choix"
+  options: string[];        // C# QuestionDto.Options → "options"
 }
 
 export interface TestGeneratedDto {
-  testId: number;      // int côté backend
+  testId: number;           // C# TestGeneratedDto.TestId → "testId"
   nomCompetence: string;
   questions: QuestionDto[];
 }
 
 // POST /api/competences/test/evaluate — body: { testId, reponses }
+// C# ReponseDto.ReponseChoisie → "reponseChoisie"
 export interface ReponseDto {
   numero: number;
   reponseChoisie: string;
@@ -39,16 +41,18 @@ export interface EvaluationResultDto {
 }
 
 // POST /api/competences/roadmap — body: { testId }
+// C# EtapeRoadmapDto fields: Ordre, Type, Titre, Description, Url, Duree
 export interface EtapeRoadmapDto {
-  type: 'video' | 'documentation' | 'projet' | string;
+  ordre: number;
+  type: string;             // "video" | "doc" | "projet"
   titre: string;
   description: string;
-  lien?: string;
-  dureeEstimee?: string;
+  url: string | null;       // C# Url → "url"
+  duree: string | null;     // C# Duree → "duree"
 }
 
 export interface RoadmapDto {
-  roadmapId: number;   // int côté backend
+  roadmapId: number;
   nomCompetence: string;
   niveauDepart: string;
   objectifFinal: string;
@@ -94,7 +98,6 @@ export class CompetenceUpgradeService {
     );
   }
 
-  // Backend lit compétence + niveau depuis la DB via testId
   genererRoadmap(testId: number): Observable<RoadmapDto> {
     return this.http.post<RoadmapDto>(
       `${BASE}/roadmap`,
@@ -111,7 +114,6 @@ export class CompetenceUpgradeService {
     );
   }
 
-  // Body = tableau direct, pas enveloppé dans un objet
   repasserTest(roadmapId: number, reponses: ReponseDto[]): Observable<RetestResultDto> {
     return this.http.post<RetestResultDto>(
       `${BASE}/roadmaps/${roadmapId}/retest`,

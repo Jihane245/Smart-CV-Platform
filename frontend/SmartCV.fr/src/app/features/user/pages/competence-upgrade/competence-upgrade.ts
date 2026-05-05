@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -104,6 +104,7 @@ export class CompetenceUpgrade implements OnInit {
     private profilService: ProfilService,
     private notif: NotificationService,
     private generateCvState: GenerateCvStateService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -189,22 +190,32 @@ export class CompetenceUpgrade implements OnInit {
 
   // ─── Étape 2 → 3 : Lancer test ───────────────────────────────────────────
   lancerTest(): void {
-    if (!this.competenceSelectionnee) return;
+    if (!this.competenceSelectionnee || this.chargementTest) return; // guard against duplicate calls
     this.chargementTest = true;
     this.etapeActive = 3;
     this.questionCourante = 0;
     this.reponses = [];
     this.reponseSelectionnee = null;
+    this.cdr.detectChanges();
 
     this.competenceUpgradeService.genererTest(this.competenceSelectionnee.nom).subscribe({
       next: (res) => {
         this.testId = res.testId;
-        this.questions = res.questions;
+        this.questions = res.questions ?? [];
+        if (this.questions.length === 0) {
+          this.notif.error('Le test n\'a pas pu être généré. Veuillez réessayer.');
+          this.chargementTest = false;
+          this.etapeActive = 2;
+          this.cdr.detectChanges();
+          return;
+        }
         this.chargementTest = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.notif.error('Erreur lors de la génération du test.');
         this.chargementTest = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -231,13 +242,14 @@ export class CompetenceUpgrade implements OnInit {
       next: (res) => {
         this.scoreInitial = res.score;
         this.niveauInitial = res.niveau;
+        this.cdr.detectChanges();
         this.genererRoadmap();
       },
       error: () => {
-        // Fallback: continuer avec score mock
-        this.scoreInitial = 33;
-        this.niveauInitial = 'Debutant';
-        this.genererRoadmap();
+        this.notif.error('Erreur lors de l\'évaluation. Veuillez réessayer.');
+        this.chargementTest = false;
+        this.etapeActive = 2;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -246,8 +258,8 @@ export class CompetenceUpgrade implements OnInit {
   genererRoadmap(): void {
     this.chargementRoadmap = true;
     this.etapeActive = 4;
+    this.cdr.detectChanges();
 
-    // Le backend lit compétence + niveau depuis la DB via testId
     this.competenceUpgradeService.genererRoadmap(this.testId).subscribe({
       next: (res) => {
         this.roadmapId = res.roadmapId;
@@ -255,22 +267,25 @@ export class CompetenceUpgrade implements OnInit {
         this.objectifFinal = res.objectifFinal;
         this.etapesCompletees = new Array(res.etapes.length).fill(false);
         this.chargementRoadmap = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.roadmapId = 0;
         this.roadmapEtapes = [
-          { type: 'video', titre: `${this.competenceSelectionnee?.nom} Full Course`, description: 'Regarder la vidéo complète', lien: 'https://www.youtube.com', dureeEstimee: '~2h30' },
-          { type: 'documentation', titre: `Lire la doc officielle ${this.competenceSelectionnee?.nom}`, description: 'Sections : Routing, Data Fetching, Layouts', dureeEstimee: '~1h' },
-          { type: 'projet', titre: 'Réaliser et publier le mini-projet', description: 'Publier sur GitHub avec README', dureeEstimee: '~3h' },
+          { ordre: 1, type: 'video', titre: `${this.competenceSelectionnee?.nom} Full Course`, description: 'Regarder la vidéo complète', url: 'https://www.youtube.com', duree: '~2h30' },
+          { ordre: 2, type: 'doc', titre: `Lire la doc officielle ${this.competenceSelectionnee?.nom}`, description: 'Sections principales', url: null, duree: '~1h' },
+          { ordre: 3, type: 'projet', titre: 'Réaliser et publier le mini-projet', description: 'Publier sur GitHub avec README', url: null, duree: '~3h' },
         ];
         this.etapesCompletees = new Array(this.roadmapEtapes.length).fill(false);
         this.chargementRoadmap = false;
+        this.cdr.detectChanges();
       },
     });
   }
 
   demarrerParcours(): void {
     this.etapeActive = 5;
+    this.cdr.detectChanges();
   }
 
   // ─── Étape 5 : Parcours ───────────────────────────────────────────────────
@@ -288,11 +303,11 @@ export class CompetenceUpgrade implements OnInit {
   // ─── Étape 6 : Certification ──────────────────────────────────────────────
   lancerCertification(): void {
     this.etapeActive = 6;
-    // Réutilise les mêmes questions que le test initial
     this.questionsCertif = [...this.questions];
     this.questionCouranteCertif = 0;
     this.reponsesCertif = [];
     this.reponseSelectionnoCertif = null;
+    this.cdr.detectChanges();
   }
 
   choisirReponseCertif(choix: string): void {
@@ -318,7 +333,6 @@ export class CompetenceUpgrade implements OnInit {
   }
 
   evaluerCertification(): void {
-    // repasserTest attend le tableau directement comme body
     this.competenceUpgradeService.repasserTest(this.roadmapId, this.reponsesCertif).subscribe({
       next: (res) => {
         this.scoreFinale = res.score;
@@ -351,6 +365,7 @@ export class CompetenceUpgrade implements OnInit {
     this.testId = 0;
     this.roadmapId = 0;
     this.etapeActive = 1;
+    this.cdr.detectChanges();
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -365,7 +380,7 @@ export class CompetenceUpgrade implements OnInit {
   iconEtapeType(type: string): string {
     switch (type) {
       case 'video': return '▶';
-      case 'documentation': return '□';
+      case 'doc': return '□';
       case 'projet': return '✦';
       default: return '○';
     }
