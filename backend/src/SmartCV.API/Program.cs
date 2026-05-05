@@ -155,17 +155,18 @@ builder.Services.AddAuthentication(options =>
     options.Authority = keycloakConfig["Authority"];
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     //options.Audience = keycloakConfig["ClientId"];
-    options.BackchannelHttpHandler = 
-        new HostRewritingHandler("localhost:8080", "keycloak:8080"); 
+options.MapInboundClaims = false; 
+
+    options.BackchannelHttpHandler = new HostRewritingHandler("localhost:8080", "keycloak:8080");
+    
+    if (!string.IsNullOrEmpty(keycloakConfig["MetadataAddress"]))
+    {
+        options.MetadataAddress = keycloakConfig["MetadataAddress"];
+    }
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidIssuers = new[]
-        {
-            "http://localhost:8080/realms/cv-platform",
-            "http://keycloak:8080/realms/cv-platform"
-        },
+        ValidateIssuer = false, // Désactivé car l'issuer Keycloak diffère entre Docker (keycloak:8080) et le frontend (localhost:8080)
         ValidateAudience = false,
         ValidAudience = keycloakConfig["ClientId"],
         ValidateLifetime = true,
