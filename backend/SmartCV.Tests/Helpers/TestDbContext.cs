@@ -121,4 +121,34 @@ public static class TestDbContext
         var principal = new System.Security.Claims.ClaimsPrincipal(identity);
         return new Microsoft.AspNetCore.Http.DefaultHttpContext { User = principal };
     }
+
+    public static Microsoft.AspNetCore.Http.DefaultHttpContext CreateAdminHttpContext(string email = "admin@test.com")
+    {
+        var claims = new List<System.Security.Claims.Claim>
+        {
+            new(System.Security.Claims.ClaimTypes.Email, email),
+            new(System.Security.Claims.ClaimTypes.Role, "Admin")
+        };
+        var identity = new System.Security.Claims.ClaimsIdentity(claims, "TestAuth");
+        var principal = new System.Security.Claims.ClaimsPrincipal(identity);
+        return new Microsoft.AspNetCore.Http.DefaultHttpContext { User = principal };
+    }
+
+    public static Microsoft.AspNetCore.Http.DefaultHttpContext CreateNonAdminHttpContext(string email = "user@test.com")
+    {
+        var claims = new List<System.Security.Claims.Claim>
+        {
+            new(System.Security.Claims.ClaimTypes.Email, email)
+        };
+        var identity = new System.Security.Claims.ClaimsIdentity(claims, "TestAuth");
+        var principal = new System.Security.Claims.ClaimsPrincipal(identity);
+        return new Microsoft.AspNetCore.Http.DefaultHttpContext { User = principal };
+    }
+
+    public static Microsoft.AspNetCore.Http.DefaultHttpContext CreateUnauthenticatedHttpContext()
+    {
+        var identity = new System.Security.Claims.ClaimsIdentity();
+        var principal = new System.Security.Claims.ClaimsPrincipal(identity);
+        return new Microsoft.AspNetCore.Http.DefaultHttpContext { User = principal };
+    }
 }

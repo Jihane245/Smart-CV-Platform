@@ -6,7 +6,7 @@ using API.services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;      
 using Microsoft.Extensions.Configuration;
 using Moq;
 using SmartCV.Tests.Helpers;
@@ -88,4 +88,73 @@ public class AuthControllerTests
         existingUser.Should().NotBeNull();
         db.Users.Count().Should().Be(1);
     }
+
+    // ==================== TESTS POUR LOGOUT ====================
+
+    [Fact]
+    public void Logout_OrigineAutorisee_RetourneSignOut()
+    {
+        var controller = CreateController();
+        controller.ControllerContext.HttpContext.Request.Headers["Origin"] = "http://localhost";
+        var result = controller.Logout();
+        result.Should().BeOfType<SignOutResult>();
+    }
+
+    [Fact]
+    public void Logout_OrigineNonAutorisee_RetourneForbid()
+    {
+        var controller = CreateController();
+        controller.ControllerContext.HttpContext.Request.Headers["Origin"] = "https://site-malveillant.com";
+        var result = controller.Logout();
+        result.Should().BeOfType<ForbidResult>();
+    }
+
+    [Fact]
+    public void Logout_RefererAutorise_RetourneSignOut()
+    {
+        var controller = CreateController();
+        controller.ControllerContext.HttpContext.Request.Headers["Referer"] = "http://localhost/accueil";
+        var result = controller.Logout();
+        result.Should().BeOfType<SignOutResult>();
+    }
+
+    // ==================== TESTS POUR FORGOT PASSWORD ====================
+
+    [Fact]
+    public async Task ForgetPassword_EmailValide_RetourneOk()
+    {
+        var controller = CreateController();
+        var request = new AuthController.ForgotPasswordRequest { Email = "test@example.com" };
+        var result = await controller.ForgotPassword(request);
+        result.Should().BeOfType<ObjectResult>();
+    }
+
+    [Fact]
+    public async Task ForgetPassword_EmailVide_RetourneBadRequest()
+    {
+        var controller = CreateController();
+        var request = new AuthController.ForgotPasswordRequest { Email = "" };
+        var result = await controller.ForgotPassword(request);
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task ForgetPassword_EmailNull_RetourneBadRequest()
+    {
+        var controller = CreateController();
+        var request = new AuthController.ForgotPasswordRequest { Email = null! };
+        var result = await controller.ForgotPassword(request);
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public void Login_RetourneChallengeResult()
+    {
+        var controller = CreateController();
+        
+        var result = controller.Login();
+        
+        result.Should().BeOfType<ChallengeResult>();
+    }
+    
 }
