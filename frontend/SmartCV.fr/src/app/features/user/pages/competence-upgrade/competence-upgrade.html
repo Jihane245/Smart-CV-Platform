@@ -175,13 +175,13 @@
                 <ng-container *ngFor="let etape of roadmapEtapes; let i = index">
                   <div class="road-step" [class.road-step-last]="i === roadmapEtapes.length - 1">
                     <div class="road-percent">{{ roadmapStagePercent(i) }}%</div>
-                    <div class="road-icon" [class.road-icon-video]="etape.type === 'video'" [class.road-icon-doc]="etape.type === 'documentation'" [class.road-icon-projet]="etape.type === 'projet'">
+                    <div class="road-icon" [class.road-icon-video]="etape.type === 'video'" [class.road-icon-doc]="etape.type === 'doc'" [class.road-icon-projet]="etape.type === 'projet'">
                       {{ iconEtapeType(etape.type) }}
                     </div>
                     <div class="road-card-info">
                       <p class="road-etape-num">ÉTAPE 0{{ i + 1 }}</p>
                       <p class="road-etape-titre">{{ etape.titre }}</p>
-                      <p class="road-etape-lien" *ngIf="etape.lien">{{ etape.lien }}</p>
+                      <p class="road-etape-lien" *ngIf="etape.url">{{ etape.url }}</p>
                     </div>
                   </div>
                 </ng-container>
@@ -221,13 +221,13 @@
           >
             <div class="etape-icon-type">
               <span *ngIf="etape.type === 'video'" class="type-badge">▶</span>
-              <span *ngIf="etape.type === 'documentation'" class="type-badge type-doc">□</span>
+              <span *ngIf="etape.type === 'doc'" class="type-badge type-doc">□</span>
               <span *ngIf="etape.type === 'projet'" class="type-badge type-projet">✦</span>
             </div>
             <div class="etape-content">
               <p class="etape-type-label">{{ etape.type | uppercase }}</p>
               <p class="etape-titre-parcours">{{ etape.titre }}</p>
-              <p class="etape-desc-parcours">{{ etape.description }} · {{ etape.dureeEstimee }}</p>
+              <p class="etape-desc-parcours">{{ etape.description }} · {{ etape.duree }}</p>
             </div>
             <div class="etape-check" [class.checked]="etapesCompletees[i]">
               <span *ngIf="etapesCompletees[i]">✓</span>
