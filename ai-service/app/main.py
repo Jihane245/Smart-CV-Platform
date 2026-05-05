@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.routes import analyze, cover_letter
-
+from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title="SmartCV AI Service")
 app.add_middleware(
     CORSMiddleware,
