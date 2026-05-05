@@ -104,10 +104,13 @@ namespace SmartCV.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CVId")
+                    b.Property<int?>("CVId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("DateEnvoi")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("DateModification")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Entreprise")
@@ -115,11 +118,10 @@ namespace SmartCV.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
-                    b.Property<int>("OffreId")
+                    b.Property<int?>("OffreId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Poste")
@@ -317,6 +319,12 @@ namespace SmartCV.API.Migrations
 
                     b.Property<string>("FileName")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nom")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Prenom")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -592,6 +600,49 @@ namespace SmartCV.API.Migrations
                     b.ToTable("Profils");
                 });
 
+            modelBuilder.Entity("API.models.Roadmap", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Completee")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("EtapesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("NiveauDepart")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NomCompetence")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("RoadmapSuivie")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("TestId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TestId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Roadmaps");
+                });
+
             modelBuilder.Entity("API.models.SectionDynamique", b =>
                 {
                     b.Property<Guid>("Id")
@@ -653,6 +704,50 @@ namespace SmartCV.API.Migrations
                         .IsUnique();
 
                     b.ToTable("Templates");
+                });
+
+            modelBuilder.Entity("API.models.TestCompetence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("NiveauDetecte")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NomCompetence")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("QuestionsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReponsesJson")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("Score")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Statut")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TestsCompetences");
                 });
 
             modelBuilder.Entity("API.models.User", b =>
@@ -736,14 +831,11 @@ namespace SmartCV.API.Migrations
                     b.HasOne("API.models.Cv", "Cv")
                         .WithMany("Candidatures")
                         .HasForeignKey("CVId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("API.models.Offre", "Offre")
+                    b.HasOne("API.models.Offre", null)
                         .WithMany("Candidatures")
-                        .HasForeignKey("OffreId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("OffreId");
 
                     b.HasOne("API.models.User", "User")
                         .WithMany("Candidatures")
@@ -752,8 +844,6 @@ namespace SmartCV.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Cv");
-
-                    b.Navigation("Offre");
 
                     b.Navigation("User");
                 });
@@ -818,7 +908,7 @@ namespace SmartCV.API.Migrations
 
             modelBuilder.Entity("API.models.CvPdf", b =>
                 {
-                    b.HasOne("API.models.Cv", "Cv")
+                    b.HasOne("API.models.CvPersonnalise", "Cv")
                         .WithMany()
                         .HasForeignKey("CvId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -909,6 +999,25 @@ namespace SmartCV.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("API.models.Roadmap", b =>
+                {
+                    b.HasOne("API.models.TestCompetence", "Test")
+                        .WithMany()
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("API.models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Test");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("API.models.SectionDynamique", b =>
                 {
                     b.HasOne("API.models.Profil", "Profil")
@@ -918,6 +1027,17 @@ namespace SmartCV.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Profil");
+                });
+
+            modelBuilder.Entity("API.models.TestCompetence", b =>
+                {
+                    b.HasOne("API.models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("API.models.Cv", b =>
