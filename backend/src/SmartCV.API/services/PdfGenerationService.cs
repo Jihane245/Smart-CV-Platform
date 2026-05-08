@@ -69,15 +69,41 @@ public class PdfGenerationService : IPdfGenerationService
     public async Task<CvPdf> SauvegarderPdf(int cvId, byte[] pdfBytes, string? prenom = null, string? nom = null)
     {
         var fileName = $"cv_{cvId}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+        string pdfUrl;
 
-        var pdfFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "pdfs");
-        if (!Directory.Exists(pdfFolder))
-            Directory.CreateDirectory(pdfFolder);
+        var useS3 = Environment.GetEnvironmentVariable("USE_S3_STORAGE") == "true";
 
-        var filePath = Path.Combine(pdfFolder, fileName);
-        await File.WriteAllBytesAsync(filePath, pdfBytes);
+        if (useS3)
+        {
+            // ===== PRODUCTION : Upload vers S3 =====
+            var bucketName = Environment.GetEnvironmentVariable("AWS_S3_BUCKET") ?? "smartcv-documents-325574368800";
+            var region = Environment.GetEnvironmentVariable("AWS_REGION") ?? "eu-west-1";
 
-        var pdfUrl = $"/pdfs/{fileName}";
+            var s3Client = new Amazon.S3.AmazonS3Client(Amazon.RegionEndpoint.GetBySystemName(region));
+
+            using var stream = new MemoryStream(pdfBytes);
+            await s3Client.PutObjectAsync(new Amazon.S3.Model.PutObjectRequest
+            {
+                BucketName = bucketName,
+                Key = $"pdfs/{fileName}",
+                InputStream = stream,
+                ContentType = "application/pdf"
+            });
+
+            // URL DIRECTE (publique) - plus d'expiration
+            pdfUrl = $"https://{bucketName}.s3.{region}.amazonaws.com/pdfs/{fileName}";
+        }
+        else
+        {
+            // ===== LOCAL : Sauvegarde sur disque =====
+            var pdfFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "pdfs");
+            if (!Directory.Exists(pdfFolder))
+                Directory.CreateDirectory(pdfFolder);
+
+            var filePath = Path.Combine(pdfFolder, fileName);
+            await File.WriteAllBytesAsync(filePath, pdfBytes);
+            pdfUrl = $"/pdfs/{fileName}";
+        }
 
         var cvPdf = new CvPdf
         {
@@ -91,7 +117,6 @@ public class PdfGenerationService : IPdfGenerationService
 
         _db.Set<CvPdf>().Add(cvPdf);
         await _db.SaveChangesAsync();
-
         return cvPdf;
     }
 }
