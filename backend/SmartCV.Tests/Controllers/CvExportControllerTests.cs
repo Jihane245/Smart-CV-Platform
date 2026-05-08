@@ -179,7 +179,14 @@ public class CvExportControllerTests
         mockPdfService.Setup(x => x.GenererPdfDepuisHtml(It.IsAny<string>()))
             .ReturnsAsync(pdfBytes);
         mockPdfService.Setup(x => x.SauvegarderPdf(It.IsAny<int>(), It.IsAny<byte[]>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .Returns(Task.CompletedTask);
+        .ReturnsAsync(new CvPdf 
+        { 
+            Id = 999, 
+            CvId = 1, 
+            FileName = "test.pdf", 
+            CloudUrl = "/pdfs/test.pdf", 
+            DateCreation = DateTime.UtcNow 
+        });
 
         var db = await CreateDbWithCvs();
         var controller = CreateController(customDb: db, customPdfService: mockPdfService.Object);
