@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -333,7 +333,7 @@ namespace SmartCV.API.Migrations
                     Entreprise = table.Column<string>(type: "text", nullable: false),
                     Poste = table.Column<string>(type: "text", nullable: false),
                     DateEnvoi = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Statut = table.Column<string>(type: "text", nullable: false, defaultValue: "enregistrée"),
+                    Statut = table.Column<string>(type: "text", nullable: false, defaultValue: "enregistr�e"),
                     Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false)
                 },
                 constraints: table =>
