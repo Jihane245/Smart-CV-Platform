@@ -74,7 +74,7 @@ export class GenerateCv implements OnInit {
   set etapesCompletes(v: number[]) { this.cvState.patch({ etapesCompletes: v }); }
 
   etapes = [
-    { num: 1, label: "Offre d'emploi" },
+    { num: 1, label: "Offres d'emploi" },
     { num: 2, label: 'Analyse IA' },
     { num: 3, label: 'Choix du template' },
     { num: 4, label: 'Validation & export' },
@@ -157,8 +157,8 @@ export class GenerateCv implements OnInit {
   set langueSelectionnee(v: string) { this.cvState.patch({ langueSelectionnee: v }); }
 
   // ─── Étape 4 (persisté) ───────────────────────────────────────────────────────
-  get cvCreéId(): number | null { return this.cvState.state.cvCreéId; }
-  set cvCreéId(v: number | null) { this.cvState.patch({ cvCreéId: v }); }
+  get cvCreeId(): number | null { return this.cvState.state.cvCreeId; }
+  set cvCreeId(v: number | null) { this.cvState.patch({ cvCreeId: v }); }
 
   get resumeEdite(): string { return this.cvState.state.resumeEdite; }
   set resumeEdite(v: string) { this.cvState.patch({ resumeEdite: v }); }
@@ -255,7 +255,7 @@ export class GenerateCv implements OnInit {
 
         // 2. Données issues du CV existant : on pré-remplit le template, la
         //    couleur et la langue choisis lors de la 1ère génération.
-        this.cvCreéId = cv.id;
+        this.cvCreeId = cv.id;
         this.templatesDisponibles = templates;
         this.templateSelectionne =
           templates.find(t => t.id === cv.templateId) ?? templates[0] ?? null;
@@ -467,7 +467,7 @@ export class GenerateCv implements OnInit {
       langue: LANGUE_CODE[this.langueSelectionnee] ?? 'fr',
     }).subscribe({
       next: (cv) => {
-        this.cvCreéId = cv.id;
+        this.cvCreeId = cv.id;
         this.scoreApresOptimisation = Math.min(100, this.scoreCompatibilite + 6);
         this.pointsGagnes = this.scoreApresOptimisation - this.scoreCompatibilite;
         this.generationEnCours = false;
@@ -486,7 +486,7 @@ export class GenerateCv implements OnInit {
 
   // ─── Étape 4 — PDF ───────────────────────────────────────────────────────────
   telechargerPdf(): void {
-    if (!this.cvCreéId) {
+    if (!this.cvCreeId) {
       this.notifService.warning('Aucun CV généré à télécharger.');
       return;
     }
@@ -526,7 +526,7 @@ export class GenerateCv implements OnInit {
     else if (nomPdf)              downloadName = `CV_${nomPdf}.pdf`;
     else if (prenomPdf)           downloadName = `CV_${prenomPdf}.pdf`;
 
-    this.cvService.exporterPdf(this.cvCreéId, htmlContent, prenomPdf, nomPdf).subscribe({
+    this.cvService.exporterPdf(this.cvCreeId, htmlContent, prenomPdf, nomPdf).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

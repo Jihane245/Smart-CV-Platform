@@ -87,6 +87,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'cover-letter',
+        loadComponent: () =>
+          import('./features/user/pages/cover-letter/cover-letter').then(
+            (m) => m.CoverLetter
+          ),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./features/user/pages/settings/settings').then(
