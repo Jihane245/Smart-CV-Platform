@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
   import { environment } from '../../../../../environments/environment'
 import { AdminService, AdminTemplateDto, TemplateBoxDto, TemplateLayoutId } from '../../../../core/services/admin.service';
 import {
@@ -160,6 +160,9 @@ export class GenerateCv implements OnInit {
   get cvCreéId(): number | null { return this.cvState.state.cvCreéId; }
   set cvCreéId(v: number | null) { this.cvState.patch({ cvCreéId: v }); }
 
+  // Alias sans accent pour les templates Angular (le parser ne supporte pas les caractères non-ASCII)
+  get cvCreeId(): number | null { return this.cvCreéId; }
+
   get resumeEdite(): string { return this.cvState.state.resumeEdite; }
   set resumeEdite(v: string) { this.cvState.patch({ resumeEdite: v }); }
 
@@ -186,6 +189,7 @@ export class GenerateCv implements OnInit {
     private http: HttpClient,
     public cvState: GenerateCvStateService,
     private route: ActivatedRoute,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -550,6 +554,21 @@ export class GenerateCv implements OnInit {
 
   enregistrerCandidature(): void {
     this.notifService.info('Enregistrement candidature — disponible prochainement.');
+  }
+
+  // ─── Étape 4 — Lettre de motivation ──────────────────────────────────────────
+  genererLettreMotivation(): void {
+    if (!this.cvCreéId) {
+      this.notifService.warning('Veuillez d\'abord générer votre CV.');
+      return;
+    }
+
+    this.router.navigate(['/user/lettre-motivation'], {
+      queryParams: {
+        cvId: this.cvCreéId,
+        offreText: this.offreTexte,
+      },
+    });
   }
 
   // ─── CSS pour PDF ─────────────────────────────────────────────────────────────
