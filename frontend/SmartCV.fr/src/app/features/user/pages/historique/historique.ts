@@ -123,7 +123,7 @@ export class Historique implements OnInit {
 
   // URL absolue du PDF (servi en statique par le backend)
   pdfUrl(pdf: PdfHistorique): string {
-    return `${BACKEND_ORIGIN}${pdf.cloudUrl}`;
+    return pdf.cloudUrl.startsWith('https') ? pdf.cloudUrl : `${BACKEND_ORIGIN}${pdf.cloudUrl}`;
   }
 
   // Ouvre le PDF dans un nouvel onglet (visualisation, sans téléchargement)
