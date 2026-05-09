@@ -83,6 +83,34 @@ public class RoadmapDto
     public string ObjectifFinal { get; set; } = string.Empty;
     public List<EtapeRoadmapDto> Etapes { get; set; } = [];
 }
+public class RoadmapDetailDto
+{
+    public int Id { get; set; }
+    public string NomCompetence { get; set; } = string.Empty;
+    public string NiveauDepart { get; set; } = string.Empty;
+    public bool Completee { get; set; }
+    public bool RoadmapSuivie { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public List<EtapeRoadmapDto> Etapes { get; set; } = [];
+    public TestDetailDto? Test { get; set; }
+}
+
+public class TestDetailDto
+{
+    public int Id { get; set; }
+    public int? Score { get; set; }
+    public string? Niveau { get; set; }
+    public string Statut { get; set; } = string.Empty;
+    public List<QuestionDetailDto> Questions { get; set; } = [];
+}
+
+public class QuestionDetailDto
+{
+    public int Numero { get; set; }
+    public string Enonce { get; set; } = string.Empty;
+    public List<string> Options { get; set; } = [];
+    public string BonneReponse { get; set; } = string.Empty;
+}
 
 // ─── Validation finale ────────────────────────────────────
 

@@ -357,6 +357,87 @@ public class CompetenceUpgradeController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>Récupérer le détail d'une roadmap avec ses étapes et son test</summary>
+[HttpGet("roadmaps/{id}")]
+public async Task<IActionResult> GetRoadmapById(int id)
+{
+    var user = await GetCurrentUser();
+    if (user == null) return Unauthorized();
+
+    var roadmap = await _db.Roadmaps
+        .Include(r => r.Test)
+        .FirstOrDefaultAsync(r => r.Id == id && r.UserId == user.Id);
+
+    if (roadmap == null) return NotFound("Roadmap introuvable.");
+
+    // Parser les étapes
+    var etapes = new List<EtapeRoadmapDto>();
+    if (!string.IsNullOrEmpty(roadmap.EtapesJson))
+    {
+        try
+        {
+            etapes = JsonSerializer.Deserialize<List<EtapeRoadmapDto>>(
+                roadmap.EtapesJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            ) ?? [];
+        }
+        catch { etapes = []; }
+    }
+
+    // Parser les questions du test
+    TestDetailDto? testDetail = null;
+    if (roadmap.Test != null)
+    {
+        var questions = new List<QuestionDetailDto>();
+        if (!string.IsNullOrEmpty(roadmap.Test.QuestionsJson))
+        {
+            try
+            {
+                var questionsRaw = JsonSerializer.Deserialize<List<JsonElement>>(
+                    roadmap.Test.QuestionsJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+
+                questions = questionsRaw?.Select(q => new QuestionDetailDto
+                {
+                    Numero      = GetProp(q, "numero").ValueKind == JsonValueKind.Number
+                                    ? GetProp(q, "numero").GetInt32() : 0,
+                    Enonce      = GetProp(q, "enonce").ValueKind == JsonValueKind.String
+                                    ? GetProp(q, "enonce").GetString() ?? "" : "",
+                    Options     = GetProp(q, "options").ValueKind == JsonValueKind.Array
+                                    ? GetProp(q, "options").EnumerateArray()
+                                        .Select(o => o.GetString() ?? "").ToList()
+                                    : [],
+                    BonneReponse = GetProp(q, "bonne_reponse").ValueKind == JsonValueKind.String
+                                    ? GetProp(q, "bonne_reponse").GetString() ?? "" : ""
+                }).ToList() ?? [];
+            }
+            catch { questions = []; }
+        }
+
+        testDetail = new TestDetailDto
+        {
+            Id       = roadmap.Test.Id,
+            Score    = roadmap.Test.Score,
+            Niveau   = roadmap.Test.NiveauDetecte?.ToString(),
+            Statut   = roadmap.Test.Statut.ToString(),
+            Questions = questions
+        };
+    }
+
+    return Ok(new RoadmapDetailDto
+    {
+        Id            = roadmap.Id,
+        NomCompetence = roadmap.NomCompetence,
+        NiveauDepart  = roadmap.NiveauDepart.ToString(),
+        Completee     = roadmap.Completee,
+        RoadmapSuivie = roadmap.RoadmapSuivie,
+        CreatedAt     = roadmap.CreatedAt,
+        Etapes        = etapes,
+        Test          = testDetail
+    });
+}
 /// <summary>Repasser le test après avoir suivi la roadmap</summary>
 [HttpPost("roadmaps/{roadmapId}/retest")]
 public async Task<IActionResult> RetestAfterRoadmap(
