@@ -11,7 +11,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/candidatures")]
-[Authorize(AuthenticationSchemes = "Bearer")]
+[Authorize]
 public class CandidatureController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

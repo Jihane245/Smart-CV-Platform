@@ -1,0 +1,134 @@
+<main class="main-content">
+  <div class="page-header">
+    <div class="header-title-block">
+      <h1 class="page-title">Candidatures</h1>
+      <p class="page-subtitle">Suivez et ajoutez vos candidatures</p>
+    </div>
+  </div>
+  <div class="header-rule" aria-hidden="true"></div>
+
+  <p *ngIf="chargement" class="page-subtitle loading-hint">Chargement…</p>
+
+  <section *ngIf="!chargement" class="card card-tracking">
+    <h2 class="card-heading">Tableau de suivi</h2>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Entreprise</th>
+            <th>Poste</th>
+            <th>Date d’envoi</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of candidatures">
+            <td class="cell-id">#{{ c.id }}</td>
+            <td>{{ c.entreprise }}</td>
+            <td>{{ c.poste }}</td>
+            <td>{{ c.dateEnvoi | date: 'dd/MM/yyyy' }}</td>
+            <td class="cell-statut">
+              <select
+                class="status-select"
+                [ngClass]="statutPillClass(c.statut)"
+                [value]="c.statut"
+                [disabled]="majStatutId === c.id"
+                (change)="onStatutChange(c, $event)"
+                [attr.aria-label]="'Statut pour ' + c.entreprise"
+              >
+                <option *ngFor="let s of statutOptions" [value]="s">{{ s }}</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="candidatures.length === 0" class="empty-inline">
+      Aucune candidature pour le moment. Utilisez le formulaire ci-dessous pour en ajouter une.
+    </div>
+
+    <div class="stats-row" *ngIf="stats">
+      <div class="stats-list">
+        <div class="stat-line">
+          <span class="stat-label">Nombre total de candidatures</span>
+          <span class="stat-value">{{ stats.total }}</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">Nombre de réponses</span>
+          <span class="stat-value">{{ nombreReponses }}</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">Taux de réponse</span>
+          <span class="stat-value">{{ tauxReponsePct }}&nbsp;%</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">Taux d’acceptation</span>
+          <span class="stat-value">{{ tauxAcceptationPct }}&nbsp;%</span>
+        </div>
+      </div>
+      <div class="chart-block">
+        <div class="pie-wrap" aria-hidden="true">
+          <div class="pie" [style.background]="pieGradient"></div>
+        </div>
+        <ul class="pie-legend" *ngIf="stats.total > 0">
+          <li><span class="dot dot-acceptee"></span> Acceptée</li>
+          <li><span class="dot dot-attente"></span> En attente</li>
+          <li><span class="dot dot-refusee"></span> Refusée</li>
+          <li><span class="dot dot-envoyee"></span> Envoyée</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section *ngIf="!chargement" class="card card-form">
+    <div class="form-card-header">
+      <h2 class="card-heading">Enregistrer une candidature</h2>
+      <button
+        type="button"
+        class="btn-ajouter-candidature"
+        (click)="ajouter()"
+        [disabled]="enregistrement"
+      >
+        {{ enregistrement ? 'Enregistrement…' : 'Ajouter' }}
+      </button>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="app-entreprise">Nom de l’entreprise</label>
+        <input
+          id="app-entreprise"
+          class="form-input"
+          type="text"
+          [(ngModel)]="formEntreprise"
+          placeholder="Ex. Synara Tech"
+          autocomplete="organization"
+        />
+      </div>
+      <div class="field">
+        <label for="app-date">Date d’envoi</label>
+        <input id="app-date" class="form-input" type="date" [(ngModel)]="formDate" />
+      </div>
+      <div class="field">
+        <label for="app-poste">Poste désiré</label>
+        <input
+          id="app-poste"
+          class="form-input"
+          type="text"
+          [(ngModel)]="formPoste"
+          placeholder="Ex. Développeur frontend"
+          autocomplete="off"
+        />
+      </div>
+      <div class="field">
+        <label for="app-statut">Statut</label>
+        <select id="app-statut" class="form-input form-select" [(ngModel)]="formStatut">
+          <option *ngFor="let s of statutOptions" [ngValue]="s">{{ s }}</option>
+        </select>
+      </div>
+    </div>
+  </section>
+</main>
