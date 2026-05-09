@@ -1,0 +1,170 @@
+<main class="cover-letter-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <a class="btn-retour" routerLink="/user/generate-cv">
+        <span class="retour-arrow">‹</span> Retour
+      </a>
+      <div>
+        <h1 class="page-title">Générateur de Lettre de Motivation</h1>
+        <p class="page-subtitle">Écrivez une lettre adaptée à vos spécifications</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Context banner when coming from GenCV -->
+  <div class="context-banner" *ngIf="offreId">
+    <span class="context-icon">✓</span>
+    <span class="context-text">
+      Offre analysée
+      <ng-container *ngIf="offreTitre"> — <strong>{{ offreTitre }}</strong></ng-container>
+      <ng-container *ngIf="offreEntreprise"> chez <strong>{{ offreEntreprise }}</strong></ng-container>
+      · Prêt à générer
+    </span>
+  </div>
+
+  <div class="page-rule"></div>
+
+  <!-- Main two-column layout -->
+  <div class="letter-layout">
+
+    <!-- ── Left column: inputs ── -->
+    <div class="letter-left">
+
+      <!-- Section: Offer -->
+      <section class="input-section">
+        <h2 class="section-heading">Générez une lettre de motivation</h2>
+        <p class="section-desc">
+          L'IA peut générer une lettre de motivation basée sur vos compétences, un CV, ou une offre d'emploi.
+        </p>
+        <p class="section-note">Aucun champ n'est requis, mais la lettre risque d'être générique.</p>
+
+        <h3 class="subsection-heading">Collez votre offre d'emploi</h3>
+        <p class="section-desc">
+          Copiez-collez la description du poste ou importez un fichier.<br>
+          L'IA analysera les compétences et exigences clés.
+        </p>
+
+        <textarea
+          class="offre-textarea"
+          [(ngModel)]="offreTexte"
+          placeholder="Offre collée exemple…"
+          rows="7"
+          [disabled]="!!offreId"
+        ></textarea>
+
+        <!-- File inputs (hidden) -->
+        <input
+          id="offre-file-input"
+          type="file"
+          accept=".pdf,image/jpeg,image/png,image/webp"
+          (change)="onOffreFileSelected($event)"
+          hidden
+        />
+        <input
+          id="cv-file-input"
+          type="file"
+          accept=".pdf,image/jpeg,image/png,image/webp"
+          (change)="onCvFileSelected($event)"
+          hidden
+        />
+
+        <div class="file-row">
+          <button class="btn-primary-sm" (click)="triggerOffreInput()">
+            Analyser un offre →
+          </button>
+          <span class="file-name" *ngIf="offreFileName">
+            <button class="file-clear" (click)="offreFileName = ''">✕</button>
+            {{ offreFileName }}
+          </span>
+          <span class="file-placeholder" *ngIf="!offreFileName">
+            [Lettre.pdf/Lettre.jpeg .. Invisible si pas de fichier]
+          </span>
+        </div>
+      </section>
+
+      <!-- Section: CV upload -->
+      <section class="input-section">
+        <h3 class="subsection-heading">Ajoutez un CV</h3>
+        <p class="section-desc">
+          L'IA peut aussi analyser un CV spécifique à l'offre pour être plus précise.
+        </p>
+        <p class="section-note">…</p>
+
+        <div class="file-row">
+          <button class="btn-primary-sm" (click)="triggerCvInput()">
+            Analyser un CV →
+          </button>
+          <span class="file-name" *ngIf="cvFileName">
+            <button class="file-clear" (click)="cvFileName = ''">✕</button>
+            {{ cvFileName }}
+          </span>
+          <span class="file-placeholder" *ngIf="!cvFileName">
+            [CV.pdf/CV.jpeg .. Invisible si pas de fichier]
+          </span>
+        </div>
+      </section>
+
+      <!-- Action buttons -->
+      <div class="action-row">
+        <button
+          class="btn-generate"
+          (click)="generer()"
+          [disabled]="generationEnCours"
+        >
+          <span *ngIf="!generationEnCours">Générer la lettre</span>
+          <span *ngIf="generationEnCours">Génération en cours…</span>
+        </button>
+
+        <button
+          class="btn-download"
+          (click)="telechargerPdf()"
+          [disabled]="!lettreGeneree || telechargementEnCours"
+        >
+          <span class="dl-icon">↓</span>
+          <span *ngIf="!telechargementEnCours">Télécharger en PDF</span>
+          <span *ngIf="telechargementEnCours">Téléchargement…</span>
+        </button>
+      </div>
+
+      <div class="action-row">
+        <button
+          class="btn-download btn-download-full"
+          (click)="telechargerPdf()"
+          [disabled]="!lettreGeneree || telechargementEnCours"
+        >
+          <span class="dl-icon">↓</span>
+          Télécharger en PDF
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ── Right column: editor ── -->
+    <div class="letter-right">
+      <div class="editor-header">
+        <span class="editor-label">Modifier le texte</span>
+        <button
+          class="btn-save"
+          *ngIf="lettreGeneree"
+          (click)="sauvegarder()"
+          [disabled]="sauvegardEnCours"
+        >
+          {{ sauvegardEnCours ? 'Sauvegarde…' : 'Sauvegarder' }}
+        </button>
+      </div>
+
+      <div class="editor-box">
+        <textarea
+          class="letter-editor"
+          [(ngModel)]="lettreContenu"
+          [placeholder]="lettreGeneree ? '' : '[Lettre générée modifiable / Word Editor]'"
+          [disabled]="!lettreGeneree"
+        ></textarea>
+      </div>
+    </div>
+
+  </div>
+
+</main>

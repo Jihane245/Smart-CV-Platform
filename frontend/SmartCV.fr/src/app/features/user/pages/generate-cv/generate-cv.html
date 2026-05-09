@@ -324,6 +324,13 @@
           >
             Enregistrer candidature
           </button>
+          <a
+            class="btn-secondary-action"
+            [routerLink]="['/user/cover-letter']"
+            [queryParams]="{ offreId: cvCreeId }"
+          >
+            ✉ Générer une lettre →
+          </a>
         </div>
       </ng-container>
 
