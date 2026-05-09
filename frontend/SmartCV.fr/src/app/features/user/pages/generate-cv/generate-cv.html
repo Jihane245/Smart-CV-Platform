@@ -324,6 +324,14 @@
           >
             Enregistrer candidature
           </button>
+          <button
+            class="btn-primary"
+            type="button"
+            [disabled]="!cvCreeId"
+            (click)="genererLettreMotivation()"
+          >
+            ✉ Générer lettre de motivation
+          </button>
         </div>
       </ng-container>
 
