@@ -3,7 +3,10 @@
   <!-- Header -->
   <div class="page-header">
     <div class="header-left">
-      <a class="btn-retour" routerLink="/user">
+      <button class="btn-retour" (click)="nouvelleAnalyse()" *ngIf="cvState.hasAnalyse">
+        ↺ Nouvelle analyse
+      </button>
+      <a class="btn-retour" routerLink="/user" *ngIf="!cvState.hasAnalyse">
         <span class="retour-arrow">‹</span> Retour
       </a>
       <div>
@@ -168,6 +171,20 @@
             </ng-container>
           </div>
         </ng-container>
+
+        <!-- Bannière mise à niveau — visible uniquement si des compétences manquent -->
+        <div class="upgrade-banner" *ngIf="competencesManquantesNoms.length > 0">
+          <div class="upgrade-banner-left">
+            <span class="upgrade-banner-icon">↑</span>
+            <div>
+              <p class="upgrade-banner-title">{{ competencesManquantesNoms.length }} compétence(s) manquante(s) détectée(s)</p>
+              <p class="upgrade-banner-sub">{{ competencesManquantesNoms.join(' · ') }}</p>
+            </div>
+          </div>
+          <a class="upgrade-banner-cta" [routerLink]="['/user/competence-upgrade']">
+            Combler les écarts →
+          </a>
+        </div>
 
         <div class="btn-row">
           <button class="btn-outline" (click)="etapePrecedente()">← Retour</button>

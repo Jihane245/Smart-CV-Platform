@@ -71,7 +71,14 @@ export const routes: Routes = [
     path: 'historique',
     loadComponent: () =>
       import('./features/user/pages/historique/historique').then(m => m.Historique)
-  },
+      },
+      {
+        path: 'competence-upgrade',
+        loadComponent: () =>
+          import('./features/user/pages/competence-upgrade/competence-upgrade').then(
+            (m) => m.CompetenceUpgrade
+          ),
+      },
       {
         path: 'applications',
         loadComponent: () =>
@@ -96,7 +103,7 @@ export const routes: Routes = [
         (m) => m.Dashboard
       ),
   },
-    {
+  {
     path: 'admin/templates/nouveau',
     canActivate: [authGuard, adminGuard],
     loadComponent: () =>
