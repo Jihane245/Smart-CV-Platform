@@ -1,4 +1,4 @@
-﻿namespace SmartCV.Tests;
+namespace SmartCV.Tests;
 
 public class UnitTest1
 {

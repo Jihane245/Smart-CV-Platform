@@ -56,7 +56,7 @@ def evaluer_reponses(questions: list, reponses: list) -> dict:
             bonne = question.get("bonne_reponse", "")
 
         reponse_user = next(
-            (r.get("reponse_choisie") if isinstance(r, dict) else None
+            (r.get("reponseChoisie") if isinstance(r, dict) else None
              for r in reponses
              if (r.get("numero") if isinstance(r, dict) else None) == num_q),
             None
