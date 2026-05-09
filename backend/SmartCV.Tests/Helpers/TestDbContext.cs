@@ -108,6 +108,77 @@ public static class TestDbContext
         context.Formations.Add(formation);
         context.Certificats.Add(certificat);
         context.Templates.Add(template);
+        // Ajoute dans CreateWithSeedData après context.Templates.Add(template)
+
+        var testCompetence = new TestCompetence
+        {
+            Id            = 1,
+            UserId        = 1,
+            NomCompetence = "Docker",
+            QuestionsJson = """
+            [
+                {
+                    "numero": 1,
+                    "enonce": "Qu'est-ce que Docker ?",
+                    "options": ["Un OS", "Un outil de conteneurisation", "Un langage", "Un framework"],
+                    "bonne_reponse": "Un outil de conteneurisation",
+                    "explication": "Docker conteneurise les applications"
+                },
+                {
+                    "numero": 2,
+                    "enonce": "Quelle commande lance un container ?",
+                    "options": ["docker start", "docker run", "docker exec", "docker build"],
+                    "bonne_reponse": "docker run",
+                    "explication": "docker run crée et lance un container"
+                }
+            ]
+            """,
+            Statut    = StatutParcours.EnCours,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var roadmap = new Roadmap
+        {
+            Id            = 1,
+            UserId        = 1,
+            TestId        = 1,
+            NomCompetence = "Docker",
+            NiveauDepart  = NiveauTest.Debutant,
+            EtapesJson    = """
+            [
+                {
+                    "ordre": 1,
+                    "type": "video",
+                    "titre": "Docker pour débutants",
+                    "description": "Introduction à Docker",
+                    "url": "https://youtube.com/watch?v=test",
+                    "duree": "30 min"
+                },
+                {
+                    "ordre": 2,
+                    "type": "doc",
+                    "titre": "Documentation Docker",
+                    "description": "Lire la doc officielle",
+                    "url": "https://docs.docker.com",
+                    "duree": "1h"
+                },
+                {
+                    "ordre": 3,
+                    "type": "projet",
+                    "titre": "Conteneuriser une API",
+                    "description": "Créer un Dockerfile",
+                    "url": null,
+                    "duree": "2h"
+                }
+            ]
+            """,
+            Completee    = false,
+            RoadmapSuivie = false,
+            CreatedAt    = DateTime.UtcNow
+        };
+
+        context.TestsCompetences.Add(testCompetence);
+        context.Roadmaps.Add(roadmap);
         context.SaveChanges();
 
         return context;
