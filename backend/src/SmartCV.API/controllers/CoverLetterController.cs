@@ -12,7 +12,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/coverletter")]
-[Authorize(AuthenticationSchemes = "Bearer")]
+[Authorize(AuthenticationSchemes = "Cookies,Bearer")]
 public class CoverLetterController : ControllerBase
 {
     private readonly ICoverLetterService _service;
