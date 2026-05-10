@@ -28,10 +28,19 @@ class AnalyseModel(BaseModel):
     resume: str
     recommandations: Optional[str]
 
+class CvModel(BaseModel):
+    id: Optional[int] = None
+    keyWords: Optional[str] = None
+    skillsDetectes: Optional[str] = None
+    scoreCompatibilite: Optional[float] = None
+    exigences: Optional[str] = None
+    templateId: Optional[int] = None
+
 class CoverLetterRequest(BaseModel):
     user: UserModel
     offre: OffreModel
     analyse: AnalyseModel
+    cv: Optional[CvModel] = None
 
 class CoverLetterResponse(BaseModel):
     contenu: str

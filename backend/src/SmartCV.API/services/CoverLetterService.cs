@@ -1,4 +1,5 @@
 using API.data;
+using API.dtos.CoverLetter;
 using API.models;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -21,48 +22,85 @@ public class CoverLetterService : ICoverLetterService
         _pdfService = pdfService;
     }
 
-    public async Task<LettreMotivation> GenerateCoverLetterAsync(int userId, int offreId)
+    public async Task<LettreMotivation> GenerateCoverLetterAsync(CoverLetterGenerateDto dto)
     {
-        var user = await _db.Users
-            .Include(u => u.Profil)
-                .ThenInclude(p => p.Competences)
-            .Include(u => u.Profil)
-                .ThenInclude(p => p.Experiences)
-            .Include(u => u.Profil)
-                .ThenInclude(p => p.Formations)
-            .Include(u => u.Profil)
-                .ThenInclude(p => p.Certificats)
-            .FirstOrDefaultAsync(u => u.Id == userId);
+        if (!dto.UserId.HasValue)
+            throw new InvalidOperationException("UserId requis.");
 
-        if (user == null)
-            throw new InvalidOperationException("Utilisateur introuvable.");
+        var userId = dto.UserId.Value;
+
+        var user = await _db.Users
+            .Include(u => u.Profil).ThenInclude(p => p.Competences)
+            .Include(u => u.Profil).ThenInclude(p => p.Experiences)
+            .Include(u => u.Profil).ThenInclude(p => p.Formations)
+            .Include(u => u.Profil).ThenInclude(p => p.Certificats)
+            .FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new InvalidOperationException("Utilisateur introuvable.");
 
         if (user.Profil == null)
-            throw new InvalidOperationException("Le profil utilisateur est requis pour générer une lettre de motivation.");
+            throw new InvalidOperationException("Profil utilisateur requis.");
 
-        var offre = await _db.Offres.FirstOrDefaultAsync(o => o.Id == offreId);
-        if (offre == null)
-            throw new InvalidOperationException("Offre introuvable.");
+        // 1. Résolution de l'Offre (existante OU créée à partir du texte brut)
+        Offre offre;
+        if (dto.OffreId.HasValue)
+        {
+            offre = await _db.Offres.FirstOrDefaultAsync(o => o.Id == dto.OffreId.Value)
+                ?? throw new InvalidOperationException("Offre introuvable.");
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.OffreTexte))
+        {
+            offre = new Offre
+            {
+                Titre = dto.OffreTitre ?? "Offre saisie manuellement",
+                Entreprise = dto.OffreEntreprise ?? "Non précisé",
+                Description = dto.OffreTexte,
+                Exigences = "",
+                TypeContrat = "",
+                DatePublication = DateTime.UtcNow
+            };
+            _db.Offres.Add(offre);
+            await _db.SaveChangesAsync();
+        }
+        else
+        {
+            throw new InvalidOperationException("OffreId ou OffreTexte requis.");
+        }
 
+        // 2. Résolution / création de l'AnalyseOffre (réutilise la plus récente, sinon délègue à l'IA)
         var analyse = await _db.AnalysesOffre
-            .FirstOrDefaultAsync(a => a.OffreId == offreId && a.ProfilId == user.Profil.Id)
-            ?? await _db.AnalysesOffre.Where(a => a.OffreId == offreId).OrderByDescending(a => a.DateAnalyse).FirstOrDefaultAsync();
+            .Where(a => a.OffreId == offre.Id)
+            .OrderByDescending(a => a.DateAnalyse)
+            .FirstOrDefaultAsync();
 
         if (analyse == null)
-            throw new InvalidOperationException("Analyse de l'offre introuvable. La lettre de motivation nécessite l'analyse existante.");
+        {
+            analyse = await _aiClient.AnalyzeOffreAsync(offre, user.Profil);
+            analyse.OffreId = offre.Id;
+            analyse.ProfilId = user.Profil.Id;
+            _db.AnalysesOffre.Add(analyse);
+            await _db.SaveChangesAsync();
+        }
 
-        var contenu = await _aiClient.GenerateCoverLetterAsync(user, offre, analyse);
+        // 3. CV optionnel : si fourni, vérifier qu'il appartient bien à l'utilisateur
+        Cv? cv = null;
+        if (dto.CvId.HasValue)
+        {
+            cv = await _db.Cvs.FirstOrDefaultAsync(c => c.IdCv == dto.CvId.Value && c.UserId == userId);
+        }
+
+        // 4. Appel IA
+        var contenu = await _aiClient.GenerateCoverLetterAsync(user, offre, analyse, cv);
         if (string.IsNullOrWhiteSpace(contenu))
-            throw new InvalidOperationException("Le service d'IA a renvoyé un contenu vide.");
+            throw new InvalidOperationException("Le service IA a renvoyé un contenu vide.");
 
         var lettre = new LettreMotivation
         {
             UserId = userId,
-            OffreId = offreId,
+            OffreId = offre.Id,
+            CvId = cv?.IdCv,
             Contenu = contenu,
             DateGeneration = DateTime.UtcNow
         };
-
         _db.LettresMotivation.Add(lettre);
         await _db.SaveChangesAsync();
         return lettre;

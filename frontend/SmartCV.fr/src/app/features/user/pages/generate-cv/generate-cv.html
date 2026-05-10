@@ -324,13 +324,14 @@
           >
             Enregistrer candidature
           </button>
-          <a
-            class="btn-secondary-action"
-            [routerLink]="['/user/cover-letter']"
-            [queryParams]="{ offreId: cvCreeId }"
+          <button
+            class="btn-primary"
+            type="button"
+            [disabled]="!cvCreeId"
+            (click)="genererLettreMotivation()"
           >
-            ✉ Générer une lettre →
-          </a>
+            ✉ Générer lettre de motivation
+          </button>
         </div>
       </ng-container>
 
