@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -6,6 +6,7 @@ import {
   CoverLetterService,
   CoverLetterResponse,
 } from '../../../../core/services/coverletter.service';
+import { CvService } from '../../../../core/services/cv.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
@@ -16,6 +17,8 @@ import { NotificationService } from '../../../../core/services/notification.serv
   styleUrl: './lettre-motivation.scss',
 })
 export class LettreMotivation implements OnInit {
+  @ViewChild('imageInput') imageInput!: ElementRef<HTMLInputElement>;
+
   // ─── Stepper (cosmétique, pour matcher le design) ───────────────────────────
   etapeActive = 1;
   etapesCompletes: number[] = [];
@@ -30,6 +33,7 @@ export class LettreMotivation implements OnInit {
   offreEntreprise = '';
   cvPdf: File | null = null;
   cvPdfNom = '';
+  analyseImageEnCours = false;
 
   // ─── Cas pré-rempli depuis génération CV (cas 1) ────────────────────────────
   /** Si défini, on appelle /generate (avec persistance) au lieu de /generate-from-upload. */
@@ -46,6 +50,7 @@ export class LettreMotivation implements OnInit {
 
   constructor(
     private coverLetterService: CoverLetterService,
+    private cvService: CvService,
     private notif: NotificationService,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
@@ -93,6 +98,47 @@ export class LettreMotivation implements OnInit {
   retirerPdf(): void {
     this.cvPdf = null;
     this.cvPdfNom = '';
+  }
+
+  // ─── Analyse d'image (texte de l'offre extrait par l'IA) ────────────────────
+  analyserImage(): void {
+    this.imageInput.nativeElement.click();
+  }
+
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      this.notif.error('Format non supporté. Utilisez jpg, png ou webp.');
+      input.value = '';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.notif.error('Image trop volumineuse (10 Mo max).');
+      input.value = '';
+      return;
+    }
+
+    this.analyseImageEnCours = true;
+    this.cvService.analyserImage(file, []).subscribe({
+      next: (res) => {
+        // L'analyse renvoie un résumé structuré : on l'utilise comme texte d'offre
+        this.offreTexte = res.resume || this.offreTexte;
+        this.analyseImageEnCours = false;
+        this.notif.success("Image analysée — texte de l'offre rempli.");
+        input.value = '';
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.analyseImageEnCours = false;
+        this.notif.error("Erreur lors de l'analyse de l'image.");
+        input.value = '';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   // ─── Génération ──────────────────────────────────────────────────────────────
@@ -160,8 +206,12 @@ export class LettreMotivation implements OnInit {
   private gererErreur(err: any): void {
     this.generationEnCours = false;
     const msg = err?.error?.message || 'Erreur lors de la génération de la lettre.';
-    this.notif.error(msg);
-    this.cdr.detectChanges();
+    // setTimeout 0 → push l'ajout de notif sur le tick suivant pour éviter
+    // l'ExpressionChangedAfterItHasBeenCheckedError dans NotificationContainer.
+    setTimeout(() => {
+      this.notif.error(msg);
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   // ─── Étape 2 — Actions sur le résultat ──────────────────────────────────────

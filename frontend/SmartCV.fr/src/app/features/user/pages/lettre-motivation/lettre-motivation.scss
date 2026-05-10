@@ -120,6 +120,27 @@ $white:        #FFFFFF;
 }
 .hint { font-size: 0.75rem; color: $text-muted; margin: 0.4rem 0 0; }
 
+// Bloc « Ou bien… analyser une image »
+.image-analyse-row {
+  display: flex; align-items: center; gap: 1rem;
+  margin-top: 1rem;
+
+  .ou-bien {
+    color: $text-muted; font-size: 0.85rem; font-style: italic;
+  }
+}
+
+.btn-secondary {
+  background: $cream; color: $brown-dark;
+  border: 1px solid $cream-border;
+  border-radius: 8px;
+  padding: 0.65rem 1.25rem;
+  font-family: inherit; font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  &:hover:not(:disabled) { background: $cream-dark; border-color: $brown-muted; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
