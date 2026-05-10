@@ -43,22 +43,24 @@ def generer_test(competence: str) -> dict:
         raise ValueError(f"JSON invalide du test : {e}\nRaw: {raw[:200]}")
 
 def evaluer_reponses(questions: list, reponses: list) -> dict:
+    print(f"DEBUG questions[0]: {questions[0] if questions else 'EMPTY'}")
+    print(f"DEBUG reponses[0]: {reponses[0] if reponses else 'EMPTY'}")
     score = 0
     total = len(questions)
 
     for question in questions:
         # Support dict et JsonElement
         if isinstance(question, dict):
-            num_q = question.get("numero")
+            num_q = question.get("Numero")
             bonne = question.get("bonne_reponse", "")
         else:
-            num_q = question.get("numero", 0)
+            num_q = question.get("Numero", 0)
             bonne = question.get("bonne_reponse", "")
 
         reponse_user = next(
-            (r.get("reponseChoisie") if isinstance(r, dict) else None
+            (r.get("ReponseChoisie") if isinstance(r, dict) else None
              for r in reponses
-             if (r.get("numero") if isinstance(r, dict) else None) == num_q),
+             if (r.get("Numero") if isinstance(r, dict) else None) == num_q),
             None
         )
         if reponse_user and reponse_user.strip() == bonne.strip():

@@ -74,7 +74,7 @@ export class GenerateCv implements OnInit {
   set etapesCompletes(v: number[]) { this.cvState.patch({ etapesCompletes: v }); }
 
   etapes = [
-    { num: 1, label: "Offres d'emploi" },
+    { num: 1, label: "Offre d'emploi" },
     { num: 2, label: 'Analyse IA' },
     { num: 3, label: 'Choix du template' },
     { num: 4, label: 'Validation & export' },

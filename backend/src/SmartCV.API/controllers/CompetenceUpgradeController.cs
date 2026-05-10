@@ -131,8 +131,8 @@ public class CompetenceUpgradeController : ControllerBase
 
         var questionsSansReponses = questionsObj?.Select(q => new QuestionDto
         {
-            Numero  = GetProp(q, "numero").ValueKind == JsonValueKind.Number
-                        ? GetProp(q, "numero").GetInt32() : 0,
+            Numero  = GetProp(q, "Numero").ValueKind == JsonValueKind.Number
+                        ? GetProp(q, "Numero").GetInt32() : 0,
             Enonce  = GetProp(q, "enonce").ValueKind == JsonValueKind.String
                         ? GetProp(q, "enonce").GetString() ?? "" : "",
             Options = GetProp(q, "options").ValueKind == JsonValueKind.Array
