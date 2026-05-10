@@ -14,7 +14,7 @@ export interface CompetenceGapDto {
 
 // POST /api/competences/test/generate — body: { nomCompetence }
 export interface QuestionDto {
-  numero: number;
+  Numero: number;
   enonce: string;
   options: string[];        // C# QuestionDto.Options → "options"
 }
@@ -26,10 +26,10 @@ export interface TestGeneratedDto {
 }
 
 // POST /api/competences/test/evaluate — body: { testId, reponses }
-// C# ReponseDto.ReponseChoisie → "reponseChoisie"
+// C# ReponseDto.ReponseChoisie → "ReponseChoisie"
 export interface ReponseDto {
-  numero: number;
-  reponseChoisie: string;
+  Numero: number;
+  ReponseChoisie: string;
 }
 
 export interface EvaluationResultDto {

@@ -230,7 +230,7 @@ export class CompetenceUpgrade implements OnInit {
   questionSuivante(): void {
     if (this.reponseSelectionnee === null) return;
     const q = this.questions[this.questionCourante];
-    this.reponses.push({ numero: q.numero, reponseChoisie: this.reponseSelectionnee });
+    this.reponses.push({ Numero: q.Numero, ReponseChoisie: this.reponseSelectionnee });
     this.reponseSelectionnee = null;
 
     if (this.questionCourante < this.questions.length - 1) {
@@ -323,7 +323,7 @@ export class CompetenceUpgrade implements OnInit {
   questionSuivanteCertif(): void {
     if (this.reponseSelectionnoCertif === null) return;
     const q = this.questionsCertif[this.questionCouranteCertif];
-    this.reponsesCertif.push({ numero: q.numero, reponseChoisie: this.reponseSelectionnoCertif });
+    this.reponsesCertif.push({ Numero: q.Numero, ReponseChoisie: this.reponseSelectionnoCertif });
     this.reponseSelectionnoCertif = null;
     if (this.questionCouranteCertif < this.questionsCertif.length - 1) {
       this.questionCouranteCertif++;
@@ -333,7 +333,7 @@ export class CompetenceUpgrade implements OnInit {
   voirResultat(): void {
     if (this.reponseSelectionnoCertif) {
       const q = this.questionsCertif[this.questionCouranteCertif];
-      this.reponsesCertif.push({ numero: q.numero, reponseChoisie: this.reponseSelectionnoCertif });
+      this.reponsesCertif.push({ Numero: q.Numero, ReponseChoisie: this.reponseSelectionnoCertif });
     }
     this.evaluerCertification();
   }
