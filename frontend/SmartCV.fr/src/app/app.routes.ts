@@ -73,6 +73,13 @@ export const routes: Routes = [
       import('./features/user/pages/historique/historique').then(m => m.Historique)
       },
       {
+        path: 'lettre-motivation',
+        loadComponent: () =>
+          import('./features/user/pages/lettre-motivation/lettre-motivation').then(
+            (m) => m.LettreMotivation
+          ),
+      },
+      {
         path: 'competence-upgrade',
         loadComponent: () =>
           import('./features/user/pages/competence-upgrade/competence-upgrade').then(

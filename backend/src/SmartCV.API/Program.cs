@@ -16,6 +16,9 @@ using Microsoft.AspNetCore.HttpOverrides;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
+builder.Services.AddScoped<ICoverLetterAiClient, CoverLetterAiClient>();
+builder.Services.AddScoped<ICoverLetterService, CoverLetterService>();
+builder.Services.AddScoped<IPdfTextExtractor, PdfTextExtractor>();
 
 // ===== Forwarded Headers (derrière Caddy) =====
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

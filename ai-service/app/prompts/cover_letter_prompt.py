@@ -21,7 +21,7 @@ CONTENU À INCLURE :
 RÉPONDS UNIQUEMENT avec le texte de la lettre de motivation, sans introduction ni conclusion.
 """
 
-def build_cover_letter_prompt(user_data: dict, offre_data: dict, analyse_data: dict) -> str:
+def build_cover_letter_prompt(user_data: dict, offre_data: dict, analyse_data: dict, cv_data: dict | None = None) -> str:
     user = user_data
     offre = offre_data
     analyse = analyse_data
@@ -68,7 +68,22 @@ Compétences match : {', '.join(analyse.get('competences_match', []))}
 Compétences manquantes : {', '.join(analyse.get('competences_manquantes', []))}
 Mots-clés extraits : {', '.join(analyse.get('mots_cles_extraits', []))}
 Résumé : {analyse.get('resume', '')}
+"""
 
+    if cv_data:
+        cv_keywords = cv_data.get('keyWords') or ''
+        cv_skills = cv_data.get('skillsDetectes') or ''
+        cv_score = cv_data.get('scoreCompatibilite')
+        cv_exigences = cv_data.get('exigences') or ''
+        prompt += f"""
+CV ANALYSÉ DU CANDIDAT (à privilégier comme source de vérité) :
+Mots-clés extraits du CV : {cv_keywords}
+Compétences détectées dans le CV : {cv_skills}
+Score de compatibilité CV/offre : {cv_score if cv_score is not None else 'n/a'}
+Exigences couvertes par le CV : {cv_exigences}
+"""
+
+    prompt += """
 Rédige une lettre de motivation convaincante qui met en avant les points forts du candidat pour ce poste spécifique.
 """
 
