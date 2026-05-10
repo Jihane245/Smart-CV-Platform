@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -84,26 +85,26 @@ public class CoverLetterAiClient : ICoverLetterAiClient
 
             offre = new
             {
-                offre.Id,
-                offre.Titre,
-                offre.Entreprise,
-                offre.Description,
-                offre.Exigences,
-                offre.TypeContrat,
-                offre.UrlOffre,
-                offre.DatePublication,
-                offre.DateExpiration
+                id = offre.Id,
+                titre = offre.Titre,
+                entreprise = offre.Entreprise,
+                description = offre.Description,
+                exigences = offre.Exigences,
+                type_contrat = offre.TypeContrat,
+                url_offre = offre.UrlOffre,
+                date_publication = offre.DatePublication,
+                date_expiration = offre.DateExpiration
             },
 
             analyse = new
             {
-                analyseOffre.MotsClesExtraits,
-                analyseOffre.CompetencesRequises,
-                analyseOffre.CompetencesMatch,
-                analyseOffre.CompetencesManquantes,
-                analyseOffre.ScoreCompatibilite,
-                analyseOffre.Resume,
-                analyseOffre.Recommandations
+                mots_cles_extraits = analyseOffre.MotsClesExtraits,
+                competences_requises = analyseOffre.CompetencesRequises,
+                competences_match = analyseOffre.CompetencesMatch,
+                competences_manquantes = analyseOffre.CompetencesManquantes,
+                score_compatibilite = analyseOffre.ScoreCompatibilite,
+                resume = analyseOffre.Resume,
+                recommandations = analyseOffre.Recommandations
             }
         };
 
@@ -113,7 +114,7 @@ public class CoverLetterAiClient : ICoverLetterAiClient
             "application/json"
         );
 
-        var response = await client.PostAsync($"{BaseUrl}/api/coverletter/generate", content);
+        var response = await client.PostAsync($"{BaseUrl}/coverletter/generate", content);
 
         var body = await response.Content.ReadAsStringAsync();
 
@@ -140,5 +141,126 @@ public class CoverLetterAiClient : ICoverLetterAiClient
         }
 
         return body.Trim();
+    }
+
+    public async Task<AnalyseOffre> AnalyzeOfferTextAsync(string offreTexte, IEnumerable<string> profilCompetences)
+    {
+        if (string.IsNullOrWhiteSpace(BaseUrl))
+            throw new InvalidOperationException("IA_SERVICE_URL is not configured.");
+
+        var client = _httpFactory.CreateClient();
+
+        var requestBody = new
+        {
+            texte = offreTexte,
+            profil_competences = profilCompetences
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(requestBody),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response = await client.PostAsync($"{BaseUrl}/analyze/text", content);
+        var body = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"AI analyze error: {response.StatusCode} - {body}");
+
+        return ParseAnalyzeResponse(body);
+    }
+
+    public async Task<AnalyseOffre> AnalyzeOfferImageAsync(byte[] imageBytes, string contentType)
+    {
+        if (string.IsNullOrWhiteSpace(BaseUrl))
+            throw new InvalidOperationException("IA_SERVICE_URL is not configured.");
+
+        var client = _httpFactory.CreateClient();
+        using var formContent = new MultipartFormDataContent();
+        formContent.Add(new StringContent("[]"), "profil_competences");
+
+        var imageContent = new ByteArrayContent(imageBytes);
+        imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+        formContent.Add(imageContent, "image", "offre_image");
+
+        var response = await client.PostAsync($"{BaseUrl}/analyze/image", formContent);
+        var body = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"AI analyze error: {response.StatusCode} - {body}");
+
+        return ParseAnalyzeResponse(body);
+    }
+
+    private static AnalyseOffre ParseAnalyzeResponse(string body)
+    {
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+
+        var hardSkills = ReadStringArray(root, "hard_skills");
+        var outils = ReadStringArray(root, "outils");
+        var competencesMatch = ReadStringArray(root, "competences_match");
+        var competencesManquantes = ReadStringArray(root, "competences_manquantes");
+        var recommandations = root.TryGetProperty("recommandations", out var recProp)
+            ? NormalizeRecommendations(recProp)
+            : string.Empty;
+
+        return new AnalyseOffre
+        {
+            MotsClesExtraits = hardSkills.Concat(outils).Distinct().ToList(),
+            CompetencesRequises = hardSkills.Concat(outils).Distinct().ToList(),
+            CompetencesMatch = competencesMatch,
+            CompetencesManquantes = competencesManquantes,
+            ScoreCompatibilite = GetFloatValue(root, "score_compatibilite"),
+            Resume = root.TryGetProperty("resume", out var resumeProp) ? resumeProp.GetString() ?? string.Empty : string.Empty,
+            Recommandations = recommandations,
+            DateAnalyse = DateTime.UtcNow
+        };
+    }
+
+    private static List<string> ReadStringArray(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var prop) || prop.ValueKind != JsonValueKind.Array)
+            return new List<string>();
+
+        var result = new List<string>();
+        foreach (var item in prop.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String)
+                result.Add(item.GetString() ?? string.Empty);
+        }
+
+        return result.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+    }
+
+    private static float GetFloatValue(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var prop))
+            return 0f;
+
+        if (prop.ValueKind == JsonValueKind.Number)
+        {
+            if (prop.TryGetSingle(out var value))
+                return value;
+            if (prop.TryGetDouble(out var dbl))
+                return (float)dbl;
+        }
+
+        if (prop.ValueKind == JsonValueKind.String && float.TryParse(prop.GetString(), out var parsed))
+            return parsed;
+
+        return 0f;
+    }
+
+    private static string NormalizeRecommendations(JsonElement recProp)
+    {
+        if (recProp.ValueKind == JsonValueKind.String)
+            return recProp.GetString() ?? string.Empty;
+
+        if (recProp.ValueKind == JsonValueKind.Object)
+            return JsonSerializer.Serialize(recProp);
+
+        return string.Empty;
     }
 }

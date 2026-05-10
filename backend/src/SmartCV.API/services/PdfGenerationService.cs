@@ -24,12 +24,23 @@ public class PdfGenerationService : IPdfGenerationService
     public async Task<byte[]> GenererPdfDepuisHtml(string htmlContent)
     {
         // Télécharger Chromium
-        await new BrowserFetcher().DownloadAsync();
+        //await new BrowserFetcher().DownloadAsync();
+        // ✅ Remplacer par
+        var chromePath = Environment.GetEnvironmentVariable("CHROME_EXECUTABLE_PATH")
+            ?? "/usr/bin/google-chrome-stable";
+
         
-        using var browser = await Puppeteer.LaunchAsync(new LaunchOptions 
-        { 
+        using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        {
             Headless = true,
-            Args = new[] { "--no-sandbox" }
+            ExecutablePath = chromePath,          // ✅ ajouter
+            Args = new[]
+            {
+                "--no-sandbox",
+                "--disable-setuid-sandbox",       // ✅ ajouter
+                "--disable-dev-shm-usage",        // ✅ ajouter
+                "--disable-gpu"                   // ✅ ajouter
+            }
         });
         
         using var page = await browser.NewPageAsync();

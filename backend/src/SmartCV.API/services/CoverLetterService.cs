@@ -1,5 +1,7 @@
 using API.data;
+using API.dtos.CoverLetter;
 using API.models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 
@@ -11,17 +13,22 @@ public class CoverLetterService : ICoverLetterService
     private readonly ICoverLetterAiClient _aiClient;
     private readonly IPdfGenerationService _pdfService;
 
+    private readonly string _wwwrootPath;
+
     public CoverLetterService(
         ApplicationDbContext db,
         ICoverLetterAiClient aiClient,
-        IPdfGenerationService pdfService)
+        IPdfGenerationService pdfService,
+        IWebHostEnvironment env)
     {
         _db = db;
         _aiClient = aiClient;
         _pdfService = pdfService;
+        _wwwrootPath = env.WebRootPath      // resolves to wwwroot/
+            ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
     }
 
-    public async Task<LettreMotivation> GenerateCoverLetterAsync(int userId, int offreId)
+    public async Task<LettreMotivation> GenerateCoverLetterAsync(CoverLetterGenerateDto request)
     {
         var user = await _db.Users
             .Include(u => u.Profil)
@@ -32,7 +39,7 @@ public class CoverLetterService : ICoverLetterService
                 .ThenInclude(p => p.Formations)
             .Include(u => u.Profil)
                 .ThenInclude(p => p.Certificats)
-            .FirstOrDefaultAsync(u => u.Id == userId);
+            .FirstOrDefaultAsync(u => u.Id == request.UserId);
 
         if (user == null)
             throw new InvalidOperationException("Utilisateur introuvable.");
@@ -40,16 +47,68 @@ public class CoverLetterService : ICoverLetterService
         if (user.Profil == null)
             throw new InvalidOperationException("Le profil utilisateur est requis pour générer une lettre de motivation.");
 
-        var offre = await _db.Offres.FirstOrDefaultAsync(o => o.Id == offreId);
-        if (offre == null)
-            throw new InvalidOperationException("Offre introuvable.");
+        Offre offre;
+        AnalyseOffre analyse;
 
-        var analyse = await _db.AnalysesOffre
-            .FirstOrDefaultAsync(a => a.OffreId == offreId && a.ProfilId == user.Profil.Id)
-            ?? await _db.AnalysesOffre.Where(a => a.OffreId == offreId).OrderByDescending(a => a.DateAnalyse).FirstOrDefaultAsync();
+        if (request.OffreId.HasValue)
+        {
+            offre = await _db.Offres.FirstOrDefaultAsync(o => o.Id == request.OffreId.Value);
+            if (offre == null)
+                throw new InvalidOperationException("Offre introuvable.");
 
-        if (analyse == null)
-            throw new InvalidOperationException("Analyse de l'offre introuvable. La lettre de motivation nécessite l'analyse existante.");
+            analyse = await _db.AnalysesOffre
+                .FirstOrDefaultAsync(a => a.OffreId == request.OffreId.Value && a.ProfilId == user.Profil.Id)
+                ?? await _db.AnalysesOffre.Where(a => a.OffreId == request.OffreId.Value).OrderByDescending(a => a.DateAnalyse).FirstOrDefaultAsync();
+
+            if (analyse == null)
+                throw new InvalidOperationException("Analyse de l'offre introuvable. La lettre de motivation nécessite l'analyse existante.");
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(request.OffreTexte) && request.OffreImage == null)
+                throw new InvalidOperationException("Offre texte ou image requis pour la génération manuelle.");
+
+            offre = new Offre
+            {
+                Titre = string.IsNullOrWhiteSpace(request.OffreTitre) ? "Offre saisie manuellement" : request.OffreTitre,
+                Entreprise = string.IsNullOrWhiteSpace(request.OffreEntreprise) ? "Entreprise inconnue" : request.OffreEntreprise,
+                Description = string.IsNullOrWhiteSpace(request.OffreTexte) ? string.Empty : request.OffreTexte,
+                Exigences = string.Empty,
+                TypeContrat = string.Empty,
+                UrlOffre = string.Empty,
+                DatePublication = DateTime.UtcNow,
+                DateExpiration = null
+            };
+
+            var competencesProfil = user.Profil.Competences?.Select(c => c.Nom).Where(n => !string.IsNullOrWhiteSpace(n)).ToList() ?? new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(request.OffreTexte))
+            {
+                analyse = await _aiClient.AnalyzeOfferTextAsync(request.OffreTexte, competencesProfil);
+            }
+            else if (request.OffreImage != null)
+            {
+                using var stream = request.OffreImage.OpenReadStream();
+                var length = (int)request.OffreImage.Length;
+                var bytes = new byte[length];
+                await stream.ReadAsync(bytes.AsMemory(0, length));
+                analyse = await _aiClient.AnalyzeOfferImageAsync(bytes, request.OffreImage.ContentType ?? "image/jpeg");
+            }
+            else
+            {
+                throw new InvalidOperationException("Impossible de traiter l'offre manuelle. Texte ou image requis.");
+            }
+
+            _db.Offres.Add(offre);
+            await _db.SaveChangesAsync();
+
+            analyse.OffreId = offre.Id;
+            analyse.ProfilId = user.Profil.Id;
+            analyse.DateAnalyse = DateTime.UtcNow;
+
+            _db.AnalysesOffre.Add(analyse);
+            await _db.SaveChangesAsync();
+        }
 
         var contenu = await _aiClient.GenerateCoverLetterAsync(user, offre, analyse);
         if (string.IsNullOrWhiteSpace(contenu))
@@ -57,8 +116,8 @@ public class CoverLetterService : ICoverLetterService
 
         var lettre = new LettreMotivation
         {
-            UserId = userId,
-            OffreId = offreId,
+            UserId = request.UserId,
+            OffreId = request.OffreId ?? offre.Id,
             Contenu = contenu,
             DateGeneration = DateTime.UtcNow
         };
@@ -96,7 +155,7 @@ public class CoverLetterService : ICoverLetterService
         return lettre;
     }
 
-    public async Task<byte[]> GeneratePdfAsync(int id)
+    public async Task<(byte[] Bytes, string FileName)> GeneratePdfAsync(int id)
     {
         var lettre = await _db.LettresMotivation
             .Include(l => l.User)
@@ -106,8 +165,29 @@ public class CoverLetterService : ICoverLetterService
         if (lettre == null)
             throw new InvalidOperationException("Lettre de motivation introuvable.");
 
+        var fileName = $"lettre_motivation_{id}.pdf";
+        var relativePath = Path.Combine("pdfs", fileName);          // stored in DB
+        var absolutePath = Path.Combine(_wwwrootPath, relativePath); // disk path
+
+        // ── Cache hit: file already exists on disk and path is recorded ──────────
+        if (!string.IsNullOrEmpty(lettre.FilePath) && File.Exists(absolutePath))
+        {
+            var cached = await File.ReadAllBytesAsync(absolutePath);
+            return (cached, fileName);
+        }
+
+        // ── Cache miss: generate, persist, update DB ──────────────────────────────
         var htmlContent = BuildHtmlForLetter(lettre);
-        return await _pdfService.GenererPdfDepuisHtml(htmlContent);
+        var pdfBytes = await _pdfService.GenererPdfDepuisHtml(htmlContent);
+
+        var directory = Path.GetDirectoryName(absolutePath)!;
+        Directory.CreateDirectory(directory);                        // idempotent
+        await File.WriteAllBytesAsync(absolutePath, pdfBytes);
+
+        lettre.FilePath = relativePath;                              // track in DB
+        await _db.SaveChangesAsync();
+
+        return (pdfBytes, fileName);
     }
 
     private static string BuildHtmlForLetter(LettreMotivation lettre)

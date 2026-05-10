@@ -20,5 +20,5 @@ public class LettreMotivation
     public string Contenu { get; set; }
     
     public DateTime DateGeneration { get; set; }
-    public string FilePath { get; set; }
+    public string? FilePath { get; set; }
 }

@@ -164,7 +164,7 @@ builder.Services.AddAuthentication(options =>
 // ===========
 .AddJwtBearer("Bearer", options =>
 {
-    options.Authority = keycloakConfig["Authority"];
+    //options.Authority = keycloakConfig["Authority"];
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     //options.Audience = keycloakConfig["ClientId"];
     options.BackchannelHttpHandler = 
@@ -178,8 +178,7 @@ builder.Services.AddAuthentication(options =>
             "http://localhost:8080/realms/cv-platform",
             "http://keycloak:8080/realms/cv-platform"
         },
-        ValidateAudience = false,
-        ValidAudience = keycloakConfig["ClientId"],
+        ValidateAudience = false, // Allow any audience for this client
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         NameClaimType = "preferred_username",
