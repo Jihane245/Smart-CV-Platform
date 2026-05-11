@@ -1,0 +1,273 @@
+// Tokens (alignés sur generate-cv.scss)
+$brown-dark:   #5C4220;
+$brown:        #6B4E2A;
+$brown-light:  #7B5C35;
+$brown-muted:  #9A7B55;
+$cream:        #F5F0E8;
+$cream-dark:   #EDE6D8;
+$cream-border: #D9CEBF;
+$red:          #8B1A1A;
+$text-dark:    #3B2E1E;
+$text-muted:   #8A7560;
+$white:        #FFFFFF;
+
+.main-content {
+  padding: 2rem 2.5rem;
+  background: $cream;
+  min-height: 100vh;
+  font-family: 'DM Sans', 'Lato', sans-serif;
+}
+
+.page-header { margin-bottom: 1.5rem; }
+.header-left { display: flex; align-items: center; gap: 1.25rem; }
+
+.btn-retour {
+  display: flex; align-items: center; gap: 0.25rem;
+  color: $brown; font-size: 0.875rem; font-weight: 500;
+  text-decoration: none; cursor: pointer;
+  &:hover { color: $brown-dark; }
+  .retour-arrow { font-size: 1.2rem; line-height: 1; }
+}
+
+.page-title {
+  font-family: 'Inria Serif', 'Playfair Display', serif;
+  font-size: 1.75rem; color: $brown-dark; margin: 0 0 0.125rem;
+}
+
+.page-subtitle { color: $text-muted; font-size: 0.875rem; margin: 0; }
+
+// Stepper
+.stepper {
+  display: flex; align-items: center; gap: 0;
+  background: $white; padding: 1rem 1.5rem;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid $cream-border; border-bottom: none;
+}
+
+.stepper-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  cursor: pointer; padding: 0.25rem 0.5rem;
+  border-radius: 6px; transition: background 0.15s;
+  &:hover:not(.active) { background: $cream; }
+
+  &.active .stepper-circle {
+    background: $brown; color: $white;
+  }
+  &.complete .stepper-circle {
+    background: #2E7D32; color: $white;
+  }
+  &.active .stepper-label { color: $brown-dark; font-weight: 600; }
+}
+
+.stepper-circle {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: $cream-dark; color: $text-muted;
+  font-size: 0.8rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.stepper-label { font-size: 0.875rem; color: $text-muted; }
+.stepper-sep { flex: 1; height: 1px; background: $cream-border; margin: 0 0.5rem; }
+.stepper-line { height: 0; }
+
+// Layout
+.lm-layout {
+  background: $white;
+  border: 1px solid $cream-border;
+  border-radius: 0 0 12px 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.etape-label {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  color: $brown-muted; text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+.etape-titre {
+  font-family: 'Inria Serif', 'Playfair Display', serif;
+  font-size: 1.5rem; color: $brown-dark;
+  margin: 0 0 0.5rem;
+}
+.etape-desc {
+  color: $text-muted; font-size: 0.9rem;
+  margin: 0 0 1.5rem; line-height: 1.5;
+}
+.etape-desc.info-banner {
+  background: #F0F8F0;
+  border-left: 3px solid #2E7D32;
+  padding: 0.75rem 1rem; border-radius: 4px;
+  color: $text-dark;
+}
+
+.section-mini-label {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+  color: $brown-muted; text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+
+.offre-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid $cream-border; border-radius: 8px;
+  padding: 0.875rem 1rem;
+  font-family: inherit; font-size: 0.9rem; line-height: 1.5;
+  color: $text-dark; background: $white;
+  resize: vertical; min-height: 180px;
+  transition: border-color 0.15s;
+
+  &:focus { outline: none; border-color: $brown; }
+  &:disabled { background: $cream-dark; color: $text-muted; cursor: not-allowed; }
+}
+.hint { font-size: 0.75rem; color: $text-muted; margin: 0.4rem 0 0; }
+
+// Bloc « Ou bien… analyser une image »
+.image-analyse-row {
+  display: flex; align-items: center; gap: 1rem;
+  margin-top: 1rem;
+
+  .ou-bien {
+    color: $text-muted; font-size: 0.85rem; font-style: italic;
+  }
+}
+
+.btn-secondary {
+  background: $cream; color: $brown-dark;
+  border: 1px solid $cream-border;
+  border-radius: 8px;
+  padding: 0.65rem 1.25rem;
+  font-family: inherit; font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  &:hover:not(:disabled) { background: $cream-dark; border-color: $brown-muted; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.75rem; font-weight: 600;
+  color: $brown-dark; margin-bottom: 0.35rem;
+}
+.form-input {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid $cream-border; border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font-family: inherit; font-size: 0.85rem;
+  color: $text-dark; background: $white;
+  &:focus { outline: none; border-color: $brown; }
+}
+
+// Upload PDF
+.upload-zone {
+  border: 2px dashed $cream-border;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  background: $cream;
+  transition: border-color 0.15s, background 0.15s;
+  &:hover { border-color: $brown; background: lighten($cream, 2%); }
+}
+.upload-label {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  cursor: pointer;
+}
+.upload-icon { font-size: 1.5rem; color: $brown; }
+.upload-text {
+  display: flex; flex-direction: column; gap: 0.2rem;
+  color: $text-dark; font-size: 0.875rem;
+  small { color: $text-muted; font-size: 0.75rem; }
+}
+
+.upload-selected {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: $cream; border: 1px solid $cream-border;
+  border-radius: 8px;
+  .file-icon { font-size: 1.25rem; }
+  .file-name { flex: 1; color: $text-dark; font-size: 0.9rem; }
+}
+
+.btn-link-danger {
+  background: none; border: none; cursor: pointer;
+  color: $red; font-size: 0.8rem; font-weight: 500;
+  text-decoration: underline;
+  &:hover { color: darken($red, 10%); }
+}
+
+// CV pré-rempli (cas 1)
+.cv-pinned {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: #F0F8F0;
+  border-left: 3px solid #2E7D32;
+  border-radius: 4px;
+  font-size: 0.875rem; color: $text-dark;
+  small { color: $text-muted; margin-left: 0.5rem; }
+}
+.cv-pinned-icon { font-size: 1.1rem; }
+
+// Boutons
+.btn-primary {
+  background: $brown; color: $white;
+  border: none; border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-family: inherit; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; margin-top: 1.5rem;
+  align-self: flex-start;
+  transition: background 0.15s;
+  &:hover:not(:disabled) { background: $brown-dark; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.btn-outline {
+  background: transparent; color: $brown;
+  border: 1px solid $brown;
+  border-radius: 8px; padding: 0.65rem 1.25rem;
+  font-family: inherit; font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; transition: background 0.15s;
+  &:hover { background: $cream; }
+}
+.btn-secondary-action {
+  background: $cream-dark; color: $brown-dark;
+  border: 1px solid $cream-border;
+  border-radius: 8px; padding: 0.65rem 1.25rem;
+  font-family: inherit; font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; transition: background 0.15s;
+  &:hover { background: $cream-border; }
+}
+
+.btn-row {
+  display: flex; gap: 0.75rem; margin-top: 1.25rem;
+  flex-wrap: wrap;
+  .btn-primary { margin-top: 0; align-self: auto; }
+}
+
+// Résultat
+.result-meta {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.meta-chip {
+  background: $cream;
+  border: 1px solid $cream-border;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem; color: $text-muted;
+  strong { color: $text-dark; }
+}
+
+.result-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid $cream-border;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.7;
+  color: $text-dark; background: $white;
+  resize: vertical; min-height: 400px;
+  &:focus { outline: none; border-color: $brown; }
+}

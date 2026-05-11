@@ -301,22 +301,22 @@ public class CompetenceUpgradeControllerTests
     {
         var questions = new List<Dictionary<string, object>>
         {
-            new() { ["numero"] = 1, ["bonne_reponse"] = "Un outil de conteneurisation" },
-            new() { ["numero"] = 2, ["bonne_reponse"] = "docker run" }
+            new() { ["Numero"] = 1, ["bonne_reponse"] = "Un outil de conteneurisation" },
+            new() { ["Numero"] = 2, ["bonne_reponse"] = "docker run" }
         };
 
         var reponses = new List<Dictionary<string, object>>
         {
-            new() { ["numero"] = 1, ["reponse_choisie"] = "Un outil de conteneurisation" },
-            new() { ["numero"] = 2, ["reponse_choisie"] = "docker run" }
+            new() { ["Numero"] = 1, ["reponse_choisie"] = "Un outil de conteneurisation" },
+            new() { ["Numero"] = 2, ["reponse_choisie"] = "docker run" }
         };
 
         int score = 0;
         foreach (var q in questions)
         {
-            var num   = (int)q["numero"];
+            var num   = (int)q["Numero"];
             var bonne = (string)q["bonne_reponse"];
-            var rep   = reponses.FirstOrDefault(r => (int)r["numero"] == num);
+            var rep   = reponses.FirstOrDefault(r => (int)r["Numero"] == num);
             if (rep != null && (string)rep["reponse_choisie"] == bonne)
                 score++;
         }
@@ -330,22 +330,22 @@ public class CompetenceUpgradeControllerTests
     {
         var questions = new List<Dictionary<string, object>>
         {
-            new() { ["numero"] = 1, ["bonne_reponse"] = "Un outil de conteneurisation" },
-            new() { ["numero"] = 2, ["bonne_reponse"] = "docker run" }
+            new() { ["Numero"] = 1, ["bonne_reponse"] = "Un outil de conteneurisation" },
+            new() { ["Numero"] = 2, ["bonne_reponse"] = "docker run" }
         };
 
         var reponses = new List<Dictionary<string, object>>
         {
-            new() { ["numero"] = 1, ["reponse_choisie"] = "Un OS" },
-            new() { ["numero"] = 2, ["reponse_choisie"] = "docker build" }
+            new() { ["Numero"] = 1, ["reponse_choisie"] = "Un OS" },
+            new() { ["Numero"] = 2, ["reponse_choisie"] = "docker build" }
         };
 
         int score = 0;
         foreach (var q in questions)
         {
-            var num   = (int)q["numero"];
+            var num   = (int)q["Numero"];
             var bonne = (string)q["bonne_reponse"];
-            var rep   = reponses.FirstOrDefault(r => (int)r["numero"] == num);
+            var rep   = reponses.FirstOrDefault(r => (int)r["Numero"] == num);
             if (rep != null && (string)rep["reponse_choisie"] == bonne)
                 score++;
         }

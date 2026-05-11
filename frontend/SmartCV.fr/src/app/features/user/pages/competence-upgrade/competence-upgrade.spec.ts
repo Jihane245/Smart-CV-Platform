@@ -45,8 +45,8 @@ describe('CompetenceUpgrade', () => {
   }
 
   const QUESTIONS: QuestionDto[] = [
-    { numero: 1, enonce: 'Q1', options: ['A', 'B', 'C', 'D'] },
-    { numero: 2, enonce: 'Q2', options: ['A2', 'B2', 'C2', 'D2'] },
+    { Numero: 1, enonce: 'Q1', options: ['A', 'B', 'C', 'D'] },
+    { Numero: 2, enonce: 'Q2', options: ['A2', 'B2', 'C2', 'D2'] },
   ];
 
   beforeEach(async () => {
@@ -257,7 +257,7 @@ describe('CompetenceUpgrade', () => {
     it('should push responses and advance question index', () => {
       component.choisirReponse('A');
       component.questionSuivante();
-      expect(component.reponses).toEqual([{ numero: 1, reponseChoisie: 'A' } as ReponseDto]);
+      expect(component.reponses).toEqual([{ Numero: 1, ReponseChoisie: 'A' } as ReponseDto]);
       expect(component.questionCourante).toBe(1);
     });
 
@@ -270,7 +270,7 @@ describe('CompetenceUpgrade', () => {
 
       expect(competenceUpgradeServiceMock.evaluerTest).toHaveBeenCalledWith(
         10,
-        expect.arrayContaining([{ numero: 1, reponseChoisie: 'A' }]),
+        expect.arrayContaining([{ Numero: 1, ReponseChoisie: 'A' }]),
       );
       expect(competenceUpgradeServiceMock.genererRoadmap).toHaveBeenCalledWith(10);
       expect(component.etapeActive).toBe(4);

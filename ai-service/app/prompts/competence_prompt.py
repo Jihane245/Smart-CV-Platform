@@ -4,7 +4,7 @@ Retourne UNIQUEMENT ce JSON valide, sans aucun texte avant ou après :
 {{
   "questions": [
     {{
-      "numero": 1,
+      "Numero": 1,
       "enonce": "Question ici ?",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "bonne_reponse": "Option A",
