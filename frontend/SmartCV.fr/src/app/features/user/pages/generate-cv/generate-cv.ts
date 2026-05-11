@@ -160,9 +160,6 @@ export class GenerateCv implements OnInit {
   get cvCreeId(): number | null { return this.cvState.state.cvCreeId; }
   set cvCreeId(v: number | null) { this.cvState.patch({ cvCreeId: v }); }
 
-  // Alias sans accent pour les templates Angular (le parser ne supporte pas les caractères non-ASCII)
-  get cvCreeId(): number | null { return this.cvCreéId; }
-
   get resumeEdite(): string { return this.cvState.state.resumeEdite; }
   set resumeEdite(v: string) { this.cvState.patch({ resumeEdite: v }); }
 
@@ -558,14 +555,14 @@ export class GenerateCv implements OnInit {
 
   // ─── Étape 4 — Lettre de motivation ──────────────────────────────────────────
   genererLettreMotivation(): void {
-    if (!this.cvCreéId) {
+    if (!this.cvCreeId) {
       this.notifService.warning('Veuillez d\'abord générer votre CV.');
       return;
     }
 
     this.router.navigate(['/user/lettre-motivation'], {
       queryParams: {
-        cvId: this.cvCreéId,
+        cvId: this.cvCreeId,
         offreText: this.offreTexte,
       },
     });
