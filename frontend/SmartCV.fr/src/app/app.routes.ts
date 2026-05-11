@@ -68,9 +68,9 @@ export const routes: Routes = [
           
       },
       {
-    path: 'historique',
-    loadComponent: () =>
-      import('./features/user/pages/historique/historique').then(m => m.Historique)
+        path: 'historique',
+        loadComponent: () =>
+          import('./features/user/pages/historique/historique').then(m => m.Historique)
       },
       {
         path: 'lettre-motivation',
@@ -91,13 +91,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/user/pages/applications/applications').then(
             (m) => m.Applications
-          ),
-      },
-      {
-        path: 'cover-letter',
-        loadComponent: () =>
-          import('./features/user/pages/cover-letter/cover-letter').then(
-            (m) => m.CoverLetter
           ),
       },
       {
