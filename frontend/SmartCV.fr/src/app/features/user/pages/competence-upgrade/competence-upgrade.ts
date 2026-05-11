@@ -5,12 +5,14 @@ import { FormsModule } from '@angular/forms';
 import { ProfilService } from '../../../../core/services/profil.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { GenerateCvStateService } from '../../../../core/services/generate-cv-state.service';
+import { RoadmapResumeService } from '../../../../core/services/roadmap-resume.service';
 import {
   CompetenceUpgradeService,
   CompetenceGapDto,
   QuestionDto,
   ReponseDto,
   EtapeRoadmapDto,
+  RoadmapDetailDto,
 } from '../../../../core/services/competence-upgrade.service';
 
 type Etape = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -19,6 +21,21 @@ interface EtapeInfo {
   num: number;
   label: string;
 }
+
+// Per-skill progress stored in memory and partially in localStorage
+interface SkillProgress {
+  testId: number;
+  roadmapId: number;
+  questions: QuestionDto[];
+  scoreInitial: number;
+  niveauInitial: string;
+  roadmapEtapes: EtapeRoadmapDto[];
+  objectifFinal: string;
+  etapesCompletees: boolean[];  // persisted to localStorage
+  etapeActive: Etape;
+}
+
+const STORAGE_PREFIX = 'smartcv_roadmap_progress_';
 
 @Component({
   selector: 'app-competence-upgrade',
@@ -55,25 +72,36 @@ export class CompetenceUpgrade implements OnInit {
   // ─── Étape 2 : Sélection ──────────────────────────────────────────────────
   competenceSelectionnee: CompetenceGapDto | null = null;
 
-  // ─── Étape 3 : Test de niveau ─────────────────────────────────────────────
+  // ─── Multi-skill progress map ─────────────────────────────────────────────
+  skillProgressMap: Map<string, SkillProgress> = new Map();
+
+  // ─── Active skill state (shortcuts into skillProgressMap) ─────────────────
   chargementTest = false;
-  testId = 0;             // int, pas string
-  questions: QuestionDto[] = [];
+  chargementRoadmap = false;
+
+  get activeSkillKey(): string {
+    return this.competenceSelectionnee?.nom ?? '';
+  }
+
+  get activeProgress(): SkillProgress | null {
+    return this.skillProgressMap.get(this.activeSkillKey) ?? null;
+  }
+
+  get testId(): number { return this.activeProgress?.testId ?? 0; }
+  get questions(): QuestionDto[] { return this.activeProgress?.questions ?? []; }
+  get scoreInitial(): number { return this.activeProgress?.scoreInitial ?? 0; }
+  get niveauInitial(): string { return this.activeProgress?.niveauInitial ?? ''; }
+  get roadmapId(): number { return this.activeProgress?.roadmapId ?? 0; }
+  get roadmapEtapes(): EtapeRoadmapDto[] { return this.activeProgress?.roadmapEtapes ?? []; }
+  get objectifFinal(): string { return this.activeProgress?.objectifFinal ?? ''; }
+  get etapesCompletees(): boolean[] { return this.activeProgress?.etapesCompletees ?? []; }
+
+  // ─── Étape 3 : Test ───────────────────────────────────────────────────────
   questionCourante = 0;
   reponseSelectionnee: string | null = null;
   reponses: ReponseDto[] = [];
-  scoreInitial = 0;
-  niveauInitial = '';
-
-  // ─── Étape 4 : Roadmap ────────────────────────────────────────────────────
-  chargementRoadmap = false;
-  roadmapId = 0;          // int, pas string
-  roadmapEtapes: EtapeRoadmapDto[] = [];
-  objectifFinal = '';
 
   // ─── Étape 5 : Parcours ───────────────────────────────────────────────────
-  etapesCompletees: boolean[] = [];
-
   get progressionParcours(): number {
     if (!this.roadmapEtapes.length) return 0;
     return Math.round((this.etapesCompletees.filter(Boolean).length / this.roadmapEtapes.length) * 100);
@@ -102,17 +130,80 @@ export class CompetenceUpgrade implements OnInit {
   profilTitre = '';
   profilCompetences: string[] = [];
 
+  // ─── Skills in progress (shown in sidebar for quick switching) ────────────
+  get skillsEnCours(): { nom: string; etape: Etape }[] {
+    return Array.from(this.skillProgressMap.entries())
+      .filter(([, p]) => p.etapeActive < 7)
+      .map(([nom, p]) => ({ nom, etape: p.etapeActive }));
+  }
+
   constructor(
     private competenceUpgradeService: CompetenceUpgradeService,
     private profilService: ProfilService,
     private notif: NotificationService,
     private generateCvState: GenerateCvStateService,
+    private roadmapResumeService: RoadmapResumeService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.chargerProfil();
-    this.chargerGapsDepuisState();
+
+    const resume = this.roadmapResumeService.consumeResume();
+    if (resume) {
+      this.restaurerDepuisHistorique(resume);
+    } else {
+      this.chargerGapsDepuisState();
+    }
+  }
+
+  // ─── Restore from history ─────────────────────────────────────────────────
+  // FIX: use roadmapId (not id), niveauDetecte (not niveau), null-safe test,
+  //      and phase-based step mapping from backend's derived state.
+  private restaurerDepuisHistorique(detail: RoadmapDetailDto): void {
+    const comp: CompetenceGapDto = { nom: detail.nomCompetence, priorite: 'haute' };
+    this.competenceSelectionnee = comp;
+
+    // Restore localStorage parcours progress if available
+    // FIX: backend uses roadmapId, not id
+    const savedProgress = this.loadParcoursFromStorage(detail.roadmapId);
+
+    // FIX: map backend phase → local etape number
+    // Phase is the authoritative state; fallback to flag-based logic if absent
+    const etapeFromPhase = (phase: RoadmapDetailDto['phase']): Etape => {
+      switch (phase) {
+        case 'Validee':          return 7;
+        case 'PreteAuTestFinal':
+        case 'TestFinalEchoue':  return 6;
+        case 'AParcourir':
+        default:                 return 5;
+      }
+    };
+
+    const etapeActive = etapeFromPhase(detail.phase);
+
+    const progress: SkillProgress = {
+      // FIX: null-safe test — test can be null per the updated DTO
+      testId:           detail.test?.id ?? 0,
+      roadmapId:        detail.roadmapId,           // FIX: was detail.id
+      questions:        detail.test?.questions ?? [], // populated by backend TestInfoDto fix
+      scoreInitial:     detail.test?.score ?? 0,
+      niveauInitial:    detail.test?.niveauDetecte ?? '', // FIX: was detail.test.niveau
+      roadmapEtapes:    detail.etapes,
+      objectifFinal:    '',
+      etapesCompletees: savedProgress ?? new Array(detail.etapes.length).fill(false),
+      etapeActive,
+    };
+
+    // Must set map BEFORE calling lancerCertification so this.questions resolves
+    this.skillProgressMap.set(detail.nomCompetence, progress);
+    this.etapeActive = etapeActive;
+
+    if (etapeActive === 6) {
+      this.lancerCertification();
+    }
+
+    this.cdr.detectChanges();
   }
 
   // ─── Chargement profil ────────────────────────────────────────────────────
@@ -125,7 +216,6 @@ export class CompetenceUpgrade implements OnInit {
       },
       error: () => {},
     });
-    // Nom/prénom depuis le state GenCV (déjà chargé depuis Keycloak)
     const state = this.generateCvState.state;
     if (state.prenom || state.nom) {
       this.profilNom = state.nom;
@@ -133,7 +223,7 @@ export class CompetenceUpgrade implements OnInit {
     }
   }
 
-  // ─── Gaps depuis l'analyse GenCV déjà en mémoire ─────────────────────────
+  // ─── Gaps depuis l'analyse GenCV ─────────────────────────────────────────
   chargerGapsDepuisState(): void {
     const state = this.generateCvState.state;
 
@@ -147,7 +237,7 @@ export class CompetenceUpgrade implements OnInit {
         .map(c => ({ nom: c.nom, priorite: 'renforcer' as const }));
 
       this.competencesManquantes = [...manquantes, ...partielles];
-      this.offreTitre = state.niveauLabel ? `Offre analysée` : 'Offre analysée';
+      this.offreTitre = 'Offre analysée';
       this.totalManquantes = this.competencesManquantes.length;
       this.competencesRequises = [
         ...state.competencesAnalysees
@@ -158,7 +248,6 @@ export class CompetenceUpgrade implements OnInit {
       return;
     }
 
-    // Fallback si on arrive directement sans passer par GenCV
     this.competencesManquantes = [];
     this.chargementGaps = false;
   }
@@ -188,12 +277,30 @@ export class CompetenceUpgrade implements OnInit {
 
   selectionnerEtLancer(comp: CompetenceGapDto): void {
     this.competenceSelectionnee = comp;
+
+    const existing = this.skillProgressMap.get(comp.nom);
+    if (existing) {
+      this.etapeActive = existing.etapeActive;
+      this.questionCourante = 0;
+      this.reponses = [];
+      this.reponseSelectionnee = null;
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.lancerTest();
+  }
+
+  // ─── Switch between skills in progress ────────────────────────────────────
+  switcherSkill(nom: string): void {
+    const comp = this.competencesManquantes.find(c => c.nom === nom)
+      ?? { nom, priorite: 'haute' as const };
+    this.selectionnerEtLancer(comp);
   }
 
   // ─── Étape 2 → 3 : Lancer test ───────────────────────────────────────────
   lancerTest(): void {
-    if (!this.competenceSelectionnee || this.chargementTest) return; // guard against duplicate calls
+    if (!this.competenceSelectionnee || this.chargementTest) return;
     this.chargementTest = true;
     this.etapeActive = 3;
     this.questionCourante = 0;
@@ -203,21 +310,34 @@ export class CompetenceUpgrade implements OnInit {
 
     this.competenceUpgradeService.genererTest(this.competenceSelectionnee.nom).subscribe({
       next: (res) => {
-        this.testId = res.testId;
-        this.questions = res.questions ?? [];
-        if (this.questions.length === 0) {
+        const progress: SkillProgress = {
+          testId: res.testId,
+          roadmapId: 0,
+          questions: res.questions ?? [],
+          scoreInitial: 0,
+          niveauInitial: '',
+          roadmapEtapes: [],
+          objectifFinal: '',
+          etapesCompletees: [],
+          etapeActive: 3,
+        };
+
+        if (progress.questions.length === 0) {
           this.notif.error('Le test n\'a pas pu être généré. Veuillez réessayer.');
           this.chargementTest = false;
           this.etapeActive = 2;
           this.cdr.detectChanges();
           return;
         }
+
+        this.skillProgressMap.set(this.activeSkillKey, progress);
         this.chargementTest = false;
         this.cdr.detectChanges();
       },
       error: () => {
         this.notif.error('Erreur lors de la génération du test.');
         this.chargementTest = false;
+        this.etapeActive = 2;
         this.cdr.detectChanges();
       },
     });
@@ -243,8 +363,11 @@ export class CompetenceUpgrade implements OnInit {
   evaluerTest(): void {
     this.competenceUpgradeService.evaluerTest(this.testId, this.reponses).subscribe({
       next: (res) => {
-        this.scoreInitial = res.score;
-        this.niveauInitial = res.niveau;
+        const progress = this.skillProgressMap.get(this.activeSkillKey);
+        if (progress) {
+          progress.scoreInitial = res.score;
+          progress.niveauInitial = res.niveau;
+        }
         this.cdr.detectChanges();
         this.genererRoadmap();
       },
@@ -265,21 +388,29 @@ export class CompetenceUpgrade implements OnInit {
 
     this.competenceUpgradeService.genererRoadmap(this.testId).subscribe({
       next: (res) => {
-        this.roadmapId = res.roadmapId;
-        this.roadmapEtapes = res.etapes;
-        this.objectifFinal = res.objectifFinal;
-        this.etapesCompletees = new Array(res.etapes.length).fill(false);
+        const progress = this.skillProgressMap.get(this.activeSkillKey);
+        if (progress) {
+          progress.roadmapId = res.roadmapId;
+          progress.roadmapEtapes = res.etapes;
+          progress.objectifFinal = res.objectifFinal;
+          progress.etapesCompletees = new Array(res.etapes.length).fill(false);
+          progress.etapeActive = 4;
+        }
         this.chargementRoadmap = false;
         this.cdr.detectChanges();
       },
       error: () => {
-        this.roadmapId = 0;
-        this.roadmapEtapes = [
-          { ordre: 1, type: 'video', titre: `${this.competenceSelectionnee?.nom} Full Course`, description: 'Regarder la vidéo complète', url: 'https://www.youtube.com', duree: '~2h30' },
-          { ordre: 2, type: 'doc', titre: `Lire la doc officielle ${this.competenceSelectionnee?.nom}`, description: 'Sections principales', url: null, duree: '~1h' },
-          { ordre: 3, type: 'projet', titre: 'Réaliser et publier le mini-projet', description: 'Publier sur GitHub avec README', url: null, duree: '~3h' },
-        ];
-        this.etapesCompletees = new Array(this.roadmapEtapes.length).fill(false);
+        const progress = this.skillProgressMap.get(this.activeSkillKey);
+        if (progress) {
+          progress.roadmapId = 0;
+          progress.roadmapEtapes = [
+            { ordre: 1, type: 'video', titre: `${this.competenceSelectionnee?.nom} Full Course`, description: 'Regarder la vidéo complète', url: 'https://www.youtube.com', duree: '~2h30' },
+            { ordre: 2, type: 'doc', titre: `Lire la doc officielle ${this.competenceSelectionnee?.nom}`, description: 'Sections principales', url: null, duree: '~1h' },
+            { ordre: 3, type: 'projet', titre: 'Réaliser et publier le mini-projet', description: 'Publier sur GitHub avec README', url: null, duree: '~3h' },
+          ];
+          progress.etapesCompletees = new Array(progress.roadmapEtapes.length).fill(false);
+          progress.etapeActive = 4;
+        }
         this.chargementRoadmap = false;
         this.cdr.detectChanges();
       },
@@ -287,19 +418,27 @@ export class CompetenceUpgrade implements OnInit {
   }
 
   demarrerParcours(): void {
+    const progress = this.skillProgressMap.get(this.activeSkillKey);
+    if (progress) progress.etapeActive = 5;
     this.etapeActive = 5;
     this.cdr.detectChanges();
   }
 
   // ─── Étape 5 : Parcours ───────────────────────────────────────────────────
   toggleEtape(index: number): void {
-    this.etapesCompletees[index] = !this.etapesCompletees[index];
+    const progress = this.skillProgressMap.get(this.activeSkillKey);
+    if (!progress) return;
+    progress.etapesCompletees[index] = !progress.etapesCompletees[index];
+    this.saveParcoursToStorage(progress.roadmapId, progress.etapesCompletees);
+    this.cdr.detectChanges();
   }
 
   passerCertification(): void {
     if (this.roadmapId) {
       this.competenceUpgradeService.marquerRoadmapSuivie(this.roadmapId).subscribe({ error: () => {} });
     }
+    const progress = this.skillProgressMap.get(this.activeSkillKey);
+    if (progress) progress.etapeActive = 6;
     this.lancerCertification();
   }
 
@@ -346,9 +485,13 @@ export class CompetenceUpgrade implements OnInit {
         this.peutReessayer = res.peutReessayer;
         this.niveauCertif = res.niveau;
         this.messageCertif = res.message || '';
+
         if (this.competenceValidee) {
           this.niveauValide = res.niveau;
           this.profilCompetences = [...this.profilCompetences, this.competenceSelectionnee!.nom + ' ✓'];
+          this.clearParcoursFromStorage(this.roadmapId);
+          const progress = this.skillProgressMap.get(this.activeSkillKey);
+          if (progress) progress.etapeActive = 7;
           this.etapeActive = 7;
         } else {
           this.resultatCertifAffiche = true;
@@ -362,8 +505,7 @@ export class CompetenceUpgrade implements OnInit {
   }
 
   get bonnesReponsesCertif(): number {
-    const total = this.questionsCertif.length || 12;
-    return Math.round((this.scoreFinale / 100) * total);
+    return Math.round((this.scoreFinale / 100) * (this.questionsCertif.length || 12));
   }
 
   get totalQuestionsCertif(): number {
@@ -389,15 +531,42 @@ export class CompetenceUpgrade implements OnInit {
     this.competencesManquantes = this.competencesManquantes.filter(
       c => c.nom !== this.competenceSelectionnee?.nom
     );
+    if (this.competenceSelectionnee) {
+      this.skillProgressMap.delete(this.competenceSelectionnee.nom);
+    }
     this.competenceSelectionnee = null;
     this.reponses = [];
     this.reponsesCertif = [];
     this.questionCourante = 0;
     this.questionCouranteCertif = 0;
-    this.testId = 0;
-    this.roadmapId = 0;
     this.etapeActive = 1;
     this.cdr.detectChanges();
+  }
+
+  // ─── localStorage helpers for parcours progress ───────────────────────────
+  private storageKey(roadmapId: number): string {
+    return `${STORAGE_PREFIX}${roadmapId}`;
+  }
+
+  private saveParcoursToStorage(roadmapId: number, etapesCompletees: boolean[]): void {
+    if (!roadmapId) return;
+    try {
+      localStorage.setItem(this.storageKey(roadmapId), JSON.stringify(etapesCompletees));
+    } catch { /* localStorage unavailable */ }
+  }
+
+  private loadParcoursFromStorage(roadmapId: number): boolean[] | null {
+    try {
+      const raw = localStorage.getItem(this.storageKey(roadmapId));
+      if (!raw) return null;
+      return JSON.parse(raw) as boolean[];
+    } catch { return null; }
+  }
+
+  private clearParcoursFromStorage(roadmapId: number): void {
+    try {
+      localStorage.removeItem(this.storageKey(roadmapId));
+    } catch { /* localStorage unavailable */ }
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -427,12 +596,12 @@ export class CompetenceUpgrade implements OnInit {
   }
 
   get niveauInitialLabel(): string {
-    const map: Record<string, string> = { Debutant: 'Débutant', Intermediaire: 'Intermédiaire', Avance: 'Avancé', Expert: 'Expert' };
+    const map: Record<string, string> = { Debutant: 'Débutant', Moyen: 'Moyen', Expert: 'Expert' };
     return map[this.niveauInitial] ?? this.niveauInitial;
   }
 
   get niveauValideLabel(): string {
-    const map: Record<string, string> = { Debutant: 'Débutant', Intermediaire: 'Intermédiaire', Avance: 'Avancé', Expert: 'Expert' };
+    const map: Record<string, string> = { Debutant: 'Débutant', Moyen: 'Moyen', Expert: 'Expert' };
     return map[this.niveauValide] ?? this.niveauValide;
   }
 
