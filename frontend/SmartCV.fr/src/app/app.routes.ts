@@ -68,15 +68,29 @@ export const routes: Routes = [
           
       },
       {
-    path: 'historique',
-    loadComponent: () =>
-      import('./features/user/pages/historique/historique').then(m => m.Historique)
+        path: 'historique',
+        loadComponent: () =>
+          import('./features/user/pages/historique/historique').then(m => m.Historique)
+      },
+      {
+        path: 'lettre-motivation',
+        loadComponent: () =>
+          import('./features/user/pages/lettre-motivation/lettre-motivation').then(
+            (m) => m.LettreMotivation
+          ),
       },
       {
         path: 'competence-upgrade',
         loadComponent: () =>
           import('./features/user/pages/competence-upgrade/competence-upgrade').then(
             (m) => m.CompetenceUpgrade
+          ),
+      },
+            {
+        path: 'roadmap-historique',
+        loadComponent: () =>
+          import('./features/user/pages/roadmap-historique/roadmap-historique').then(
+            (m) => m.RoadmapHistorique
           ),
       },
       {

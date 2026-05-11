@@ -5,31 +5,29 @@ import { environment } from '../../../environments/environment';
 
 const BASE = `${environment.backendUrl}/api/competences`;
 
-// ─── DTOs alignés exactement sur CompetenceGapDto.cs (camelCase JSON) ────────
+// ─── DTOs alignés sur le backend C# ──────────────────────────────────────────
 
 export interface CompetenceGapDto {
   nom: string;
   priorite: 'haute' | 'renforcer' | 'evaluer';
 }
 
-// POST /api/competences/test/generate — body: { nomCompetence }
 export interface QuestionDto {
-  numero: number;
+  Numero: number;
   enonce: string;
-  options: string[];        // C# QuestionDto.Options → "options"
+  options: string[];
+  bonne_reponse?: string;
 }
 
 export interface TestGeneratedDto {
-  testId: number;           // C# TestGeneratedDto.TestId → "testId"
+  testId: number;
   nomCompetence: string;
   questions: QuestionDto[];
 }
 
-// POST /api/competences/test/evaluate — body: { testId, reponses }
-// C# ReponseDto.ReponseChoisie → "reponseChoisie"
 export interface ReponseDto {
-  numero: number;
-  reponseChoisie: string;
+  Numero: number;
+  ReponseChoisie: string;
 }
 
 export interface EvaluationResultDto {
@@ -40,15 +38,13 @@ export interface EvaluationResultDto {
   roadmapNecessaire: boolean;
 }
 
-// POST /api/competences/roadmap — body: { testId }
-// C# EtapeRoadmapDto fields: Ordre, Type, Titre, Description, Url, Duree
 export interface EtapeRoadmapDto {
   ordre: number;
-  type: string;             // "video" | "doc" | "projet"
+  type: string;
   titre: string;
   description: string;
-  url: string | null;       // C# Url → "url"
-  duree: string | null;     // C# Duree → "duree"
+  url: string | null;
+  duree: string | null;
 }
 
 export interface RoadmapDto {
@@ -59,7 +55,6 @@ export interface RoadmapDto {
   etapes: EtapeRoadmapDto[];
 }
 
-// POST /api/competences/roadmaps/{id}/retest — body: ReponseDto[] directement
 export interface RetestResultDto {
   score: number;
   niveau: string;
@@ -67,6 +62,8 @@ export interface RetestResultDto {
   message: string;
   peutReessayer: boolean;
 }
+
+// ─── Historique (list) ────────────────────────────────────────────────────────
 
 export interface RoadmapHistoriqueDto {
   id: number;
@@ -76,6 +73,48 @@ export interface RoadmapHistoriqueDto {
   createdAt: string;
   testScore?: number;
   testStatut?: string;
+}
+
+// ─── Détail roadmap — GET /api/competences/roadmaps/{id} ─────────────────────
+// Aligned with backend RoadmapDetailsDto + TestInfoDto
+
+export interface RoadmapTestDetail {
+  id: number;
+  nomCompetence: string;
+  score: number | null;         // nullable — backend: int?
+  niveauDetecte: string | null; // backend field is NiveauDetecte, not niveau
+  statut: string;
+  createdAt: string;
+  completedAt: string | null;
+  questions: QuestionDto[];     // populated by backend fix in TestInfoDto
+}
+
+export interface RoadmapDetailDto {
+  // Identification — backend uses roadmapId, not id
+  roadmapId: number;
+  userId: number;
+  nomCompetence: string;
+  niveauDepart: string;
+  createdAt: string;
+
+  // Content
+  etapes: EtapeRoadmapDto[];
+  nombreEtapes: number;
+
+  // Raw state flags
+  roadmapSuivie: boolean;
+  completee: boolean;
+
+  // Associated test (may be null)
+  test: RoadmapTestDetail | null;
+
+  // Derived phase state — from backend
+  phase: 'AParcourir' | 'PreteAuTestFinal' | 'TestFinalEchoue' | 'Validee';
+  phaseLibelle: string;
+  prochaineAction: string;
+  progression: number;          // 0–100
+  peutPasserTestFinal: boolean;
+  peutReessayer: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -125,6 +164,13 @@ export class CompetenceUpgradeService {
   getHistorique(): Observable<RoadmapHistoriqueDto[]> {
     return this.http.get<RoadmapHistoriqueDto[]>(
       `${BASE}/roadmaps`,
+      { withCredentials: true }
+    );
+  }
+
+  getRoadmapDetail(id: number): Observable<RoadmapDetailDto> {
+    return this.http.get<RoadmapDetailDto>(
+      `${BASE}/roadmaps/${id}`,
       { withCredentials: true }
     );
   }
