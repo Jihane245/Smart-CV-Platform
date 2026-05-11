@@ -102,19 +102,11 @@ public class ValidateResultDto
 
 // ─── Détails complets d'une roadmap ───────────────────────────────────────────
 
-/// <summary>
-/// Phase actuelle dans le parcours d'apprentissage. Permet au front
-/// d'afficher la bonne action attendue de l'utilisateur.
-/// </summary>
 public enum RoadmapPhase
 {
-    /// <summary>La roadmap vient d'être générée — l'utilisateur doit la parcourir.</summary>
     AParcourir,
-    /// <summary>L'utilisateur a marqué la roadmap comme suivie — il peut passer le test final.</summary>
     PreteAuTestFinal,
-    /// <summary>Le test final a échoué — refaire la roadmap puis retenter.</summary>
     TestFinalEchoue,
-    /// <summary>Compétence validée et ajoutée au profil.</summary>
     Validee
 }
 
@@ -127,6 +119,9 @@ public class TestInfoDto
     public string Statut { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+
+    // FIX: added so GET /roadmaps/{id} can return questions for resume-from-history
+    public List<QuestionDto> Questions { get; set; } = [];
 }
 
 public class RoadmapDetailsDto
@@ -149,17 +144,11 @@ public class RoadmapDetailsDto
     // Test associé (peut être null si supprimé)
     public TestInfoDto? Test { get; set; }
 
-    // ─── État dérivé : où l'utilisateur en est ────────────────────────────────
-    /// <summary>Phase actuelle (énuméré en string : "AParcourir", "PreteAuTestFinal", "TestFinalEchoue", "Validee").</summary>
+    // État dérivé
     public string Phase { get; set; } = string.Empty;
-    /// <summary>Étiquette utilisateur lisible pour la phase.</summary>
     public string PhaseLibelle { get; set; } = string.Empty;
-    /// <summary>Action concrète attendue de l'utilisateur à l'instant t.</summary>
     public string ProchaineAction { get; set; } = string.Empty;
-    /// <summary>Progression globale du parcours en pourcentage (0–100).</summary>
     public int Progression { get; set; }
-    /// <summary>true si l'utilisateur peut lancer le test final.</summary>
     public bool PeutPasserTestFinal { get; set; }
-    /// <summary>true si l'utilisateur peut repasser le test (après échec).</summary>
     public bool PeutReessayer { get; set; }
 }

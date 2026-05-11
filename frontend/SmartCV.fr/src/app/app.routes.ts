@@ -86,6 +86,13 @@ export const routes: Routes = [
             (m) => m.CompetenceUpgrade
           ),
       },
+            {
+        path: 'roadmap-historique',
+        loadComponent: () =>
+          import('./features/user/pages/roadmap-historique/roadmap-historique').then(
+            (m) => m.RoadmapHistorique
+          ),
+      },
       {
         path: 'applications',
         loadComponent: () =>

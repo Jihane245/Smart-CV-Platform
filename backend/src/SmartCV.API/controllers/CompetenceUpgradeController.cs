@@ -439,15 +439,31 @@ public class CompetenceUpgradeController : ControllerBase
         TestInfoDto? testInfo = null;
         if (roadmap.Test != null)
         {
+            // Parse questions to return to frontend (needed for resume-from-history)
+            // FIX: deserialize stored JSON back into typed list so TestInfoDto.Questions is populated
+            List<QuestionDto> questionsParsees = [];
+            if (!string.IsNullOrWhiteSpace(roadmap.Test.QuestionsJson))
+            {
+                try
+                {
+                    questionsParsees = JsonSerializer.Deserialize<List<QuestionDto>>(
+                        roadmap.Test.QuestionsJson,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    ) ?? [];
+                }
+                catch (JsonException) { /* leave empty — non-fatal */ }
+            }
+        
             testInfo = new TestInfoDto
             {
-                Id = roadmap.Test.Id,
+                Id            = roadmap.Test.Id,
                 NomCompetence = roadmap.Test.NomCompetence,
-                Score = roadmap.Test.Score,
+                Score         = roadmap.Test.Score,
                 NiveauDetecte = roadmap.Test.NiveauDetecte?.ToString(),
-                Statut = roadmap.Test.Statut.ToString(),
-                CreatedAt = roadmap.Test.CreatedAt,
-                CompletedAt = roadmap.Test.CompletedAt
+                Statut        = roadmap.Test.Statut.ToString(),
+                CreatedAt     = roadmap.Test.CreatedAt,
+                CompletedAt   = roadmap.Test.CompletedAt,
+                Questions     = questionsParsees   // FIX: populate for frontend resume
             };
         }
 
