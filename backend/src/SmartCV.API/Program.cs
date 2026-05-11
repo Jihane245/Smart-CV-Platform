@@ -14,6 +14,13 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
 
+// ===== Forwarded Headers (derrière Caddy) =====
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // ===== DB =====
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -38,9 +45,7 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 })
 // ===== OpenID Connect =====
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
@@ -53,9 +58,8 @@ builder.Services.AddAuthentication(options =>
     options.ClientSecret = keycloakConfig["ClientSecret"];
     options.ResponseType = OpenIdConnectResponseType.Code;
 
-    // Don't persist tokens in the auth session unless strictly needed.
-    options.SaveTokens = false;
-    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+    options.SaveTokens = true;
+    options.RequireHttpsMetadata = false;
     options.CallbackPath = "/signin-oidc";
     options.SignedOutCallbackPath = "/signout-callback-oidc";
     options.GetClaimsFromUserInfoEndpoint = true;
@@ -69,10 +73,9 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
+        ValidateIssuer = false,
         ValidIssuer = keycloakConfig["Authority"],
-        ValidateAudience = true,
-        ValidAudience = keycloakConfig["ClientId"],
+        ValidateAudience = false,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         NameClaimType = "preferred_username",
@@ -83,13 +86,9 @@ builder.Services.AddAuthentication(options =>
     {
         OnTokenResponseReceived = ctx =>
         {
-            // We keep SaveTokens=false, but we still need the id_token for RP-initiated logout
-            // (Keycloak may require id_token_hint). Store only the id_token as an encrypted claim
-            // inside the ASP.NET auth cookie ticket.
             var idToken = ctx.TokenEndpointResponse?.IdToken;
             if (!string.IsNullOrWhiteSpace(idToken) && ctx.Principal?.Identity is ClaimsIdentity id)
             {
-                // Avoid duplicating if the handler runs again.
                 if (!id.HasClaim(c => c.Type == "id_token"))
                     id.AddClaim(new Claim("id_token", idToken));
             }
@@ -142,23 +141,17 @@ builder.Services.AddAuthentication(options =>
             var idToken = ctx.HttpContext.User.FindFirst("id_token")?.Value;
             if (!string.IsNullOrWhiteSpace(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
-
-            await Task.CompletedTask;
         },
 
         OnRemoteFailure = ctx =>
         {
             // ✅ URL dynamique depuis config
-            ctx.Response.Redirect($"{backendUrl}/api/auth/login");
+            ctx.Response.Redirect($"{frontendUrl}/api/auth/login");
             ctx.HandleResponse();
             return Task.CompletedTask;
         }
     };
 })
-
-// ===========
-// JWT BEARER
-// ===========
 .AddJwtBearer("Bearer", options =>
 {
     // ✅ depuis config, pas hardcodé
@@ -168,9 +161,8 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidIssuer = keycloakConfig["Authority"],
-        ValidateAudience = true,
+        ValidateIssuer = false,
+        ValidateAudience = false,
         ValidAudience = keycloakConfig["ClientId"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
@@ -216,20 +208,43 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var app = builder.Build();
 
+// ===== Forwarded Headers DOIT être en premier =====
+app.UseForwardedHeaders();
+
+// ===== Migrations automatiques avec fallback =====
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+        if (pendingMigrations.Any())
+        {
+            Console.WriteLine($"📦 Application de {pendingMigrations.Count()} migrations : {string.Join(", ", pendingMigrations)}");
+            db.Database.Migrate();
+            Console.WriteLine("✅ Migrations appliquées avec succès");
+        }
+        else
+        {
+            Console.WriteLine("✅ Aucune migration en attente. Base de données à jour.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Erreur de migration: {ex.Message}");
+        Console.WriteLine("⚠️ Démarrage forcé de l'application sans appliquer les migrations.");
+        Console.WriteLine("⚠️ Certaines fonctionnalités pourraient être affectées si le modèle et la base ne sont pas synchronisés.");
+    }
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
 
-// ✅ Migrations automatiques au démarrage
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-}
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors();
 app.UseStaticFiles();
 app.UseAuthentication();
@@ -237,5 +252,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGet("/", () => Results.Ok("API is running"));
+
+_ = Task.Run(() => PdfGenerationService.WarmUpAsync());
 
 app.Run();

@@ -1,0 +1,118 @@
+// ── Tokens (alignés sur dashboard.scss) ──────────────────────────────────────
+$color-brown:      #7a6040;
+$color-brown-dark: #5c4220;
+$color-cream:      #f5f0e8;
+$color-green:      #6b8068;
+$color-red:        #9b1c1c;
+$color-text:       #4a3728;
+
+:host { display: contents; }
+
+// ── Sidebar (fixed, 56px de large) ───────────────────────────────────────────
+.admin-sidebar {
+  width: 56px;
+  background: $color-brown;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
+  gap: 0.8rem;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 100;
+}
+
+// ── Logo / brand en haut ─────────────────────────────────────────────────────
+.sidebar-brand {
+  color: rgba($color-cream, 0.85);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg { width: 22px; height: 22px; }
+}
+
+// ── Icônes de navigation ─────────────────────────────────────────────────────
+.sidebar-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  color: rgba($color-cream, 0.6);
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  text-decoration: none;
+  position: relative;
+
+  svg { width: 20px; height: 20px; }
+
+  &:hover {
+    background: rgba($color-cream, 0.12);
+    color: $color-cream;
+    transform: scale(1.05);
+  }
+
+  // État actif (page courante)
+  &.active {
+    background: rgba($color-cream, 0.18);
+    color: $color-cream;
+
+    // Liseré crème à gauche pour signaler la page active
+    &::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      background: $color-cream;
+      border-radius: 2px;
+    }
+  }
+}
+
+// ── Avatar utilisateur (en bas, poussé via margin-top: auto) ────────────────
+.sidebar-avatar {
+  margin-top: auto; // pousse le bloc avatar + logout en bas de la sidebar
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: $color-green;
+  color: $color-cream;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: default;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+// ── Bouton de déconnexion ────────────────────────────────────────────────────
+.sidebar-logout {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: rgba($color-cream, 0.7);
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  padding: 0;
+
+  &:hover {
+    background: rgba($color-red, 0.35);
+    color: $color-cream;
+    transform: scale(1.05);
+  }
+}

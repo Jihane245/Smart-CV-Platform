@@ -65,6 +65,19 @@ export const routes: Routes = [
           import('./features/user/pages/generate-cv/generate-cv').then(
             (m) => m.GenerateCv
           ),
+          
+      },
+      {
+    path: 'historique',
+    loadComponent: () =>
+      import('./features/user/pages/historique/historique').then(m => m.Historique)
+      },
+      {
+        path: 'competence-upgrade',
+        loadComponent: () =>
+          import('./features/user/pages/competence-upgrade/competence-upgrade').then(
+            (m) => m.CompetenceUpgrade
+          ),
       },
       {
         path: 'applications',
@@ -90,7 +103,7 @@ export const routes: Routes = [
         (m) => m.Dashboard
       ),
   },
-    {
+  {
     path: 'admin/templates/nouveau',
     canActivate: [authGuard, adminGuard],
     loadComponent: () =>

@@ -7,7 +7,8 @@ COPY SmartCV.fr/package*.json .
 RUN npm ci
 
 COPY SmartCV.fr/ .
-RUN npm run build -- --configuration production
+ARG BUILD_CONFIG=production
+  RUN npm run build -- --configuration $BUILD_CONFIG
 
 FROM nginx:alpine
 
