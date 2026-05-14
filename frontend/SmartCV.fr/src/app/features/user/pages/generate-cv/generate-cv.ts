@@ -413,6 +413,11 @@ export class GenerateCv implements OnInit {
     this.resumeEdite = res.resume ?? this.resume;
     this.recommandations = res.recommandations ?? null;
 
+    // If offer came from image, offreTexte is empty — use the AI summary as fallback
+    if (!this.offreTexte.trim()) {
+      this.offreTexte = res.resume ?? '';
+    }
+
     const matchSet = new Set((res.competences_match ?? []).map(n => n.toLowerCase()));
     const manquantSet = new Set((res.competences_manquantes ?? []).map(n => n.toLowerCase()));
 

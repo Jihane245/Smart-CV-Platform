@@ -94,4 +94,12 @@ export class CoverLetterService {
       responseType: 'blob',
     });
   }
+
+  generateAndSave(fd: FormData): Observable<CoverLetterResponse> {
+    return this.http.post<CoverLetterResponse>(
+      `${COVER_LETTER_BASE}/generate-and-save`,
+      fd,
+      { withCredentials: true },
+    );
+  }
 }
