@@ -79,14 +79,26 @@ public class DashboardUserController : ControllerBase
 
         string recommendation;
 
-        if (scoreTestsMoyen < 50)
+        if (nbCv == 0 && nbTests == 0 && !topCompetencesCv.Any())
+        {
+            recommendation = "Commence par compléter ton profil et passer quelques tests.";
+        }
+        else if (scoreTestsMoyen < 50)
+        {
             recommendation = "Tu dois renforcer tes bases techniques avant de continuer.";
+        }
         else if (scoreCvMoyen < 60)
+        {
             recommendation = "Améliore ton CV pour augmenter ton taux de réponse.";
+        }
         else if (competencesFaibles.Any())
+        {
             recommendation = $"Travaille surtout : {string.Join(", ", competencesFaibles.Take(2))}";
+        }
         else
+        {
             recommendation = "Très bon profil ! Continue comme ça 🚀";
+        }
 
         return Ok(new DashboardDto
         {
