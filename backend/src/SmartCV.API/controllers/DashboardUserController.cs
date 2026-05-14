@@ -10,7 +10,7 @@ namespace API.controllers;
 
 [ApiController]
 [Route("api/dashboard/user")]
-[Authorize]
+[Authorize(AuthenticationSchemes = "Cookies,Bearer")]
 public class DashboardUserController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
