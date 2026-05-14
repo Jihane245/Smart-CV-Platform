@@ -18,6 +18,5 @@ public class DashboardDto
     public List<string> TopCompetencesCv { get; set; } = [];
     public List<string> CompetencesFaibles { get; set; } = [];
 
-    //  Insight IA simple (optionnel plus tard)
     public string Recommendation { get; set; } = "";
 }
