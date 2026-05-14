@@ -14,6 +14,8 @@
       public string? OffreTitre { get; set; }
       public string? OffreEntreprise { get; set; }
 
+      public string? CvTexte { get; set; }
+
       // Optionnel : si fourni, la lettre s'appuie sur ce CV
       public int? CvId { get; set; }
   }
