@@ -304,4 +304,69 @@ public class CoverLetterController : ControllerBase
             return StatusCode(500, new { message = ex.Message });
         }
     }
+
+    [HttpPost("generate-and-save")]
+    [RequestSizeLimit(10_000_000)]
+    public async Task<IActionResult> GenerateAndSave(
+        [FromForm] string offreText,
+        [FromForm] IFormFile? cvPdf,
+        [FromForm] string? offreTitre,
+        [FromForm] string? offreEntreprise,
+        [FromServices] IPdfTextExtractor pdfExtractor)
+    {
+        if (string.IsNullOrWhiteSpace(offreText))
+            return BadRequest(new { message = "Le texte de l'offre est requis." });
+
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null) return Unauthorized();
+
+        var dto = new CoverLetterGenerateDto
+        {
+            UserId = currentUser.Id,
+            OffreTexte = offreText,
+            OffreTitre = offreTitre,
+            OffreEntreprise = offreEntreprise,
+        };
+
+        // If PDF provided, attach extracted text as a hint via a transient Cv-like text
+        // We reuse OffreTexte path — the service creates the Offre from text anyway.
+        // For the CV side: if PDF provided, we extract and store as a temp field.
+        // Since GenerateCoverLetterAsync uses the DB profile, we pre-populate it
+        // only when a PDF is given by passing cvText via a new optional DTO field.
+        
+        if (cvPdf != null && cvPdf.Length > 0)
+        {
+            var ct = cvPdf.ContentType ?? string.Empty;
+            if (!ct.Contains("pdf", StringComparison.OrdinalIgnoreCase)
+                && !cvPdf.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "Format CV non supporté (PDF requis)." });
+
+            try
+            {
+                using var stream = cvPdf.OpenReadStream();
+                dto.CvTexte = pdfExtractor.ExtractText(stream);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Lecture du PDF impossible : {ex.Message}" });
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.CvTexte))
+                return BadRequest(new { message = "Impossible d'extraire du texte du PDF." });
+        }
+
+        try
+        {
+            var lettre = await _service.GenerateCoverLetterAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = lettre.Id }, MapToDto(lettre));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
 }

@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { NotificationService, AppNotification } from '../../../core/services/notification.service';
 
 @Component({
@@ -8,15 +9,25 @@ import { NotificationService, AppNotification } from '../../../core/services/not
   imports: [CommonModule],
   templateUrl: './notification-container.html',
   styleUrl: './notification-container.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NotificationContainer {
+export class NotificationContainer implements OnDestroy {
 
   notifications: AppNotification[] = [];
+  private sub: Subscription;
 
-  constructor(private notifService: NotificationService) {
-    this.notifService.notifications$.subscribe((list) => {
+  constructor(
+    private notifService: NotificationService,
+    private cdr: ChangeDetectorRef,
+  ) {
+    this.sub = this.notifService.notifications$.subscribe((list) => {
       this.notifications = list;
+      this.cdr.markForCheck();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.sub.unsubscribe();
   }
 
   close(id: number): void {

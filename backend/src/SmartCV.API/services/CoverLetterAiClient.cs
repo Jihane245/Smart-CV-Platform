@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using API.models;
@@ -48,11 +47,11 @@ public class CoverLetterAiClient : ICoverLetterAiClient
                     experiences = user.Profil?.Experiences?
                         .Select(e => new
                         {
-                            e.Poste,
-                            e.Entreprise,
-                            e.DateDebut,
-                            e.DateFin,
-                            e.Description
+                            poste = e.Poste,
+                            entreprise = e.Entreprise,
+                            dateDebut = e.DateDebut,
+                            dateFin = e.DateFin,
+                            description = e.Description
                         })
                         .Cast<object>()
                         .ToList() ?? new List<object>(),
@@ -60,10 +59,10 @@ public class CoverLetterAiClient : ICoverLetterAiClient
                     formations = user.Profil?.Formations?
                         .Select(f => new
                         {
-                            f.Diplome,
-                            f.Etablissement,
-                            f.Annee,
-                            f.Mention
+                            diplome = f.Diplome,
+                            etablissement = f.Etablissement,
+                            annee = f.Annee,
+                            mention = f.Mention
                         })
                         .Cast<object>()
                         .ToList() ?? new List<object>(),
@@ -71,11 +70,11 @@ public class CoverLetterAiClient : ICoverLetterAiClient
                     certificats = user.Profil?.Certificats?
                         .Select(c => new
                         {
-                            c.Nom,
-                            c.Organisme,
-                            c.DateObtention,
-                            c.DateExpiration,
-                            c.Niveau
+                            nom = c.Nom,
+                            organisme = c.Organisme,
+                            dateObtention = c.DateObtention,
+                            dateExpiration = c.DateExpiration,
+                            niveau = c.Niveau
                         })
                         .Cast<object>()
                         .ToList() ?? new List<object>()
@@ -84,26 +83,26 @@ public class CoverLetterAiClient : ICoverLetterAiClient
 
             offre = new
             {
-                offre.Id,
-                offre.Titre,
-                offre.Entreprise,
-                offre.Description,
-                offre.Exigences,
-                offre.TypeContrat,
-                offre.UrlOffre,
-                offre.DatePublication,
-                offre.DateExpiration
+                id = offre.Id,
+                titre = offre.Titre,
+                entreprise = offre.Entreprise,
+                description = offre.Description,
+                exigences = offre.Exigences,
+                type_contrat = offre.TypeContrat,
+                url_offre = offre.UrlOffre,
+                date_publication = offre.DatePublication,
+                date_expiration = offre.DateExpiration
             },
 
             analyse = new
             {
-                analyseOffre.MotsClesExtraits,
-                analyseOffre.CompetencesRequises,
-                analyseOffre.CompetencesMatch,
-                analyseOffre.CompetencesManquantes,
-                analyseOffre.ScoreCompatibilite,
-                analyseOffre.Resume,
-                analyseOffre.Recommandations
+                mots_cles_extraits = analyseOffre.MotsClesExtraits,
+                competences_requises = analyseOffre.CompetencesRequises,
+                competences_match = analyseOffre.CompetencesMatch,
+                competences_manquantes = analyseOffre.CompetencesManquantes,
+                score_compatibilite = analyseOffre.ScoreCompatibilite,
+                resume = analyseOffre.Resume,
+                recommandations = analyseOffre.Recommandations
             },
 
             cv = cv == null ? null : (object)new
@@ -123,31 +122,21 @@ public class CoverLetterAiClient : ICoverLetterAiClient
             "application/json"
         );
 
-        var response = await client.PostAsync($"{BaseUrl}/api/coverletter/generate", content);
-
+        var response = await client.PostAsync($"{BaseUrl}/coverletter/generate", content);
         var body = await response.Content.ReadAsStringAsync();
 
         if (!response.IsSuccessStatusCode)
-        {
-            throw new InvalidOperationException(
-                $"AI service error: {response.StatusCode} - {body}"
-            );
-        }
+            throw new InvalidOperationException($"AI service error: {response.StatusCode} - {body}");
 
         try
         {
             var document = JsonDocument.Parse(body);
-
             if (document.RootElement.TryGetProperty("contenu", out var contenuProp))
                 return contenuProp.GetString() ?? string.Empty;
-
             if (document.RootElement.TryGetProperty("content", out var contentProp))
                 return contentProp.GetString() ?? string.Empty;
         }
-        catch (JsonException)
-        {
-            // fallback si texte brut
-        }
+        catch (JsonException) { }
 
         return body.Trim();
     }
@@ -212,10 +201,8 @@ public class CoverLetterAiClient : ICoverLetterAiClient
             if (doc.RootElement.TryGetProperty("content", out var c2))
                 return c2.GetString() ?? string.Empty;
         }
-        catch (JsonException)
-        {
-            // fallback texte brut
-        }
+        catch (JsonException) { }
+
         return body.Trim();
     }
 

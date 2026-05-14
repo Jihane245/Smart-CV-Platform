@@ -40,7 +40,7 @@ public class CoverLetterService : ICoverLetterService
         if (user.Profil == null)
             throw new InvalidOperationException("Profil utilisateur requis.");
 
-        // 1. Résolution de l'Offre (existante OU créée à partir du texte brut)
+        // 1. Resolve or create the Offre
         Offre offre;
         if (dto.OffreId.HasValue)
         {
@@ -66,33 +66,46 @@ public class CoverLetterService : ICoverLetterService
             throw new InvalidOperationException("OffreId ou OffreTexte requis.");
         }
 
-        // 2. Résolution / création de l'AnalyseOffre (réutilise la plus récente, sinon délègue à l'IA)
-        var analyse = await _db.AnalysesOffre
-            .Where(a => a.OffreId == offre.Id)
-            .OrderByDescending(a => a.DateAnalyse)
-            .FirstOrDefaultAsync();
-
-        if (analyse == null)
-        {
-            analyse = await _aiClient.AnalyzeOffreAsync(offre, user.Profil);
-            analyse.OffreId = offre.Id;
-            analyse.ProfilId = user.Profil.Id;
-            _db.AnalysesOffre.Add(analyse);
-            await _db.SaveChangesAsync();
-        }
-
-        // 3. CV optionnel : si fourni, vérifier qu'il appartient bien à l'utilisateur
+        // 2. Optional CV reference
         Cv? cv = null;
         if (dto.CvId.HasValue)
-        {
             cv = await _db.Cvs.FirstOrDefaultAsync(c => c.IdCv == dto.CvId.Value && c.UserId == userId);
+
+        // 3. Generate letter content
+        string contenu;
+        if (!string.IsNullOrWhiteSpace(dto.CvTexte))
+        {
+            // PDF was uploaded upstream — use raw text path, skip analyse
+            contenu = await _aiClient.GenerateCoverLetterFromRawTextAsync(
+                dto.CvTexte,
+                offre.Description ?? string.Empty,
+                offre.Titre,
+                offre.Entreprise);
+        }
+        else
+        {
+            // Use structured path: resolve or create AnalyseOffre first
+            var analyse = await _db.AnalysesOffre
+                .Where(a => a.OffreId == offre.Id)
+                .OrderByDescending(a => a.DateAnalyse)
+                .FirstOrDefaultAsync();
+
+            if (analyse == null)
+            {
+                analyse = await _aiClient.AnalyzeOffreAsync(offre, user.Profil);
+                analyse.OffreId = offre.Id;
+                analyse.ProfilId = user.Profil.Id;
+                _db.AnalysesOffre.Add(analyse);
+                await _db.SaveChangesAsync();
+            }
+
+            contenu = await _aiClient.GenerateCoverLetterAsync(user, offre, analyse, cv);
         }
 
-        // 4. Appel IA
-        var contenu = await _aiClient.GenerateCoverLetterAsync(user, offre, analyse, cv);
         if (string.IsNullOrWhiteSpace(contenu))
             throw new InvalidOperationException("Le service IA a renvoyé un contenu vide.");
 
+        // 4. Persist and return
         var lettre = new LettreMotivation
         {
             UserId = userId,
