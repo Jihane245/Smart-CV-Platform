@@ -7,7 +7,7 @@
         <span class="retour-arrow">‹</span> Retour
       </a>
       <div>
-        <h1 class="page-title">Lettre de motivation</h1>
+        <h1 class="page-title">Lettree de motivation</h1>
         <p class="page-subtitle">
           Générez une lettre adaptée à une offre d'emploi en quelques clics
         </p>
@@ -69,14 +69,10 @@
         [(ngModel)]="offreTexte"
         placeholder="Nous recherchons un Développeur Full Stack (H/F) à Casablanca.&#10;&#10;Compétences requises :&#10;– React.js / Next.js&#10;– Node.js, Express, REST API&#10;– Docker, Git"
         rows="8"
-        [disabled]="!!offreIdPreFilled"
       ></textarea>
-      <p class="hint" *ngIf="offreIdPreFilled">
-        Texte verrouillé : utilisation de l'offre déjà enregistrée (id #{{ offreIdPreFilled }}).
-      </p>
 
       <!-- Analyse d'image (offre sous forme de capture) -->
-      <div class="image-analyse-row" *ngIf="!offreIdPreFilled">
+      <div class="image-analyse-row">
         <span class="ou-bien">Ou bien…</span>
         <button
           class="btn-secondary"
@@ -112,7 +108,7 @@
       </div>
 
       <!-- Upload PDF (caché si on a un CV pré-rempli) -->
-      <ng-container *ngIf="!cvIdPreFilled">
+      <ng-container>
         <p class="section-mini-label" style="margin-top: 1.5rem">CV (OPTIONNEL)</p>
         <div class="upload-zone" *ngIf="!cvPdfNom">
           <label class="upload-label">
@@ -140,11 +136,10 @@
       </ng-container>
 
       <!-- CV pré-rempli (cas 1) -->
-      <div class="cv-pinned" *ngIf="cvIdPreFilled">
+      <div class="cv-pinned" *ngIf="modePreRempli">
         <span class="cv-pinned-icon">📎</span>
         <span class="cv-pinned-text">
-          CV utilisé : <strong>CV #{{ cvIdPreFilled }}</strong>
-          <small>(préalablement généré dans le générateur de CV)</small>
+          <small>(CV préalablement généré dans le générateur de CV)</small>
         </span>
       </div>
 
@@ -152,7 +147,7 @@
       <button
         class="btn-primary"
         (click)="generer()"
-        [disabled]="generationEnCours || (!offreTexte.trim() && !offreIdPreFilled)"
+        [disabled]="generationEnCours || !offreTexte.trim()"
       >
         <span *ngIf="!generationEnCours">
           {{ modePreRempli ? 'Valider et générer →' : "Générer la lettre →" }}

@@ -37,8 +37,6 @@ export class LettreMotivation implements OnInit {
 
   // ─── Cas pré-rempli depuis génération CV (cas 1) ────────────────────────────
   /** Si défini, on appelle /generate (avec persistance) au lieu de /generate-from-upload. */
-  cvIdPreFilled: number | null = null;
-  offreIdPreFilled: number | null = null;
   modePreRempli = false;
 
   // ─── Loading & résultat ─────────────────────────────────────────────────────
@@ -64,11 +62,11 @@ export class LettreMotivation implements OnInit {
     const offreTitreParam = qp.get('offreTitre');
     const offreEntrepriseParam = qp.get('offreEntreprise');
 
+    // Set display flag if any prefill params are present
     if (cvIdParam || offreIdParam || offreTextParam) {
       this.modePreRempli = true;
     }
-    if (cvIdParam) this.cvIdPreFilled = Number(cvIdParam) || null;
-    if (offreIdParam) this.offreIdPreFilled = Number(offreIdParam) || null;
+
     if (offreTextParam) this.offreTexte = offreTextParam;
     if (offreTitreParam) this.offreTitre = offreTitreParam;
     if (offreEntrepriseParam) this.offreEntreprise = offreEntrepriseParam;
@@ -143,48 +141,29 @@ export class LettreMotivation implements OnInit {
 
   // ─── Génération ──────────────────────────────────────────────────────────────
   generer(): void {
-    if (!this.offreTexte.trim() && !this.offreIdPreFilled) {
+    if (!this.offreTexte.trim()) {
       this.notif.warning("Veuillez coller le texte de l'offre.");
       return;
     }
 
     this.generationEnCours = true;
 
-    // CAS 1 : pré-rempli depuis génération CV (offreId ou cvId connus) → /generate (avec persistance)
-    if (this.modePreRempli && (this.cvIdPreFilled || this.offreIdPreFilled)) {
-      this.coverLetterService
-        .generate({
-          offreId: this.offreIdPreFilled ?? undefined,
-          offreTexte: !this.offreIdPreFilled ? this.offreTexte : undefined,
-          offreTitre: this.offreTitre || undefined,
-          offreEntreprise: this.offreEntreprise || undefined,
-          cvId: this.cvIdPreFilled ?? undefined,
-        })
-        .subscribe({
-          next: (res: CoverLetterResponse) => this.afficherResultatPersiste(res),
-          error: (err) => this.gererErreur(err),
-        });
-      return;
-    }
+    const fd = new FormData();
+    fd.append('offreText', this.offreTexte);
+    if (this.cvPdf) fd.append('cvPdf', this.cvPdf, this.cvPdf.name);
+    if (this.offreTitre) fd.append('offreTitre', this.offreTitre);
+    if (this.offreEntreprise) fd.append('offreEntreprise', this.offreEntreprise);
 
-    // CAS 2 : flux générique via upload (PDF optionnel, fallback profil DB)
-    this.coverLetterService
-      .generateFromUpload(
-        this.offreTexte,
-        this.cvPdf,
-        this.offreTitre || undefined,
-        this.offreEntreprise || undefined,
-      )
-      .subscribe({
-        next: (res) => {
-          this.contenuLettre = res.contenu;
-          this.dateGeneration = res.dateGeneration;
-          this.source = res.source;
-          this.lettreId = null;
-          this.terminerGeneration();
-        },
-        error: (err) => this.gererErreur(err),
-      });
+    this.coverLetterService.generateAndSave(fd).subscribe({
+      next: (res: CoverLetterResponse) => {
+        this.contenuLettre = res.contenu;
+        this.dateGeneration = res.dateGeneration;
+        this.lettreId = res.id;
+        this.source = this.cvPdf ? 'pdf' : 'profil';
+        this.terminerGeneration();
+      },
+      error: (err) => this.gererErreur(err),
+    });
   }
 
   private afficherResultatPersiste(res: CoverLetterResponse): void {
@@ -206,12 +185,10 @@ export class LettreMotivation implements OnInit {
   private gererErreur(err: any): void {
     this.generationEnCours = false;
     const msg = err?.error?.message || 'Erreur lors de la génération de la lettre.';
-    // setTimeout 0 → push l'ajout de notif sur le tick suivant pour éviter
-    // l'ExpressionChangedAfterItHasBeenCheckedError dans NotificationContainer.
-    setTimeout(() => {
+    Promise.resolve().then(() => {
       this.notif.error(msg);
       this.cdr.detectChanges();
-    }, 0);
+    });
   }
 
   // ─── Étape 2 — Actions sur le résultat ──────────────────────────────────────
@@ -224,24 +201,25 @@ export class LettreMotivation implements OnInit {
   }
 
   telechargerPdf(): void {
-    if (!this.lettreId) {
-      this.notif.warning(
-        "Le PDF n'est disponible que pour les lettres enregistrées (cas pré-rempli). Vous pouvez copier le contenu.",
-      );
-      return;
-    }
-    this.coverLetterService.downloadPdf(this.lettreId).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `lettre_motivation_${this.lettreId}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    if (!this.lettreId) return;
+
+    this.coverLetterService.update(this.lettreId, this.contenuLettre).subscribe({
+      next: () => {
+        this.coverLetterService.downloadPdf(this.lettreId!).subscribe({
+          next: (blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lettre_motivation_${this.lettreId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          },
+          error: () => this.notif.error('Erreur lors du téléchargement du PDF.'),
+        });
       },
-      error: () => this.notif.error('Erreur lors du téléchargement du PDF.'),
+    error: () => this.notif.error('Erreur lors de la sauvegarde avant téléchargement.'),
     });
   }
 
