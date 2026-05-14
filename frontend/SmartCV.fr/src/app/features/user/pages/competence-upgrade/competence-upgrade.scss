@@ -1,0 +1,951 @@
+// competence-upgrade.scss
+// Design system: brown #6B4E2A/#5C4220/#7B5C35, cream #F5F0E8/#EDE6D8, red #8B1A1A
+// Fonts: Inria Serif (titles/body), DM Sans (sidebar)
+
+@import url('https://fonts.googleapis.com/css2?family=Inria+Serif:wght@300;400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+$brown-dark: #5C4220;
+$brown: #6B4E2A;
+$brown-light: #7B5C35;
+$cream: #F5F0E8;
+$cream-dark: #EDE6D8;
+$cream-mid: #E8E0D0;
+$red: #8B1A1A;
+$text: #2C2010;
+$muted: #9A8870;
+
+// ─── Layout ──────────────────────────────────────────────────────────────────
+
+.main-content {
+  padding: 2rem 2.5rem;
+  font-family: 'DM Sans', sans-serif;
+  color: $text;
+  min-height: 100vh;
+  background: $cream;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.btn-retour {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: $brown;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.4rem;
+  transition: color 0.2s;
+
+  &:hover { color: $brown-dark; }
+
+  .retour-arrow { font-size: 1.2rem; }
+}
+
+.page-title {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.25rem;
+}
+
+.page-subtitle {
+  color: $muted;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+// ─── Stepper ─────────────────────────────────────────────────────────────────
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: default;
+  flex-shrink: 0;
+
+  &.active .stepper-circle {
+    background: $brown-dark;
+    color: #fff;
+  }
+
+  &.complete .stepper-circle {
+    background: $brown;
+    color: #fff;
+  }
+}
+
+.stepper-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: $cream-dark;
+  color: $muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 0.2s;
+
+  .check { font-size: 0.75rem; }
+}
+
+.stepper-label {
+  font-size: 0.78rem;
+  color: $muted;
+  white-space: nowrap;
+
+  .stepper-item.active & { color: $brown-dark; font-weight: 600; }
+  .stepper-item.complete & { color: $brown; }
+}
+
+.stepper-sep {
+  width: 2rem;
+  height: 1px;
+  background: $cream-dark;
+  margin: 0 0.25rem;
+  flex-shrink: 0;
+}
+
+.stepper-line {
+  height: 1px;
+  background: $cream-dark;
+  margin-bottom: 2rem;
+}
+
+// ─── Colonnes ────────────────────────────────────────────────────────────────
+
+.upgrade-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.upgrade-left {
+  min-width: 0;
+}
+
+.upgrade-right {
+  position: sticky;
+  top: 1.5rem;
+}
+
+// ─── Étape labels ─────────────────────────────────────────────────────────────
+
+.etape-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+
+.etape-titre {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.75rem;
+}
+
+.etape-desc {
+  color: $muted;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+
+  &.muted { font-style: italic; }
+}
+
+// ─── Cards profil ─────────────────────────────────────────────────────────────
+
+.profil-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid $cream-dark;
+}
+
+.selection-card {
+  min-height: 5rem;
+}
+
+.card-mini-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 0.75rem;
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  &.tags-center { justify-content: center; }
+}
+
+.tag {
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: $cream-dark;
+  color: $brown;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+.tag-current {
+  background: rgba($brown, 0.12);
+  color: $brown-dark;
+}
+
+.tag-ok {
+  background: rgba($brown, 0.12);
+  color: $brown-dark;
+}
+
+.tag-missing {
+  background: $cream-dark;
+  color: $muted;
+}
+
+.tag-selectable {
+  cursor: pointer;
+  &:hover { background: rgba($brown, 0.15); color: $brown-dark; }
+}
+
+.tag-selected {
+  background: $brown;
+  color: #fff;
+}
+
+// ─── Boutons ──────────────────────────────────────────────────────────────────
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: $brown-dark;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  margin-top: 1rem;
+
+  &:hover:not(:disabled) { background: $brown; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: $brown-dark;
+  border: 1.5px solid $brown-dark;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+
+  &:hover { background: rgba($brown-dark, 0.06); }
+}
+
+.btn-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba($brown, 0.12);
+  color: $brown-dark;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover { background: rgba($brown, 0.2); }
+}
+
+.btn-row-right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+// ─── Loading ──────────────────────────────────────────────────────────────────
+
+.loading-state {
+  color: $muted;
+  font-style: italic;
+  padding: 2rem 0;
+  font-size: 0.9rem;
+}
+
+// ─── Question card ────────────────────────────────────────────────────────────
+
+.question-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.75rem;
+  margin-top: 1rem;
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.question-num {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: $muted;
+}
+
+.question-count {
+  font-size: 0.82rem;
+  color: $muted;
+}
+
+.question-enonce {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $text;
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+
+.choix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.choix-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid $cream-dark;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fff;
+
+  &:hover { border-color: $brown-light; background: rgba($cream, 0.6); }
+
+  &.selected {
+    border-color: $brown-dark;
+    background: rgba($brown, 0.06);
+  }
+}
+
+.choix-lettre {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: $cream-dark;
+  color: $brown;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .selected & {
+    background: $brown-dark;
+    color: #fff;
+  }
+}
+
+.choix-text {
+  font-size: 0.88rem;
+  color: $text;
+}
+
+// ─── Roadmap ──────────────────────────────────────────────────────────────────
+
+.roadmap-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.roadmap-niveau {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: $cream;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.niveau-initial-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: $cream-dark;
+  color: $brown-dark;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.niveau-info {
+  display: flex;
+  flex-direction: column;
+
+  strong { font-size: 0.92rem; color: $text; }
+}
+
+.niveau-sub {
+  font-size: 0.78rem;
+  color: $muted;
+}
+
+.roadmap-titre-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: $text;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+// Road visual
+.roadmap-visual {
+  padding: 0.5rem 0;
+}
+
+.road-path {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: $brown-dark;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    z-index: 0;
+  }
+}
+
+.road-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  position: relative;
+  z-index: 1;
+
+  &:nth-child(odd) {
+    flex-direction: row;
+    .road-card-info { text-align: left; }
+    .road-percent { order: -1; margin-left: 1rem; }
+  }
+
+  &:nth-child(even) {
+    flex-direction: row-reverse;
+    .road-card-info { text-align: right; }
+    .road-percent { order: 2; margin-right: 1rem; }
+  }
+}
+
+.road-percent {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: $muted;
+  min-width: 3rem;
+  text-align: center;
+}
+
+.road-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  background: $brown;
+  color: #fff;
+  z-index: 2;
+
+  &.road-icon-video { background: #D4891A; }
+  &.road-icon-doc { background: #4A7C59; }
+  &.road-icon-projet {
+    background: $brown-dark;
+    border: 3px solid #D4A054;
+  }
+}
+
+.road-card-info {
+  background: $cream;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  min-width: 150px;
+  flex: 1;
+}
+
+.road-etape-num {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: $muted;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.2rem;
+}
+
+.road-etape-titre {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.15rem;
+}
+
+.road-etape-lien {
+  font-size: 0.72rem;
+  color: $muted;
+  margin: 0;
+}
+
+// ─── Parcours ─────────────────────────────────────────────────────────────────
+
+.parcours-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.progression-bar-container {
+  position: relative;
+  height: 8px;
+  background: $cream-dark;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.progression-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: $brown-dark;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.progression-label {
+  display: block;
+  text-align: right;
+  font-size: 0.78rem;
+  color: $muted;
+  margin-bottom: 1.25rem;
+}
+
+.parcours-etape {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1.5px solid $cream-dark;
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { border-color: $brown-light; }
+
+  &.etape-done {
+    border-color: rgba($brown, 0.2);
+    background: rgba($brown, 0.04);
+  }
+}
+
+.etape-icon-type {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $cream-dark;
+  flex-shrink: 0;
+}
+
+.type-badge {
+  font-size: 0.85rem;
+  color: #D4891A;
+
+  &.type-doc { color: #4A7C59; }
+  &.type-projet { color: $brown-dark; }
+}
+
+.etape-content {
+  flex: 1;
+}
+
+.etape-type-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: $muted;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.2rem;
+}
+
+.etape-titre-parcours {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: $text;
+  margin: 0 0 0.15rem;
+}
+
+.etape-desc-parcours {
+  font-size: 0.78rem;
+  color: $muted;
+  margin: 0;
+}
+
+.etape-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid $cream-dark;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  transition: all 0.2s;
+
+  &.checked {
+    background: #4A7C59;
+    border-color: #4A7C59;
+    color: #fff;
+  }
+}
+
+// ─── Succès ───────────────────────────────────────────────────────────────────
+
+.success-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid $cream-dark;
+  padding: 3rem 2rem;
+  margin-top: 1rem;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(74, 124, 89, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #4A7C59;
+  margin-bottom: 1.5rem;
+}
+
+.success-titre {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.75rem;
+}
+
+.success-desc {
+  color: $muted;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto 1.5rem;
+}
+
+.success-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  border: 1.5px solid #4A7C59;
+  color: #4A7C59;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.success-profil-preview {
+  background: $cream;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  min-width: 280px;
+}
+
+.success-profil-name {
+  font-weight: 700;
+  color: $text;
+  font-size: 0.95rem;
+  margin: 0 0 0.2rem;
+}
+
+.success-profil-titre {
+  font-size: 0.82rem;
+  color: $muted;
+  margin: 0;
+}
+
+.success-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+// ─── Sidebar droite ───────────────────────────────────────────────────────────
+
+.offre-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.5rem;
+}
+
+.offre-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+
+.offre-titre {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.35rem;
+}
+
+.offre-meta {
+  font-size: 0.82rem;
+  color: $muted;
+  margin: 0 0 0.25rem;
+}
+
+.offre-date {
+  font-size: 0.78rem;
+  color: $muted;
+  margin: 0 0 1rem;
+}
+
+.manquantes-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba($brown, 0.08);
+  border: 1px solid rgba($brown, 0.18);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: $brown-dark;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.manquantes-dot {
+  color: $brown;
+  font-size: 0.6rem;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.comp-renforcer-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 0.75rem;
+}
+
+.comp-renforcer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comp-renforcer-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid $cream-dark;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fff;
+
+  &:hover { border-color: $brown-light; background: $cream; }
+  &.selected { border-color: $brown-dark; background: rgba($brown, 0.06); }
+}
+
+.comp-dot {
+  font-size: 0.6rem;
+  flex-shrink: 0;
+
+  &.dot-haute { color: $brown; }
+  &.dot-renforcer { color: $muted; }
+  &.dot-evaluer { color: $muted; }
+}
+
+.comp-nom {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: $text;
+}
+
+.comp-priorite-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+
+  &.badge-haute {
+    background: rgba($brown, 0.1);
+    color: $brown-dark;
+  }
+
+  &.badge-renforcer {
+    background: $cream-dark;
+    color: $muted;
+  }
+
+  &.badge-evaluer {
+    background: $cream-dark;
+    color: $muted;
+  }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 900px) {
+  .upgrade-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .upgrade-right {
+    position: static;
+    order: -1;
+  }
+}
+
+// ─── Skills en cours (parallel progress switcher) ─────────────────────────────
+
+.skills-en-cours {
+  margin-bottom: 1.25rem;
+}
+
+.skills-en-cours-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.skill-encours-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  border: 1.5px solid $cream-dark;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fff;
+
+  &:hover { border-color: $brown-light; background: $cream; }
+
+  &.skill-actif {
+    border-color: $brown-dark;
+    background: rgba($brown, 0.06);
+  }
+}
+
+.skill-encours-nom {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: $text;
+}
+
+.skill-encours-etape {
+  font-size: 0.72rem;
+  color: $muted;
+  font-weight: 500;
+}

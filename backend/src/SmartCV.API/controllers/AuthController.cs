@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using API.services;
 using System.Linq;
 using System.Security.Claims;
 
@@ -12,6 +13,24 @@ namespace API.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        private readonly KeycloakAdminService _keycloakAdmin;
+        private readonly IConfiguration _configuration;
+        private readonly HashSet<string> _allowedOrigins;
+
+        public AuthController(KeycloakAdminService keycloakAdmin, IConfiguration configuration)
+        {
+            _keycloakAdmin = keycloakAdmin;
+            _configuration = configuration;
+
+            var frontendUrl = _configuration["FRONTEND_URL"] ?? "http://localhost:80";
+            _allowedOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "http://localhost",
+                "http://localhost:80",
+                frontendUrl
+            };
+        }
+
         [HttpGet("login")]
         public IActionResult Login(string returnUrl = "/")
         {
@@ -21,135 +40,97 @@ namespace API.Controllers
             );
         }
 
-        [HttpGet("logout")]
-        public async Task<IActionResult> Logout()
+        [HttpPost("logout")]
+        [Authorize]
+        public IActionResult Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var origin = Request.Headers.Origin.ToString();
+            if (!string.IsNullOrWhiteSpace(origin) && !_allowedOrigins.Contains(origin))
+                return Forbid();
 
+            var referer = Request.Headers.Referer.ToString();
+            if (string.IsNullOrWhiteSpace(origin) &&
+                !string.IsNullOrWhiteSpace(referer) &&
+                !_allowedOrigins.Any(o => referer.StartsWith(o + "/", StringComparison.OrdinalIgnoreCase)))
+            {
+                return Forbid();
+            }
+
+            var frontendUrl = _configuration["FRONTEND_URL"] ?? "http://localhost";
             return SignOut(
                 new AuthenticationProperties
                 {
-                    RedirectUri = "http://localhost/connexion"
+                    RedirectUri = $"{frontendUrl}/connexion"
                 },
+                CookieAuthenticationDefaults.AuthenticationScheme,
                 OpenIdConnectDefaults.AuthenticationScheme
             );
         }
 
-    public class ForgotPasswordRequest 
-    { 
-        public string Email { get; set; } = string.Empty; 
-    }
-
-    [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
-    {
-        if (string.IsNullOrEmpty(request.Email))
-            return BadRequest("Email requis");
-
-        var httpClient = new HttpClient();
-
-        // 1. On récupère un token admin pour pouvoir appeler l'API Keycloak
-        var adminTokenResponse = await httpClient.PostAsync(
-            "http://localhost:8080/realms/master/protocol/openid-connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["grant_type"] = "password",
-                ["client_id"]  = "admin-cli",
-                ["username"]   = "admin",
-                ["password"]   = "admin"
-            })
-        );
-
-        if (!adminTokenResponse.IsSuccessStatusCode)
+        public class ForgotPasswordRequest
         {
-            var error = await adminTokenResponse.Content.ReadAsStringAsync();
-            Console.WriteLine($"Admin token error: {error}");
-            return StatusCode(500, new { message = "Erreur serveur", detail = error });
+            public string Email { get; set; } = string.Empty;
         }
 
-        var adminTokenJson = System.Text.Json.JsonDocument.Parse(
-            await adminTokenResponse.Content.ReadAsStringAsync());
-        var adminToken = adminTokenJson.RootElement
-            .GetProperty("access_token").GetString();
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (string.IsNullOrEmpty(request.Email))
+                return BadRequest("Email requis");
 
-        // 2. On cherche l'user par email dans Keycloak
-        httpClient.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+            try
+            {
+                var ok = await _keycloakAdmin.SendUpdatePasswordEmailAsync(request.Email);
+                if (!ok)
+                    return StatusCode(500, new { message = "Erreur lors de l'envoi de l'email" });
+            }
+            catch
+            {
+                return StatusCode(500, new { message = "Erreur serveur" });
+            }
 
-        var usersResponse = await httpClient.GetAsync(
-            $"http://localhost:8080/admin/realms/cv-platform/users?email={request.Email}&exact=true"
-        );
-
-        var usersContent = await usersResponse.Content.ReadAsStringAsync();
-        Console.WriteLine($"Keycloak users response: {usersContent}");
-
-        if (!usersContent.TrimStart().StartsWith("["))
-            return StatusCode(500, new { message = "Erreur recherche", detail = usersContent });
-
-        var usersJson = System.Text.Json.JsonDocument.Parse(usersContent);
-        var users = usersJson.RootElement.EnumerateArray().ToList();
-
-        // 3. Même si l'email n'existe pas, on retourne le même message
-        // (sécurité : on ne révèle pas si l'email existe ou non)
-        if (users.Count == 0)
             return Ok(new { message = "Si cet email existe, un lien de réinitialisation a été envoyé" });
+        }
 
-        var userId = users[0].GetProperty("id").GetString();
-
-        // 4. On demande à Keycloak d'envoyer l'email de reset
-        var resetResponse = await httpClient.PutAsync(
-            $"http://localhost:8080/admin/realms/plateformecv/users/{userId}/execute-actions-email",
-            new StringContent(
-                "[\"UPDATE_PASSWORD\"]",
-                System.Text.Encoding.UTF8,
-                "application/json"
-            )
-        );
-
-        if (!resetResponse.IsSuccessStatusCode)
-            return StatusCode(500, new { message = "Erreur lors de l'envoi de l'email" });
-
-        return Ok(new { message = "Si cet email existe, un lien de réinitialisation a été envoyé" });
-    }
-        [HttpGet("admin")]  // TA TÂCHE 3 - Role security
+        [HttpGet("admin")]
         [Authorize(Policy = "Admin")]
         public IActionResult AdminOnly()
         {
             return Ok(new { message = "Super Admin Access !", user = User.Identity?.Name });
         }
 
-    [HttpGet("me")]
-    [Authorize]
-    public IActionResult Me()
-    {
-        var result = new
+        [HttpGet("me")]
+        [Authorize]
+        public IActionResult Me()
         {
-            Name = User.Identity?.Name,
-            Claims = User.Claims.Select(c => new { c.Type, c.Value })
-        };
-        return Ok(result);
-    } 
+            var result = new
+            {
+                Name = User.Identity?.Name,
+                Claims = User.Claims.Select(c => new { c.Type, c.Value })
+            };
+            return Ok(result);
+        }
 
-    [HttpGet("status")]
-    [AllowAnonymous]
-    public IActionResult Status()
-    {
-        return Ok(new
+        [HttpGet("status")]
+        [AllowAnonymous]
+        public IActionResult Status()
         {
-            IsAuthenticated = User.Identity?.IsAuthenticated ?? false,
-            IdentityName = User.Identity?.Name,
-            PreferredUsername = User.FindFirst("preferred_username")?.Value,
-            Email = User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst("email")?.Value,
-            Name = User.FindFirst("name")?.Value,
-            GivenName = User.FindFirst(ClaimTypes.GivenName)?.Value ?? User.FindFirst("given_name")?.Value,
-            Surname = User.FindFirst(ClaimTypes.Surname)?.Value ?? User.FindFirst("family_name")?.Value
-        });
-    }
+            return Ok(new
+            {
+                IsAuthenticated = User.Identity?.IsAuthenticated ?? false,
+                IdentityName = User.Identity?.Name,
+                PreferredUsername = User.FindFirst("preferred_username")?.Value,
+                Email = User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst("email")?.Value,
+                Name = User.FindFirst("name")?.Value,
+                GivenName = User.FindFirst(ClaimTypes.GivenName)?.Value ?? User.FindFirst("given_name")?.Value,
+                Surname = User.FindFirst(ClaimTypes.Surname)?.Value ?? User.FindFirst("family_name")?.Value
+            });
+        }
 
-    [HttpGet("error")]
-    public IActionResult Error([FromQuery] string message)
-    {
-        return BadRequest(new { error = message });
+        [HttpGet("error")]
+        public IActionResult Error([FromQuery] string message)
+        {
+            return BadRequest(new { error = message });
+        }
     }
-}
 }

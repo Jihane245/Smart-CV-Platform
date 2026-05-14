@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { vi } from 'vitest';
 
 import { AuthService, AuthStatus } from '../../../../core/services/auth.service';
 import { ProfilMeResponse, ProfilService } from '../../../../core/services/profil.service';
@@ -43,6 +44,7 @@ describe('MonProfil', () => {
   };
 
   function baseProfil(overrides: Partial<ProfilMeResponse> = {}): ProfilMeResponse {
+    const photoUrl = (overrides as any).photoUrl ?? null;
     return {
       id: 42,
       titre: 'Développeur',
@@ -50,6 +52,7 @@ describe('MonProfil', () => {
       adresse: 'Casablanca',
       linkedIn: 'linkedin.com/in/jane',
       description: 'Résumé professionnel assez long pour la complétude.',
+      photoUrl,
       competences: [],
       experiences: [],
       formations: [],

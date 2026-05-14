@@ -1,5 +1,6 @@
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 :host {
+  display: block; // ensures host doesn't collapse when sidebar is fixed
   --brown:        #6B4E2A;
   --brown-dark:   #5C4220;
   --cream:        #F5F0E8;
@@ -13,6 +14,7 @@
 }
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
+// Sidebar is fixed — layout wrapper just holds main-content
 .layout {
   display: flex;
   min-height: 100vh;
@@ -20,17 +22,29 @@
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: var(--sidebar-w);
+  height: 100vh;
   background: var(--brown);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   transition: width var(--transition);
+  z-index: 100;
+  // Bubbly right corners
+  border-top-right-radius: 20px;
+  border-bottom-right-radius: 20px;
   overflow: hidden;
 }
 
 .collapsed .sidebar {
   width: var(--sidebar-w-sm);
+}
+
+.collapsed .main-content {
+  margin-left: var(--sidebar-w-sm);
 }
 
 .sidebar-header {
@@ -76,6 +90,9 @@
   flex-direction: column;
   gap: 2px;
   padding: 0.5rem 0.625rem;
+  overflow-y: auto;
+  // Only nav scrolls — footer stays pinned
+  min-height: 0;
 }
 
 .nav-item {
@@ -87,6 +104,9 @@
   color: var(--text-main);
   text-decoration: none;
   cursor: pointer;
+  pointer-events: auto; // ensure clicks always register
+  position: relative;   // own stacking context so clicks aren't blocked
+  z-index: 1;
   transition: background var(--transition);
   white-space: nowrap;
 
@@ -116,6 +136,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex-shrink: 0; // never shrinks — always visible at bottom
 }
 
 .user-row {
@@ -142,6 +163,21 @@
   font-weight: 700;
   flex-shrink: 0;
   border: 1.5px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+
+  // Image de profil — remplit l'avatar circulaire
+  img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  // Quand il y a une photo, le fond marron foncé devient inutile
+  &.has-photo {
+    background: transparent;
+  }
 }
 
 .user-name {
@@ -184,4 +220,7 @@
   overflow: auto;
   background: #f0ebe0;
   padding: 2rem;
+  margin-left: var(--sidebar-w);
+  transition: margin-left var(--transition);
+  min-height: 100vh;
 }

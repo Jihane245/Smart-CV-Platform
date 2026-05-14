@@ -1,14 +1,16 @@
 services:
   frontend:
-    build: ./frontend
-    container_name: frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
+      build:
+        context: ./frontend
+        args:
+          BUILD_CONFIG: development
+      container_name: frontend
+      ports:
+        - "80:80"
+      depends_on:
+        - backend
+      networks:
+        - app-network
   backend:
     build: ./backend
     container_name: backend
@@ -22,6 +24,12 @@ services:
       - Keycloak__MetadataAddress=http://keycloak:8080/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration
       - Keycloak__ClientId=${KEYCLOAK_CLIENT_ID}
       - Keycloak__ClientSecret=${KEYCLOAK_CLIENT_SECRET}
+      - Keycloak__AdminBaseUrl=http://keycloak:8080
+      - Keycloak__Realm=${KEYCLOAK_REALM}
+      - Keycloak__AdminRealm=master
+      - Keycloak__AdminClientId=${KEYCLOAK_ADMIN_CLIENT_ID}
+      - Keycloak__AdminClientSecret=${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       db:
         condition: service_healthy
@@ -31,6 +39,7 @@ services:
       - app-network
     volumes:
         - photos_data:/app/wwwroot/uploads/photos
+        - ./backend/wwwroot/pdfs:/app/wwwroot/pdfs
 
   ia:
     build: ./ai-service

@@ -5,13 +5,28 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 using API.data;
 using API.models;
 using API.models.Enums;
 using API.services;
 using Scalar.AspNetCore;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
+builder.Services.AddScoped<ICoverLetterAiClient, CoverLetterAiClient>();
+builder.Services.AddScoped<ICoverLetterService, CoverLetterService>();
+builder.Services.AddScoped<IPdfTextExtractor, PdfTextExtractor>();
+
+// ===== Forwarded Headers (derrière Caddy) =====
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // ===== DB =====
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -28,13 +43,13 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
-// ===== Cookie (frontend login session) =====
 .AddCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 })
-// ===== OpenID Connect (Angular login redirect) =====
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
     options.BackchannelHttpHandler =
@@ -63,24 +78,30 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuer = false,
         ValidIssuer = keycloakConfig["Authority"],
-        ValidateAudience = true,
-        ValidAudience = keycloakConfig["ClientId"],
+        ValidateAudience = false,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
-
         NameClaimType = "preferred_username",
-
         RoleClaimType = "role"
     };
 
     options.Events = new OpenIdConnectEvents
     {
+        OnTokenResponseReceived = ctx =>
+        {
+            var idToken = ctx.TokenEndpointResponse?.IdToken;
+            if (!string.IsNullOrWhiteSpace(idToken) && ctx.Principal?.Identity is ClaimsIdentity id)
+            {
+                if (!id.HasClaim(c => c.Type == "id_token"))
+                    id.AddClaim(new Claim("id_token", idToken));
+            }
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async ctx =>
         {
             var email = ctx.Principal?.FindFirstValue("email");
             if (string.IsNullOrEmpty(email)) return;
 
-            // Récupère les rôles Keycloak depuis le token (claim "role")
             var rolesKeycloak = ctx.Principal?.FindAll("role").Select(c => c.Value).ToList()
                                 ?? new List<string>();
             var estAdmin = rolesKeycloak.Contains("Admin");
@@ -93,7 +114,6 @@ builder.Services.AddAuthentication(options =>
 
             if (user == null)
             {
-                // Nouvel utilisateur : créé avec le bon rôle
                 db.Users.Add(new User
                 {
                     Email = email,
@@ -106,7 +126,6 @@ builder.Services.AddAuthentication(options =>
             }
             else if (user.Role != roleAttendu)
             {
-                // Utilisateur existant : on met à jour son rôle si changé côté Keycloak
                 user.Role = roleAttendu;
                 await db.SaveChangesAsync();
             }
@@ -115,36 +134,39 @@ builder.Services.AddAuthentication(options =>
         OnRedirectToIdentityProviderForSignOut = async ctx =>
         {
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
-
-            // URI autorisée dans Keycloak (voir cv_app → post.logout.redirect.uris)
-            ctx.ProtocolMessage.PostLogoutRedirectUri = "http://localhost/connexion";
-
+            ctx.ProtocolMessage.PostLogoutRedirectUri = "https://cevia.duckdns.org/";
             if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
         },
 
         OnRemoteFailure = ctx =>
         {
-            ctx.Response.Redirect("http://localhost:5000/api/auth/login");
+            ctx.Response.Redirect("https://cevia.duckdns.org/api/auth/login");
             ctx.HandleResponse();
             return Task.CompletedTask;
         }
     };
 })
-
-// ===========
-// JWT BEARER
-// ===========
 .AddJwtBearer("Bearer", options =>
 {
-    options.Authority = "http://localhost:8080/realms/cv-platform";
+    options.Authority = keycloakConfig["Authority"];
     options.RequireHttpsMetadata = false;
-    options.Audience = "cv_app";
+    options.MapInboundClaims = false;
+    options.BackchannelHttpHandler = new HostRewritingHandler("localhost:8080", "keycloak:8080");
+
+    if (!string.IsNullOrEmpty(keycloakConfig["MetadataAddress"]))
+    {
+        options.MetadataAddress = keycloakConfig["MetadataAddress"];
+    }
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidAudience = keycloakConfig["ClientId"],
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero,
         NameClaimType = "preferred_username",
-
         RoleClaimType = "role"
     };
 });
@@ -161,26 +183,56 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost", "http://localhost:80")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.WithOrigins(
+            "http://localhost",
+            "http://localhost:80",
+            "https://cevia.duckdns.org"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<KeycloakAdminService>();
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
-
-// ===== OpenAPI (.NET 10) =====
 builder.Services.AddOpenApi();
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var app = builder.Build();
+
+// ===== Forwarded Headers DOIT être en premier =====
+app.UseForwardedHeaders();
+
+// ===== Migrations automatiques avec fallback =====
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+        if (pendingMigrations.Any())
+        {
+            Console.WriteLine($"📦 Application de {pendingMigrations.Count()} migrations : {string.Join(", ", pendingMigrations)}");
+            db.Database.Migrate();
+            Console.WriteLine("✅ Migrations appliquées avec succès");
+        }
+        else
+        {
+            Console.WriteLine("✅ Aucune migration en attente. Base de données à jour.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Erreur de migration: {ex.Message}");
+        Console.WriteLine("⚠️ Démarrage forcé de l'application sans appliquer les migrations.");
+        Console.WriteLine("⚠️ Certaines fonctionnalités pourraient être affectées si le modèle et la base ne sont pas synchronisés.");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -188,7 +240,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors();
 app.UseStaticFiles();
 app.UseAuthentication();
@@ -196,5 +248,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGet("/", () => Results.Ok("API is running"));
+
+_ = Task.Run(() => PdfGenerationService.WarmUpAsync());
 
 app.Run();

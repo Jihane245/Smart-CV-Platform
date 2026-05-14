@@ -1,4 +1,6 @@
 export const environment = {
   production: true,
-  backendUrl: '',
+  backendUrl: 'https://cevia.duckdns.org',
+  aiUrl: 'https://cevia.duckdns.org',
+  frontendUrl: 'https://cevia.duckdns.org'
 };

@@ -1,0 +1,208 @@
+<main class="main-content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <a class="btn-retour" routerLink="/user">
+        <span class="retour-arrow">‹</span> Retour
+      </a>
+      <div>
+        <h1 class="page-title">Lettree de motivation</h1>
+        <p class="page-subtitle">
+          Générez une lettre adaptée à une offre d'emploi en quelques clics
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <ng-container *ngFor="let etape of etapes; let last = last">
+      <div
+        class="stepper-item"
+        [class.active]="etapeActive === etape.num"
+        [class.complete]="estComplete(etape.num)"
+        (click)="allerEtape(etape.num)"
+      >
+        <div class="stepper-circle">
+          <ng-container *ngIf="estComplete(etape.num); else numTpl">
+            <span class="check">✓</span>
+          </ng-container>
+          <ng-template #numTpl>{{ etape.num }}</ng-template>
+        </div>
+        <span class="stepper-label">{{ etape.label }}</span>
+      </div>
+      <div class="stepper-sep" *ngIf="!last"></div>
+    </ng-container>
+  </div>
+
+  <div class="stepper-line"></div>
+
+  <!-- Hidden image input pour analyse d'offre -->
+  <input
+    #imageInput
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    (change)="onImageSelected($event)"
+    hidden
+  />
+
+  <!-- Contenu -->
+  <div class="lm-layout">
+
+    <!-- ÉTAPE 1 — Saisie -->
+    <ng-container *ngIf="etapeActive === 1">
+      <p class="etape-label">ÉTAPE 1</p>
+      <h2 class="etape-titre">Collez votre offre d'emploi</h2>
+      <p class="etape-desc" *ngIf="!modePreRempli">
+        Copiez-collez la description du poste. Vous pouvez aussi joindre votre CV
+        (PDF) — si absent, votre profil sera utilisé.
+      </p>
+      <p class="etape-desc info-banner" *ngIf="modePreRempli">
+        ✓ Offre et CV pré-remplis depuis votre génération de CV. Cliquez sur
+        <strong>Valider</strong> pour générer la lettre.
+      </p>
+
+      <!-- Texte de l'offre -->
+      <textarea
+        class="offre-textarea"
+        [(ngModel)]="offreTexte"
+        placeholder="Nous recherchons un Développeur Full Stack (H/F) à Casablanca.&#10;&#10;Compétences requises :&#10;– React.js / Next.js&#10;– Node.js, Express, REST API&#10;– Docker, Git"
+        rows="8"
+      ></textarea>
+
+      <!-- Analyse d'image (offre sous forme de capture) -->
+      <div class="image-analyse-row">
+        <span class="ou-bien">Ou bien…</span>
+        <button
+          class="btn-secondary"
+          type="button"
+          (click)="analyserImage()"
+          [disabled]="analyseImageEnCours"
+        >
+          <span *ngIf="!analyseImageEnCours">📷 Analyser une image →</span>
+          <span *ngIf="analyseImageEnCours">Analyse en cours…</span>
+        </button>
+      </div>
+
+      <!-- Méta offre (optionnel) -->
+      <div class="row">
+        <div class="field">
+          <label class="field-label">Titre du poste (optionnel)</label>
+          <input
+            type="text"
+            class="form-input"
+            [(ngModel)]="offreTitre"
+            placeholder="Ex. Développeur Full Stack"
+          />
+        </div>
+        <div class="field">
+          <label class="field-label">Entreprise (optionnel)</label>
+          <input
+            type="text"
+            class="form-input"
+            [(ngModel)]="offreEntreprise"
+            placeholder="Ex. ACME SA"
+          />
+        </div>
+      </div>
+
+      <!-- Upload PDF (caché si on a un CV pré-rempli) -->
+      <ng-container>
+        <p class="section-mini-label" style="margin-top: 1.5rem">CV (OPTIONNEL)</p>
+        <div class="upload-zone" *ngIf="!cvPdfNom">
+          <label class="upload-label">
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              (change)="onPdfSelected($event)"
+              hidden
+            />
+            <span class="upload-icon">⬆</span>
+            <span class="upload-text">
+              Cliquez pour importer un PDF
+              <small>ou laissez vide pour utiliser votre profil</small>
+            </span>
+          </label>
+        </div>
+
+        <div class="upload-selected" *ngIf="cvPdfNom">
+          <span class="file-icon">📄</span>
+          <span class="file-name">{{ cvPdfNom }}</span>
+          <button type="button" class="btn-link-danger" (click)="retirerPdf()">
+            Retirer
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- CV pré-rempli (cas 1) -->
+      <div class="cv-pinned" *ngIf="modePreRempli">
+        <span class="cv-pinned-icon">📎</span>
+        <span class="cv-pinned-text">
+          <small>(CV préalablement généré dans le générateur de CV)</small>
+        </span>
+      </div>
+
+      <!-- Bouton -->
+      <button
+        class="btn-primary"
+        (click)="generer()"
+        [disabled]="generationEnCours || !offreTexte.trim()"
+      >
+        <span *ngIf="!generationEnCours">
+          {{ modePreRempli ? 'Valider et générer →' : "Générer la lettre →" }}
+        </span>
+        <span *ngIf="generationEnCours">Génération en cours…</span>
+      </button>
+    </ng-container>
+
+    <!-- ÉTAPE 2 — Résultat -->
+    <ng-container *ngIf="etapeActive === 2">
+      <p class="etape-label">ÉTAPE 2 — RÉSULTAT</p>
+      <h2 class="etape-titre">Votre lettre de motivation</h2>
+      <p class="etape-desc">
+        Vous pouvez modifier le contenu directement, puis le copier ou le télécharger.
+      </p>
+
+      <div class="result-meta" *ngIf="dateGeneration">
+        <span class="meta-chip">
+          Source CV :
+          <strong>
+            <ng-container [ngSwitch]="source">
+              <span *ngSwitchCase="'pdf'">PDF importé</span>
+              <span *ngSwitchCase="'profil'">Profil utilisateur</span>
+              <span *ngSwitchCase="'cv-existant'">CV généré</span>
+              <span *ngSwitchDefault>—</span>
+            </ng-container>
+          </strong>
+        </span>
+        <span class="meta-chip" *ngIf="lettreId">
+          Lettre enregistrée — ID #{{ lettreId }}
+        </span>
+      </div>
+
+      <textarea
+        class="result-textarea"
+        [(ngModel)]="contenuLettre"
+        rows="20"
+      ></textarea>
+
+      <div class="btn-row">
+        <button class="btn-outline" (click)="recommencer()">↺ Nouvelle lettre</button>
+        <button class="btn-secondary-action" (click)="copierContenu()">
+          ⧉ Copier
+        </button>
+        <button
+          class="btn-primary"
+          (click)="telechargerPdf()"
+          [disabled]="!lettreId"
+          [title]="!lettreId ? 'Disponible pour les lettres enregistrées' : ''"
+        >
+          ↓ Télécharger PDF
+        </button>
+      </div>
+    </ng-container>
+
+  </div>
+
+</main>

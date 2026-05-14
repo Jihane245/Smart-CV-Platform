@@ -26,6 +26,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Candidature> Candidatures { get; set; }
     public DbSet<SectionDynamique> SectionsDynamiques { get; set; }
     public DbSet<LigneDynamique> LignesDynamiques { get; set; }
+    public DbSet<CvPersonnalise> CvsPersonnalises { get; set; }
+    public DbSet<CvPdf> CvPdf {get; set; }
+    public DbSet<TestCompetence> TestsCompetences { get; set; }
+    public DbSet<Roadmap> Roadmaps { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,8 +55,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Cv>().HasOne(c => c.User).WithMany(u => u.Cvs).HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<Cv>().HasOne(c => c.Template).WithMany(t => t.Cvs).HasForeignKey(c => c.TemplateId).OnDelete(DeleteBehavior.SetNull);
         modelBuilder.Entity<LettreMotivation>().HasOne(l => l.User).WithMany(u => u.LettresMotivation).HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<LettreMotivation>().HasOne(l => l.Cv).WithMany().HasForeignKey(l => l.CvId).OnDelete(DeleteBehavior.SetNull);
         modelBuilder.Entity<Candidature>().HasOne(c => c.User).WithMany(u => u.Candidatures).HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<Candidature>().HasOne(c => c.Offre).WithMany(o => o.Candidatures).HasForeignKey(c => c.OffreId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Candidature>().HasOne(c => c.Cv).WithMany(cv => cv.Candidatures).HasForeignKey(c => c.CVId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<AnalyseOffre>().HasOne(a => a.Offre).WithMany(o => o.Analyses).HasForeignKey(a => a.OffreId).OnDelete(DeleteBehavior.Cascade);
 
@@ -65,6 +69,37 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().Property(u => u.IsActif).HasDefaultValue(true);
         modelBuilder.Entity<User>().Property(u => u.Role).HasDefaultValue(RoleUtilisateur.Candidat);
         modelBuilder.Entity<Cv>().Property(c => c.Statut).HasDefaultValue(StatutCVEnum.BROUILLON);
+     
         modelBuilder.Entity<Candidature>().Property(c => c.Statut).HasDefaultValue(StatutCandidature.enregistrée);
-    }
+        modelBuilder.Entity<CvPersonnalise>()
+            .HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CvPersonnalise>()
+            .HasOne(c => c.Template)
+            .WithMany()
+            .HasForeignKey(c => c.TemplateId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        // Dans OnModelCreating
+        modelBuilder.Entity<TestCompetence>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Roadmap>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Roadmap>()
+            .HasOne(r => r.Test)
+            .WithMany()
+            .HasForeignKey(r => r.TestId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }   
 }

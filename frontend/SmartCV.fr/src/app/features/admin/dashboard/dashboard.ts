@@ -10,11 +10,12 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TemplatePreview } from '../template-editor/template-preview/template-preview';
+import { AdminSidebarComponent } from '../../../shared/layout/admin-sidebar/admin-sidebar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TemplatePreview],
+  imports: [CommonModule, FormsModule, TemplatePreview, AdminSidebarComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
@@ -303,7 +304,15 @@ export class Dashboard implements OnInit {
   // ─────────────────────────────────────────────────────────────────────────
   // DÉCONNEXION (immédiate, sans confirmation)
   // ─────────────────────────────────────────────────────────────────────────
-  logout(): void {
+  async logout(): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Se déconnecter ?',
+      message: 'Voulez-vous vraiment vous déconnecter ? Toutes vos modifications non enregistrées seront perdues.',
+      confirmText: 'Se déconnecter',
+      cancelText: 'Annuler',
+      type: 'danger',
+    });
+    if (!ok) return;
     this.authService.logout();
   }
 

@@ -1,0 +1,83 @@
+<main class="main-content">
+
+  <div class="page-header">
+    <div class="header-left">
+      <a class="btn-retour" routerLink="/user">
+        <span class="retour-arrow">‹</span> Retour
+      </a>
+      <div>
+        <h1 class="page-title">Mes Roadmaps</h1>
+        <p class="page-subtitle">Reprenez vos parcours de mise à niveau là où vous les avez laissés</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-rule"></div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="chargement">
+    Chargement de vos roadmaps…
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!chargement && roadmaps.length === 0">
+    <div class="empty-icon">🗺️</div>
+    <h2 class="empty-title">Aucune roadmap pour le moment</h2>
+    <p class="empty-desc">
+      Commencez par analyser une offre d'emploi dans Générer CV,<br>
+      puis utilisez "Combler les écarts" pour créer votre première roadmap.
+    </p>
+    <a class="btn-primary" routerLink="/user/generate-cv">
+      Analyser une offre →
+    </a>
+  </div>
+
+  <!-- Roadmap list -->
+  <div class="roadmap-list" *ngIf="!chargement && roadmaps.length > 0">
+    <div
+      class="roadmap-card"
+      *ngFor="let r of roadmaps"
+      [class.card-complete]="r.completee"
+      [class.card-encours]="!r.completee"
+    >
+      <!-- Left: info -->
+      <div class="card-left">
+        <div class="competence-badge">
+          {{ r.nomCompetence.charAt(0).toUpperCase() }}
+        </div>
+        <div class="card-info">
+          <h2 class="card-competence">{{ r.nomCompetence }}</h2>
+          <div class="card-meta">
+            <span class="meta-item">Niveau départ : <strong>{{ niveauLabel(r.niveauDepart) }}</strong></span>
+            <span class="meta-sep">·</span>
+            <span class="meta-item">Score initial : <strong>{{ scoreLabel(r) }}</strong></span>
+            <span class="meta-sep">·</span>
+            <span class="meta-item">{{ r.createdAt | date:'d MMM yyyy' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: status + action -->
+      <div class="card-right">
+        <span class="statut-badge" [class]="statutClass(r)">
+          {{ statutLabel(r) }}
+        </span>
+
+        <button
+          class="btn-reprendre"
+          *ngIf="!r.completee"
+          (click)="reprendre(r)"
+          [disabled]="resumeEnCours === r.id"
+        >
+          <span *ngIf="resumeEnCours !== r.id">▶ Reprendre</span>
+          <span *ngIf="resumeEnCours === r.id">Chargement…</span>
+        </button>
+
+        <span class="validee-badge" *ngIf="r.completee">
+          ✓ Compétence ajoutée au profil
+        </span>
+      </div>
+    </div>
+  </div>
+
+</main>
