@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-const API_BASE = `${environment.backendUrl}/api/admin`;
+const API_BASE = `${environment.backendUrl}/api/admin`
 
 // ─────────────────────────────────────────────────────────────────────────
 // STATISTIQUES

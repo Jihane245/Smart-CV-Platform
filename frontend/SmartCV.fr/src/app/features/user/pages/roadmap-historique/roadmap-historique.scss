@@ -1,0 +1,269 @@
+// roadmap-historique.scss
+$brown-dark: #5C4220;
+$brown: #6B4E2A;
+$brown-light: #7B5C35;
+$cream: #F5F0E8;
+$cream-dark: #EDE6D8;
+$text: #2C2010;
+$muted: #9A8870;
+$green: #4A7C59;
+
+.main-content {
+  padding: 2rem 2.5rem;
+  font-family: 'DM Sans', sans-serif;
+  color: $text;
+  background: $cream;
+  min-height: 100vh;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+.page-header { margin-bottom: 1.25rem; }
+
+.header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.btn-retour {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: $brown;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.4rem;
+  transition: color 0.2s;
+  &:hover { color: $brown-dark; }
+  .retour-arrow { font-size: 1.2rem; }
+}
+
+.page-title {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.2rem;
+}
+
+.page-subtitle {
+  color: $muted;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.page-rule {
+  height: 1px;
+  background: $cream-dark;
+  margin-bottom: 2rem;
+}
+
+// ─── States ───────────────────────────────────────────────────────────────────
+
+.loading-state {
+  color: $muted;
+  font-style: italic;
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1.25rem;
+}
+
+.empty-title {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.75rem;
+}
+
+.empty-desc {
+  color: $muted;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.btn-primary {
+  background: $brown-dark;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  text-decoration: none;
+  transition: background 0.2s;
+  &:hover { background: $brown; }
+}
+
+// ─── Roadmap list ─────────────────────────────────────────────────────────────
+
+.roadmap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.roadmap-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  background: #fff;
+  border: 1.5px solid $cream-dark;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  transition: border-color 0.15s;
+
+  &:hover { border-color: $brown-light; }
+
+  &.card-complete {
+    border-left: 4px solid $green;
+  }
+
+  &.card-encours {
+    border-left: 4px solid $brown;
+  }
+}
+
+.card-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.competence-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: $cream-dark;
+  color: $brown-dark;
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-info {
+  min-width: 0;
+}
+
+.card-competence {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-size: 0.8rem;
+  color: $muted;
+
+  strong {
+    color: $text;
+    font-weight: 600;
+  }
+}
+
+.meta-sep {
+  color: $cream-dark;
+  font-size: 0.8rem;
+}
+
+// ─── Card right ───────────────────────────────────────────────────────────────
+
+.card-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.statut-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+
+  &.statut-validee {
+    background: rgba($green, 0.1);
+    color: $green;
+  }
+
+  &.statut-encours {
+    background: rgba($brown, 0.1);
+    color: $brown-dark;
+  }
+
+  &.statut-echouee {
+    background: rgba(#8B1A1A, 0.08);
+    color: #8B1A1A;
+  }
+}
+
+.btn-reprendre {
+  background: $brown-dark;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, opacity 0.2s;
+
+  &:hover:not(:disabled) { background: $brown; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.validee-badge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: $green;
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 700px) {
+  .roadmap-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

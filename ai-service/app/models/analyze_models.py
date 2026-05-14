@@ -1,5 +1,13 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
+class RecommendationResponse(BaseModel):
+    priorite: str
+    message_global: str
+    competences_a_apprendre: List[str]
+    technologies_prioritaires: List[str]
+    ameliorations_cv: List[str]
+    suggestions_projets: List[str]
 
 class OffreRequest(BaseModel):
     texte: str
@@ -14,3 +22,6 @@ class AnalyzeResponse(BaseModel):
     score_compatibilite: int
     competences_match: list[str]
     competences_manquantes: list[str]
+
+    recommandations: Optional[RecommendationResponse] = None
+
