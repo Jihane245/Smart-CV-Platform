@@ -12,7 +12,8 @@ const API_BASE = `${environment.backendUrl}/api/profil`;
 export function toAbsolutePhotoUrl(relative: string | null | undefined): string | null {
   if (!relative) return null;
   if (/^https?:\/\//i.test(relative)) return relative;
-  return `${BACKEND_ORIGIN}${relative.startsWith('/') ? '' : '/'}${relative}`;
+  const origin = environment.backendUrl || '';
+  return `${origin}${relative.startsWith('/') ? '' : '/'}${relative}`;
 }
 
 /** Corps attendu par POST /api/profil/me/competences (niveau = index enum backend) */
