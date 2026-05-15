@@ -21,6 +21,8 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { CvComponentRenderer } from '../../../admin/template-editor/cv-component-renderer/cv-component-renderer';
 import { CvData, buildCvDataFromProfil, presentLabelFor, ALL_PRESENT_VALUES } from './cv-data';
 import { GenerateCvStateService } from '../../../../core/services/generate-cv-state.service';
+import { CompetenceUpgradeService } from '../../../../core/services/competence-upgrade.service';
+import { GapSessionStateService } from '../../../../core/services/gap-session-state.service';
 
 interface CompetenceAnalysee {
   nom: string;
@@ -86,6 +88,7 @@ export class GenerateCv implements OnInit {
   analyseEnCours = false;
   generationEnCours = false;
   telechargementEnCours = false;
+  comblerEnCours = false;
 
   // ─── Profil (persisté) ───────────────────────────────────────────────────────
   get prenom(): string { return this.cvState.state.prenom; }
@@ -187,6 +190,8 @@ export class GenerateCv implements OnInit {
     public cvState: GenerateCvStateService,
     private route: ActivatedRoute,
     private router: Router,
+    private competenceUpgradeService: CompetenceUpgradeService,
+    private gapSessionState: GapSessionStateService,
   ) {}
 
   ngOnInit(): void {
@@ -457,6 +462,78 @@ export class GenerateCv implements OnInit {
     });
   }
 
+    // ─── Gérer les écarts/Gaps ──────────────────────────────────────────────────
+
+  /**
+  * Builds the CreateGapSessionRequest from the current analysis state,
+  * calls the backend to persist it, stores the result in GapSessionStateService,
+  * then navigates to /user/competence-upgrade?sessionId=X.
+  *
+  * Called from:
+  *  (a) the "Combler les écarts" button on step 2
+  *  (b) telechargerPdf() — so gaps are always saved when a CV is downloaded
+  */
+  private sauvegarderGapSession(): Promise<number | null> {
+    const manquantes = this.competencesAnalysees
+      .filter(c => c.statut === 'renforcer')
+      .map(c => ({ nomCompetence: c.nom, priorite: 'haute' as const }));
+
+    const partielles = this.competencesAnalysees
+      .filter(c => c.statut === 'partiel')
+      .map(c => ({ nomCompetence: c.nom, priorite: 'renforcer' as const }));
+
+    const toutes = [...manquantes, ...partielles];
+    if (!toutes.length) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      this.competenceUpgradeService.createGapSession({
+        texteOffre:           this.offreTexte || this.resumeIA || '',
+        titreOffre:           undefined,   // AI doesn't return a parsed title
+        entreprise:           undefined,   // AI doesn't return a parsed company
+        scoreCompatibilite:   this.scoreCompatibilite,
+        competencesManquantes: toutes,
+      }).subscribe({
+        next: ({ sessionId }) => resolve(sessionId),
+        error: ()            => resolve(null),   // non-blocking — CV download must not fail
+      });
+    });
+  }
+
+  async comblerLesEcarts(): Promise<void> {
+    if (this.comblerEnCours) return;
+    this.comblerEnCours = true;
+
+    const sessionId = await this.sauvegarderGapSession();
+
+    if (!sessionId) {
+      this.notifService.error(
+        'Impossible de sauvegarder les écarts. Veuillez réessayer.'
+      );
+      this.comblerEnCours = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Fetch the full session detail so the upgrade page has it immediately
+    this.competenceUpgradeService.getGapSessionDetail(sessionId).subscribe({
+      next: (detail) => {
+        this.gapSessionState.setSession(detail);
+        this.comblerEnCours = false;
+        this.router.navigate(['/user/competence-upgrade'], {
+          queryParams: { sessionId },
+        });
+      },
+      error: () => {
+        // Still navigate — upgrade page will fetch it on its own
+        this.gapSessionState.setSessionId(sessionId);
+        this.comblerEnCours = false;
+        this.router.navigate(['/user/competence-upgrade'], {
+          queryParams: { sessionId },
+        });
+      },
+    });
+  }
+
   // ─── Étape 3 → 4 ─────────────────────────────────────────────────────────────
   generer(): void {
     if (!this.templateSelectionne) {
@@ -544,6 +621,20 @@ export class GenerateCv implements OnInit {
         URL.revokeObjectURL(url);
         this.telechargementEnCours = false;
         this.notifService.success('CV téléchargé avec succès !');
+        // ── NEW: persist gap session silently after PDF download ──────────
+        // Only if there are skills to save and no session has been saved yet
+        const hasGaps = this.competencesAnalysees.some(c => c.statut === 'renforcer' || c.statut === 'partiel');
+        if (hasGaps) {
+          this.sauvegarderGapSession().then(sessionId => {
+            if (sessionId) {
+              this.competenceUpgradeService.getGapSessionDetail(sessionId).subscribe({
+                next: (detail) => this.gapSessionState.setSession(detail),
+                error: ()      => this.gapSessionState.setSessionId(sessionId),
+              });
+            }
+          });
+        }
+        // ─────────────────────────────────────────────────────────────────
         this.cdr.detectChanges();
       },
       error: () => {
