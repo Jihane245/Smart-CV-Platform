@@ -55,7 +55,15 @@ public class CompetenceUpgradeController : ControllerBase
 
     // Helper : lit une propriété JsonElement sans crasher si absent
     private static JsonElement GetProp(JsonElement el, string name)
-        => el.TryGetProperty(name, out var val) ? val : default;
+    {
+        // Try exact match first
+        if (el.TryGetProperty(name, out var val)) return val;
+        // Fall back to case-insensitive search
+        foreach (var prop in el.EnumerateObject())
+            if (prop.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                return prop.Value;
+        return default;
+    }
 
     // ─── 1. Détecter les écarts ─────────────────────────────────────────────
 
