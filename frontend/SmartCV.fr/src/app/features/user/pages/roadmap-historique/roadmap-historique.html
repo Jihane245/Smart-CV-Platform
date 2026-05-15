@@ -1,83 +1,209 @@
 <main class="main-content">
 
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
   <div class="page-header">
     <div class="header-left">
       <a class="btn-retour" routerLink="/user">
         <span class="retour-arrow">‹</span> Retour
       </a>
       <div>
-        <h1 class="page-title">Mes Roadmaps</h1>
-        <p class="page-subtitle">Reprenez vos parcours de mise à niveau là où vous les avez laissés</p>
+        <h1 class="page-title">Historique des mises à niveau</h1>
+        <p class="page-subtitle">Reprenez vos parcours d'acquisition de compétences</p>
       </div>
     </div>
+    <a class="btn-primary" routerLink="/user/generate-cv">
+      + Analyser une offre
+    </a>
   </div>
 
   <div class="page-rule"></div>
 
-  <!-- Loading -->
+  <!-- ── Loading ──────────────────────────────────────────────────────────── -->
   <div class="loading-state" *ngIf="chargement">
-    Chargement de vos roadmaps…
+    Chargement de vos sessions…
   </div>
 
-  <!-- Empty state -->
-  <div class="empty-state" *ngIf="!chargement && roadmaps.length === 0">
+  <!-- ── Empty ────────────────────────────────────────────────────────────── -->
+  <div class="empty-state" *ngIf="!chargement && sessions.length === 0">
     <div class="empty-icon">🗺️</div>
-    <h2 class="empty-title">Aucune roadmap pour le moment</h2>
+    <h2 class="empty-title">Aucune session de mise à niveau</h2>
     <p class="empty-desc">
-      Commencez par analyser une offre d'emploi dans Générer CV,<br>
-      puis utilisez "Combler les écarts" pour créer votre première roadmap.
+      Commencez par analyser une offre d'emploi dans <strong>Générer CV</strong>,<br>
+      puis cliquez sur <em>Combler les écarts</em> ou téléchargez votre CV.
     </p>
     <a class="btn-primary" routerLink="/user/generate-cv">
       Analyser une offre →
     </a>
   </div>
 
-  <!-- Roadmap list -->
-  <div class="roadmap-list" *ngIf="!chargement && roadmaps.length > 0">
-    <div
-      class="roadmap-card"
-      *ngFor="let r of roadmaps"
-      [class.card-complete]="r.completee"
-      [class.card-encours]="!r.completee"
-    >
-      <!-- Left: info -->
-      <div class="card-left">
-        <div class="competence-badge">
-          {{ r.nomCompetence.charAt(0).toUpperCase() }}
-        </div>
-        <div class="card-info">
-          <h2 class="card-competence">{{ r.nomCompetence }}</h2>
-          <div class="card-meta">
-            <span class="meta-item">Niveau départ : <strong>{{ niveauLabel(r.niveauDepart) }}</strong></span>
-            <span class="meta-sep">·</span>
-            <span class="meta-item">Score initial : <strong>{{ scoreLabel(r) }}</strong></span>
-            <span class="meta-sep">·</span>
-            <span class="meta-item">{{ r.createdAt | date:'d MMM yyyy' }}</span>
+  <!-- ── Session list ──────────────────────────────────────────────────────── -->
+  <div class="session-list" *ngIf="!chargement && sessions.length > 0">
+
+    <div *ngFor="let session of sessions"
+         class="session-card"
+         [class.session-expanded]="isExpanded(session)"
+         [class.session-complete]="statutSession(session) === 'complete'"
+         [class.session-encours]="statutSession(session) === 'encours'">
+
+      <!-- ── Card header (always visible, click to expand) ── -->
+      <div class="session-header" (click)="toggleSession(session)">
+
+        <div class="session-header-left">
+          <!-- Offer icon -->
+          <div class="session-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M8 7h8M8 11h8M8 15h5"/>
+            </svg>
+          </div>
+
+          <div class="session-info">
+            <h2 class="session-titre">{{ sessionLabel(session) }}</h2>
+            <div class="session-meta">
+              <span *ngIf="session.entreprise" class="meta-chip">{{ session.entreprise }}</span>
+              <span class="meta-chip">{{ session.createdAt | date:'d MMM yyyy' }}</span>
+              <span class="meta-chip">
+                Compatibilité : <strong>{{ session.scoreCompatibilite }}%</strong>
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Right: status + action -->
-      <div class="card-right">
-        <span class="statut-badge" [class]="statutClass(r)">
-          {{ statutLabel(r) }}
-        </span>
+        <div class="session-header-right">
+          <!-- Progress ring + label -->
+          <div class="session-progress-col">
+            <div class="progress-ring-wrap">
+              <svg class="progress-ring" viewBox="0 0 36 36">
+                <circle class="ring-bg" cx="18" cy="18" r="15.9"/>
+                <circle class="ring-fill"
+                        cx="18" cy="18" r="15.9"
+                        [style.stroke-dasharray]="progressionSession(session) + ' 100'"
+                        [class.ring-complete]="statutSession(session) === 'complete'"/>
+              </svg>
+              <span class="ring-pct">{{ progressionSession(session) }}%</span>
+            </div>
+            <div class="session-progress-text">
+              {{ session.skillsTermines }}/{{ session.totalSkills }} validées
+            </div>
+          </div>
 
-        <button
-          class="btn-reprendre"
-          *ngIf="!r.completee"
-          (click)="reprendre(r)"
-          [disabled]="resumeEnCours === r.id"
-        >
-          <span *ngIf="resumeEnCours !== r.id">▶ Reprendre</span>
-          <span *ngIf="resumeEnCours === r.id">Chargement…</span>
-        </button>
+          <!-- Status badge -->
+          <span class="statut-badge" [class]="statutClass(session)">
+            {{ statutLabel(session) }}
+          </span>
 
-        <span class="validee-badge" *ngIf="r.completee">
-          ✓ Compétence ajoutée au profil
-        </span>
-      </div>
-    </div>
-  </div>
+          <!-- Reprendre button (not shown for completed sessions) -->
+          <button *ngIf="statutSession(session) !== 'complete'"
+                  class="btn-reprendre"
+                  (click)="$event.stopPropagation(); reprendreSession(session)"
+                  [disabled]="navigationEnCours === session.id">
+            <span *ngIf="navigationEnCours !== session.id">▶ Reprendre</span>
+            <span *ngIf="navigationEnCours === session.id">Chargement…</span>
+          </button>
+
+          <span class="validee-badge" *ngIf="statutSession(session) === 'complete'">
+            ✓ Toutes les compétences validées
+          </span>
+
+          <!-- Expand chevron -->
+          <div class="chevron" [class.chevron-open]="isExpanded(session)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+
+      </div><!-- /session-header -->
+
+      <!-- ── Expanded skill detail ── -->
+      <div class="session-body" *ngIf="isExpanded(session)">
+
+        <div class="session-body-loading" *ngIf="chargementDetail">
+          Chargement des compétences…
+        </div>
+
+        <ng-container *ngIf="!chargementDetail && sessionDetail && sessionDetail.id === session.id">
+
+          <div class="skills-table">
+            <div class="skills-table-header">
+              <span>Compétence</span>
+              <span>Priorité</span>
+              <span>Progression</span>
+              <span>Statut</span>
+              <span></span>
+            </div>
+
+            <div *ngFor="let skill of sessionDetail.skills"
+                 class="skills-table-row"
+                 [class.skill-row-valide]="skill.completee">
+
+              <!-- Name -->
+              <div class="skill-name-cell">
+                <div class="skill-initial">{{ skill.nomCompetence.charAt(0).toUpperCase() }}</div>
+                <span>{{ skill.nomCompetence }}</span>
+              </div>
+
+              <!-- Priority -->
+              <div class="skill-priority-cell">
+                <span class="priority-dot"
+                      [class.dot-haute]="skill.priorite === 'haute'"
+                      [class.dot-renforcer]="skill.priorite === 'renforcer'"
+                      [class.dot-evaluer]="skill.priorite === 'evaluer'">●</span>
+                {{ prioriteLabel(skill.priorite) }}
+              </div>
+
+              <!-- Progression bar -->
+              <div class="skill-prog-cell">
+                <div class="skill-prog-track">
+                  <div class="skill-prog-fill"
+                       [style.width.%]="skill.progression ?? 0"
+                       [class.fill-valide]="skill.completee"></div>
+                </div>
+                <span class="skill-prog-pct">{{ skill.progression ?? 0 }}%</span>
+              </div>
+
+              <!-- Phase label -->
+              <div class="skill-phase-cell">
+                <span class="skill-phase-badge" [class]="phaseClass(skill.phase, skill.completee)">
+                  {{ phaseLabel(skill.phase) }}
+                </span>
+              </div>
+
+              <!-- Score if available -->
+              <div class="skill-score-cell">
+                <span *ngIf="skill.testScore != null" class="skill-score">
+                  {{ skill.testScore }}/100
+                </span>
+                <span *ngIf="skill.testScore == null && !skill.roadmapId" class="skill-pending">
+                  —
+                </span>
+              </div>
+
+            </div><!-- /skills-table-row -->
+          </div><!-- /skills-table -->
+
+          <!-- Action row -->
+          <div class="session-body-actions">
+            <button class="btn-reprendre-full"
+                    *ngIf="statutSession(session) !== 'complete'"
+                    (click)="reprendreSession(session)"
+                    [disabled]="navigationEnCours === session.id">
+              <span *ngIf="navigationEnCours !== session.id">
+                ▶ Continuer cette session
+              </span>
+              <span *ngIf="navigationEnCours === session.id">Chargement…</span>
+            </button>
+            <span class="complete-note" *ngIf="statutSession(session) === 'complete'">
+              ✓ Toutes les compétences de cette offre ont été ajoutées à votre profil.
+            </span>
+          </div>
+
+        </ng-container>
+
+      </div><!-- /session-body -->
+
+    </div><!-- /session-card -->
+
+  </div><!-- /session-list -->
 
 </main>
