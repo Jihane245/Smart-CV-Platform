@@ -29,15 +29,13 @@ export class Dashboard implements OnInit {
   templateDetail: AdminTemplateDto | null = null;
 
   // Sélection du mois pour filtrer les stats
-  // null = afficher le total ; index 0-6 = afficher le mois correspondant
   selectedMonthIndex: number | null = null;
 
-  // Labels des 7 derniers mois générés dynamiquement
+
   monthLabels: string[] = [];
 
-  // ─────────────────────────────────────────────────────────────────────────
+  
   // ÉTAT UI
-  // ─────────────────────────────────────────────────────────────────────────
   recherche = '';
   initiales = 'JG';
   loadingStats = false;
@@ -45,7 +43,7 @@ export class Dashboard implements OnInit {
   loadingTemplates = false;
   lastError: string | null = null;
 
-  // Modal détail utilisateur
+
   userDetail: AdminUtilisateurDetailDto | null = null;
   loadingUserDetail = false;
 
@@ -66,11 +64,8 @@ export class Dashboard implements OnInit {
     this.refreshTemplates();
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  
   // MOIS DYNAMIQUE
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // Génère les 12 mois de l'année en cours (Jan → Déc)
   private genererMonthLabels(): void {
     this.monthLabels = [
       'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
@@ -78,12 +73,11 @@ export class Dashboard implements OnInit {
     ];
   }
 
-  // L'utilisateur clique sur un mois
+
   selectMonth(index: number): void {
     this.selectedMonthIndex = this.selectedMonthIndex === index ? null : index;
   }
 
-  // Réinitialise la sélection (revient au total)
   resetMonth(): void {
     this.selectedMonthIndex = null;
   }
@@ -186,9 +180,7 @@ export class Dashboard implements OnInit {
       });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // ACTIONS UTILISATEURS
-  // ─────────────────────────────────────────────────────────────────────────
   voirUtilisateur(u: AdminUtilisateurDto): void {
     this.loadingUserDetail = true;
     this.userDetail = null;
@@ -249,19 +241,16 @@ export class Dashboard implements OnInit {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+
   // ACTIONS TEMPLATES
-  // ─────────────────────────────────────────────────────────────────────────
   editerTemplate(t: AdminTemplateDto): void {
     this.router.navigate(['/admin/templates', t.id, 'edit']);
   }
 
-  // Ouvre le modal détail quand on clique sur une carte template
   voirDetailTemplate(t: AdminTemplateDto): void {
     this.templateDetail = t;
   }
 
-  // Ferme le modal détail
   fermerDetailTemplate(): void {
     this.templateDetail = null;
   }
@@ -301,9 +290,7 @@ export class Dashboard implements OnInit {
     this.router.navigate(['/admin/templates/nouveau']);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // DÉCONNEXION (immédiate, sans confirmation)
-  // ─────────────────────────────────────────────────────────────────────────
+  // DÉCONNEXION 
   async logout(): Promise<void> {
     const ok = await this.confirmService.confirm({
       title: 'Se déconnecter ?',
