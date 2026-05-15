@@ -30,7 +30,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<CvPdf> CvPdf {get; set; }
     public DbSet<TestCompetence> TestsCompetences { get; set; }
     public DbSet<Roadmap> Roadmaps { get; set; }
-
+    public DbSet<GapSession>      GapSessions      { get; set; }
+    public DbSet<GapSessionSkill> GapSessionSkills { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -44,7 +45,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<LigneDynamique>().HasOne(l => l.Section).WithMany(s => s.Lignes).HasForeignKey(l => l.SectionId).OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
-        modelBuilder.Entity<Competence>().HasIndex(c => c.Nom).IsUnique();
+        modelBuilder.Entity<Competence>().HasIndex(c => new { c.ProfilId, c.Nom }).IsUnique();
         modelBuilder.Entity<TemplateCv>().HasIndex(t => t.Nom).IsUnique();
 
         modelBuilder.Entity<User>().HasOne(u => u.Profil).WithOne(p => p.User).HasForeignKey<Profil>(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -101,5 +102,25 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(r => r.TestId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // GapSession
+        modelBuilder.Entity<GapSession>()
+            .HasOne(s => s.User)
+            .WithMany()
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<GapSessionSkill>()
+            .HasOne(sk => sk.GapSession)
+            .WithMany(s => s.Skills)
+            .HasForeignKey(sk => sk.GapSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<GapSessionSkill>()
+            .HasOne(sk => sk.Roadmap)
+            .WithMany()
+            .HasForeignKey(sk => sk.RoadmapId)
+            .OnDelete(DeleteBehavior.SetNull);  // deleting roadmap doesn't cascade to skill
+
     }   
 }
