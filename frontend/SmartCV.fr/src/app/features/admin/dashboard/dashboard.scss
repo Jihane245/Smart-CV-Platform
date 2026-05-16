@@ -11,7 +11,6 @@ $color-muted:      #9e8a76;
 $color-white:      #faf7f2;
 $radius:           12px;
 
-// ── Layout ─────────────────────────────────────────────────────────────────────
 .admin-layout {
   display: flex;
   min-height: 100vh;
@@ -19,7 +18,6 @@ $radius:           12px;
   font-family: 'Georgia', serif;
 }
 
-// ── Sidebar ────────────────────────────────────────────────────────────────────
 .sidebar {
   width: 56px;
   background: $color-brown;
@@ -71,7 +69,7 @@ $radius:           12px;
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
-    margin-top: auto;  // pousse l'avatar (et le logout) tout en bas de la sidebar
+    margin-top: auto;  
   }
 
   .sidebar-logout {
@@ -96,7 +94,7 @@ $radius:           12px;
   }
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────────
+
 .main-content {
   margin-left: 56px;
   flex: 1;
@@ -104,7 +102,6 @@ $radius:           12px;
   overflow-y: auto;
 }
 
-// ── Header ─────────────────────────────────────────────────────────────────────
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -138,7 +135,6 @@ $radius:           12px;
   &:hover { background: darken($color-brown-dark, 8%); }
 }
 
-// ── Filtre mois ────────────────────────────────────────────────────────────────
 .month-filter {
   display: flex;
   align-items: center;
@@ -185,7 +181,6 @@ $radius:           12px;
   }
 }
 
-// ── Stats ──────────────────────────────────────────────────────────────────────
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -227,7 +222,6 @@ $radius:           12px;
   }
 }
 
-// ── Bar chart ──────────────────────────────────────────────────────────────────
 .bar-chart {
   display: flex;
   align-items: flex-end;
@@ -293,7 +287,6 @@ $radius:           12px;
   }
 }
 
-// ── Section ────────────────────────────────────────────────────────────────────
 .section {
   margin-bottom: 2rem;
 }
@@ -312,7 +305,6 @@ $radius:           12px;
   margin: 0 0 1rem;
 }
 
-// ── Recherche ──────────────────────────────────────────────────────────────────
 .search-input {
   padding: 0.5rem 1rem;
   border: 1px solid $color-border;
@@ -329,7 +321,6 @@ $radius:           12px;
   &:focus { border-color: $color-brown; }
 }
 
-// ── Table ──────────────────────────────────────────────────────────────────────
 .table-card {
   background: $color-white;
   border-radius: $radius;
@@ -429,7 +420,6 @@ $radius:           12px;
   }
 }
 
-// ── Templates grid ─────────────────────────────────────────────────────────────
 .templates-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -682,9 +672,7 @@ $radius:           12px;
   .templates-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODAL : Détail d'un template
-// ═══════════════════════════════════════════════════════════════════════════════
+
 .modal-overlay {
   position: fixed;
   top: 0;
