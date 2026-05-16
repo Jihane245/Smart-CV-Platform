@@ -7,6 +7,7 @@
 .env
 .env.*
 appsettings.Development.json
+
 # =========================
 
 # Python (ai-service)
@@ -51,6 +52,7 @@ obj/
 *.user
 *.suo
 *.cache
+*.lscache
 
 # =========================
 

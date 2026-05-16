@@ -112,4 +112,25 @@ public class KeycloakAdminService
 
         return resp.IsSuccessStatusCode;
     }
+
+    public async Task<bool> ResetPasswordAsync(string email, string newPassword)
+    {
+        var client = await CreateAuthenticatedClientAsync();
+        var userId = await FindUserIdByEmailAsync(client, email);
+        if (userId == null) return false;
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            type      = "password",
+            value     = newPassword,
+            temporary = false,
+        });
+
+        var response = await client.PutAsync(
+            $"{BaseUrl}/admin/realms/{Realm}/users/{userId}/reset-password",
+            new StringContent(payload, Encoding.UTF8, "application/json")
+        );
+        return response.IsSuccessStatusCode;
+    }
+    
 }
