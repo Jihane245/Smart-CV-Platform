@@ -617,7 +617,7 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-cv-platform" ],
     "clientRoles" : {
-      "realm-management" : [ "manage-users", "view-users" ]
+      "realm-management" : [ "manage-users", "view-users", "realm-admin" ]
     },
     "notBefore" : 0,
     "groups" : [ ]
