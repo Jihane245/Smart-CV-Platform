@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -19,11 +19,13 @@ export class SidebarComponent implements OnInit {
   displayName = '';
   userInitials = '';
   photoUrl: string | null = null;
+  isAdmin = false;
 
   constructor(
     private authService: AuthService,
     private confirmService: ConfirmService,
     private profilService: ProfilService,
+    private cdr: ChangeDetectorRef, 
   ) {}
 
   ngOnInit(): void {
@@ -36,6 +38,7 @@ export class SidebarComponent implements OnInit {
           `${given} ${surname}`.trim() || data.preferredUsername || '';
         this.userInitials =
           (given.charAt(0) + surname.charAt(0)).toUpperCase() || '?';
+        this.cdr.markForCheck();
       },
       error: () => {
         this.displayName = 'Utilisateur';
@@ -48,11 +51,20 @@ export class SidebarComponent implements OnInit {
     this.profilService.getMe().subscribe({
       next: (profil) => {
         this.photoUrl = toAbsolutePhotoUrl(profil.photoUrl);
+        this.cdr.markForCheck();
       },
       error: () => {
         // Pas grave : on garde le fallback initiales
         this.photoUrl = null;
       }
+    });
+
+    this.authService.isAdmin().subscribe({
+      next: (v) => { 
+        this.isAdmin = v; 
+        this.cdr.markForCheck();
+      },
+      error: () => { this.isAdmin = false; }
     });
   }
 

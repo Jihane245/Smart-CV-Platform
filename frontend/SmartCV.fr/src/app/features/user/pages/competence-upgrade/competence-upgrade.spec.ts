@@ -121,7 +121,7 @@ describe('CompetenceUpgrade', () => {
       nom: 'Doe',
       competencesAnalysees: [
         { nom: 'Docker', statut: 'renforcer' },
-        { nom: 'K8s', statut: 'partiel' },
+        // { nom: 'K8s', statut: 'partiel' },
         { nom: 'Angular', statut: 'maitrise' },
       ],
       niveauLabel: 'Intermediaire',

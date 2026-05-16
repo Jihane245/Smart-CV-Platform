@@ -26,7 +26,7 @@ import { GapSessionStateService } from '../../../../core/services/gap-session-st
 
 interface CompetenceAnalysee {
   nom: string;
-  statut: 'maitrise' | 'partiel' | 'renforcer';
+  statut: 'maitrise' | 'renforcer';
 }
 
 interface CompetenceCvPreview {
@@ -429,9 +429,6 @@ export class GenerateCv implements OnInit {
     this.competencesAnalysees = [
       ...(res.competences_match ?? []).map(nom => ({ nom, statut: 'maitrise' as const })),
       ...(res.competences_manquantes ?? []).map(nom => ({ nom, statut: 'renforcer' as const })),
-      ...this.competencesNoms
-        .filter(n => !matchSet.has(n.toLowerCase()) && !manquantSet.has(n.toLowerCase()))
-        .map(nom => ({ nom, statut: 'partiel' as const })),
     ];
 
     this.analyseEnCours = false;
@@ -474,15 +471,9 @@ export class GenerateCv implements OnInit {
   *  (b) telechargerPdf() — so gaps are always saved when a CV is downloaded
   */
   private sauvegarderGapSession(): Promise<number | null> {
-    const manquantes = this.competencesAnalysees
+    const toutes = this.competencesAnalysees
       .filter(c => c.statut === 'renforcer')
       .map(c => ({ nomCompetence: c.nom, priorite: 'haute' as const }));
-
-    const partielles = this.competencesAnalysees
-      .filter(c => c.statut === 'partiel')
-      .map(c => ({ nomCompetence: c.nom, priorite: 'renforcer' as const }));
-
-    const toutes = [...manquantes, ...partielles];
     if (!toutes.length) return Promise.resolve(null);
 
     return new Promise((resolve) => {
@@ -623,7 +614,7 @@ export class GenerateCv implements OnInit {
         this.notifService.success('CV téléchargé avec succès !');
         // ── NEW: persist gap session silently after PDF download ──────────
         // Only if there are skills to save and no session has been saved yet
-        const hasGaps = this.competencesAnalysees.some(c => c.statut === 'renforcer' || c.statut === 'partiel');
+        const hasGaps = this.competencesAnalysees.some(c => c.statut === 'renforcer');
         if (hasGaps) {
           this.sauvegarderGapSession().then(sessionId => {
             if (sessionId) {
@@ -753,14 +744,11 @@ export class GenerateCv implements OnInit {
 
   statutCompetence(statut: string): string {
     if (statut === 'maitrise') return '✓';
-    if (statut === 'partiel') return '~';
     return '✕';
   }
 
-  couleurPriorite(priorite: string): string {
-    if (priorite === 'haute') return '#8B1A1A';
-    if (priorite === 'moyenne') return '#B8720A';
-    return '#3B5E3A';
+  couleurPriorite(statut: string): string {
+    return statut === 'maitrise' ? '✓' : '✕';
   }
 
   get competencesManquantesNoms(): string[] {
