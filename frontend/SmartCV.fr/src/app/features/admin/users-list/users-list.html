@@ -1,0 +1,79 @@
+<div class="admin-layout">
+
+  <app-admin-sidebar></app-admin-sidebar>
+
+  <main class="main-content">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Utilisateurs</h1>
+        <p class="page-subtitle">Liste complète des utilisateurs de la plateforme</p>
+      </div>
+      <button class="btn-retour" (click)="retourDashboard()">← Retour</button>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="count">{{ utilisateursFiltres.length }} utilisateur(s)</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Rechercher un utilisateur..."
+          [(ngModel)]="recherche"
+        />
+      </div>
+
+      <div class="table-card">
+        <div *ngIf="loading" class="state-msg">Chargement…</div>
+        <div *ngIf="lastError && !loading" class="state-msg error">{{ lastError }}</div>
+
+        <table *ngIf="!loading && utilisateursFiltres.length > 0" class="user-table">
+          <thead>
+            <tr>
+              <th>UTILISATEUR</th>
+              <th>EMAIL</th>
+              <th>CV GÉNÉRÉS</th>
+              <th>INSCRIT LE</th>
+              <th>STATUT</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of utilisateursFiltres">
+              <td class="user-cell">
+                <div class="user-avatar" [style.background]="u.couleurAvatar">
+                  {{ u.initiales }}
+                </div>
+                <div>
+                  <div class="user-nom">{{ u.nom }}</div>
+                  <div class="user-role">{{ u.role }}</div>
+                </div>
+              </td>
+              <td class="email-cell">{{ u.email }}</td>
+              <td class="cv-cell">{{ u.cvGeneres }}</td>
+              <td class="date-cell">{{ u.inscritLe }}</td>
+              <td>
+                <span class="badge" [class.badge-on]="u.actif" [class.badge-off]="!u.actif">
+                  {{ u.actif ? 'Actif' : 'Désactivé' }}
+                </span>
+              </td>
+              <td class="actions-cell">
+                <button class="btn-action desact" (click)="toggleActif(u)">
+                  {{ u.actif ? 'Désactiver' : 'Activer' }}
+                </button>
+                <button class="btn-action suppr" (click)="supprimerUtilisateur(u)">
+                  Supprimer
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div *ngIf="!loading && utilisateursFiltres.length === 0 && !lastError" class="state-msg">
+          Aucun utilisateur trouvé.
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>

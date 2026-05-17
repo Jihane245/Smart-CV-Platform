@@ -61,7 +61,7 @@
   border: none;
   color: var(--text-main);
   cursor: pointer;
-  padding: 0;
+  padding: 0.3rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -73,7 +73,7 @@
 
 .app-name {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--cream);
   white-space: nowrap;
