@@ -5,7 +5,7 @@ import { RecommandationsDto } from './cv.service';
 
 export interface CompetenceAnalyseeState {
   nom: string;
-  statut: 'maitrise' | 'partiel' | 'renforcer';
+  statut: 'maitrise' | 'renforcer';
 }
 
 export interface CompetenceCvPreviewState {

@@ -125,11 +125,10 @@
             *ngFor="let c of competencesAnalysees"
             class="comp-tag"
             [class.maitrise]="c.statut === 'maitrise'"
-            [class.partiel]="c.statut === 'partiel'"
             [class.renforcer]="c.statut === 'renforcer'"
-          >{{ c.nom }} {{ statutCompetence(c.statut) }}</span>
+          >{{ c.nom }} {{ c.statut === 'maitrise' ? '✓' : '✕' }}</span>
         </div>
-        <p class="comp-legende">✓ Maîtrisé &nbsp;~ Partiel &nbsp;✕ À renforcer</p>
+        <p class="comp-legende">✓ Compétence présente &nbsp;&nbsp;✕ Compétence manquante</p>
 
         <!-- Recommandations IA -->
         <ng-container *ngIf="recommandations">

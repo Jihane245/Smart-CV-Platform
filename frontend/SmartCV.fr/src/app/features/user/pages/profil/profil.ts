@@ -1,9 +1,11 @@
 import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, Observable } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 
+import { environment } from '../../../../../environments/environment';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ConfirmService } from '../../../../core/services/confirm.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -78,6 +80,7 @@ export class MonProfil implements OnInit {
 
   loading = false;
   saving = false;
+  changingPassword = false;
 
   // Photo de profil
   photoUrl: string | null = null;
@@ -97,7 +100,8 @@ export class MonProfil implements OnInit {
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private confirmService: ConfirmService,
-    private notif: NotificationService
+    private notif: NotificationService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -432,7 +436,33 @@ export class MonProfil implements OnInit {
     });
   }
 
-  //Compétences
+  // ─── Changer le Mot de Passe ──────────────────────────────────────────────
+
+  changerMotDePasse(): void {
+    this.changingPassword = true;
+    this.http.post(
+      `${environment.backendUrl}/api/auth/change-password`,
+      {},
+      { withCredentials: true }
+    ).subscribe({
+      next: () => {
+        this.changingPassword = false;
+        this.notif.success('Email de réinitialisation envoyé. Vérifiez votre boîte mail.');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.changingPassword = false;
+        this.notif.error(
+          err.status === 503
+            ? 'Service non configuré. Contactez un administrateur.'
+            : 'Erreur lors de l\'envoi. Veuillez réessayer.'
+        );
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  // ─── Compétences ──────────────────────────────────────────────────────────
 
   ajouterCompetence(): void {
     const nom = this.nouvelleCompetence.trim();
@@ -476,7 +506,7 @@ export class MonProfil implements OnInit {
     this.telephone = input.value;
   }
 
-  //Expériences
+  // ─── Expériences ──────────────────────────────────────────────────────────
 
   ajouterExperience(): void {
     this.experiences.push({

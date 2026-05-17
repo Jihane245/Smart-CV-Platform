@@ -132,5 +132,29 @@ namespace API.Controllers
         {
             return BadRequest(new { error = message });
         }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> RequestPasswordChange()
+        {
+            var email = User.FindFirst(ClaimTypes.Email)?.Value
+                        ?? User.FindFirst("email")?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized();
+
+            try
+            {
+                var ok = await _keycloakAdmin.SendUpdatePasswordEmailAsync(email);
+                if (!ok)
+                    return StatusCode(500, new { message = "Erreur lors de l'envoi de l'email." });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("admin client credentials"))
+            {
+                return StatusCode(503, new { message = "Service non configuré. Contactez un administrateur." });
+            }
+
+            return Ok(new { message = "Un email de réinitialisation a été envoyé à votre adresse." });
+        }
+
     }
 }

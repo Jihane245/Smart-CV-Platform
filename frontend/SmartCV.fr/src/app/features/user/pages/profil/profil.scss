@@ -154,3 +154,27 @@ $br:#7a6040;$brd:#5c4220;$cr:#f5f0e8;$cbg:#eee8da;$gn:#6b8068;$gnt:#7a9080;$red:
   .input-detail{flex:1 1 160px}
   .input-description{flex:1 1 260px}
 }
+
+.btn-changer-mdp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: $br;
+  border: 1px solid $bdr;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+
+  &:hover {
+    border-color: $br;
+    background: rgba($br, 0.05);
+    color: $brd;
+  }
+}

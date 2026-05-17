@@ -5,29 +5,8 @@ import { adminGuard } from './core/guards/admin.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'auth',
+    redirectTo: 'user',
     pathMatch: 'full',
-  },
-  {
-    path: 'auth',
-    children: [
-      {
-        path: 'inscription',
-        loadComponent: () =>
-          import('./features/auth/pages/inscription/inscription').then(m => m.Inscription),
-      },
-      {
-        path: 'connexion',
-        loadComponent: () =>
-          import('./features/auth/pages/connexion/connexion').then(m => m.Connexion),
-      },
-      {
-        path: 'mot-de-passe-oublie',
-        loadComponent: () =>
-          import('./features/auth/pages/mot-de-passe-oublie/mot-de-passe-oublie').then(m => m.MotDePasseOublie),
-      },
-      { path: '', redirectTo: 'connexion', pathMatch: 'full' },
-    ],
   },
   {
     path: 'user',
@@ -97,5 +76,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/admin/template-editor/template-editor').then(m => m.TemplateEditor),
   },
-  { path: '**', redirectTo: 'auth' },
+  { path: '**', redirectTo: 'user' },
 ];
