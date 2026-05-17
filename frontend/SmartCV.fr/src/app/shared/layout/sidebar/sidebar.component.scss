@@ -41,6 +41,7 @@
 
 .collapsed .sidebar {
   width: var(--sidebar-w-sm);
+  overflow: hidden;
 }
 
 .collapsed .main-content {
@@ -114,6 +115,12 @@
   &.active { background: var(--active-bg); color: #fff; }
 }
 
+.collapsed .nav-item {
+  justify-content: center;
+  padding: 0.65rem 0;
+  gap: 0;
+}
+
 .nav-icon {
   width: 20px;
   height: 20px;
@@ -127,6 +134,8 @@
 }
 
 .collapsed .nav-label {
+  width: 0;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
 }
@@ -148,6 +157,12 @@
   background: rgba(0, 0, 0, 0.15);
   overflow: hidden;
   margin-top: 4px;
+}
+
+.collapsed .user-row {
+  justify-content: center;
+  padding: 0.625rem 0;
+  gap: 0;
 }
 
 .user-avatar {
@@ -194,6 +209,11 @@
 .collapsed .user-name {
   opacity: 0;
   pointer-events: none;
+}
+
+.collapsed .user-name,
+.collapsed .logout-btn {
+  display: none;
 }
 
 .logout-btn {
