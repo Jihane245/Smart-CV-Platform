@@ -3,7 +3,8 @@
 # Environment variables
 
 # =========================
-
+bin/
+obj/
 .env
 .env.*
 appsettings.Development.json

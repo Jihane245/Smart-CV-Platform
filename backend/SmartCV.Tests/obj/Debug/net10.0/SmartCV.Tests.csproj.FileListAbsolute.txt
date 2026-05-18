@@ -1,0 +1,9 @@
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\bin\Debug\net10.0\.msCoverageSourceRootsMapping_SmartCV.Tests
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\bin\Debug\net10.0\CoverletSourceRootsMapping_SmartCV.Tests
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\obj\Debug\net10.0\SmartCV.Tests.csproj.AssemblyReference.cache
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\obj\Debug\net10.0\MvcTestingAppManifest.json
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\obj\Debug\net10.0\SmartCV.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\obj\Debug\net10.0\SmartCV.Tests.AssemblyInfoInputs.cache
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\obj\Debug\net10.0\SmartCV.Tests.AssemblyInfo.cs
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\obj\Debug\net10.0\SmartCV.Tests.csproj.CoreCompileInputs.cache
+C:\Users\Jihane El Ghazrani\Documents\Smart-CV-Platform\backend\SmartCV.Tests\obj\Debug\net10.0\SmartCV.Tests.sourcelink.json
