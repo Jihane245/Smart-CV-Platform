@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.routes import analyze, cover_letter, competence
 from fastapi.middleware.cors import CORSMiddleware
-app = FastAPI(title="SmartCV AI Service")
+app = FastAPI(title="Cevia AI Service")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost", "http://localhost:80"],

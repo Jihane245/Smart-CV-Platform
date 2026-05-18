@@ -1,12 +1,14 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { roleRedirectGuard } from './core/guards/role-redirect.guard';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'user',
-    pathMatch: 'full',
+    canActivate: [roleRedirectGuard],
+    loadComponent: () =>
+      import('./features/user/pages/home/home').then(m => m.Home),
   },
   {
     path: 'user',
