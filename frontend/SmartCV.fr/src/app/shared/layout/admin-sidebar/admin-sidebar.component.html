@@ -3,10 +3,9 @@
 
     <div class="sidebar-header">
       <button class="toggle-btn" type="button" (click)="toggleSidebar()" aria-label="Toggle sidebar">
-        <img src="/assets/logo.jpg" alt="SmartCV" class="sidebar-logo-img">
+        <img src="/assets/logo.png" alt="SmartCV" class="sidebar-logo-img">
       </button>
-      <span class="app-name">Admin</span>
-    </div>
+      <span class="app-name">Admin</span>    </div>
 
     <nav class="sidebar-nav">
 
@@ -16,6 +15,17 @@
           <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
         </svg>
         <span class="nav-label">Tableau de bord</span>
+      </a>
+
+      <a class="nav-item" routerLink="/admin/utilisateurs" routerLinkActive="active"
+         title="Utilisateurs">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="9" cy="8" r="4"/>
+          <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+          <circle cx="17" cy="9" r="3" fill="currentColor" stroke="none"/>
+          <path d="M17 14c2.8 0 5 1.8 5 4v2h-5"/>
+        </svg>
+        <span class="nav-label">Utilisateurs</span>
       </a>
 
       <a class="nav-item" routerLink="/admin/templates/nouveau" routerLinkActive="active"

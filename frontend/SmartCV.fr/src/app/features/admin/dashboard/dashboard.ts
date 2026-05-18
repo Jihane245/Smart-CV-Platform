@@ -104,6 +104,15 @@ export class Dashboard implements OnInit {
     );
   }
 
+  // Aperçu : seulement les 3 premiers (dashboard). Liste complète sur /admin/utilisateurs.
+  get utilisateursApercu(): AdminUtilisateurDto[] {
+    return this.utilisateursFiltres.slice(0, 3);
+  }
+
+  voirTousUtilisateurs(): void {
+    this.router.navigate(['/admin/utilisateurs']);
+  }
+
   refreshStats(): void {
     this.loadingStats = true;
     this.adminService.getStats()

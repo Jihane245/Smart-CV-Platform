@@ -1,0 +1,207 @@
+$color-brown:      #7a6040;
+$color-brown-dark: #5c4220;
+$color-cream:      #f5f0e8;
+$color-cream-bg:   #eee8da;
+$color-green:      #6b8068;
+$color-red:        #9b1c1c;
+$color-beige:      #c8a882;
+$color-border:     #d4c9b4;
+$color-text:       #4a3728;
+$color-muted:      #9e8a76;
+$color-white:      #faf7f2;
+$radius:           12px;
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: $color-cream-bg;
+  font-family: 'Georgia', serif;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem 2.5rem;
+  overflow-y: auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+
+  .page-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: $color-text;
+    margin: 0 0 0.2rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.82rem;
+    color: $color-muted;
+    margin: 0;
+  }
+}
+
+.btn-retour {
+  background: transparent;
+  border: 1px solid $color-brown;
+  color: $color-brown-dark;
+  padding: 0.45rem 1.1rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+
+  &:hover {
+    background: $color-brown-dark;
+    color: $color-cream;
+  }
+}
+
+.section { margin-bottom: 2rem; }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  .count {
+    font-size: 0.82rem;
+    color: $color-muted;
+    font-family: sans-serif;
+    font-weight: 600;
+  }
+}
+
+.search-input {
+  padding: 0.5rem 1rem;
+  border: 1px solid $color-border;
+  border-radius: 20px;
+  background: $color-white;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: $color-text;
+  outline: none;
+  width: 260px;
+  transition: border-color 0.2s;
+
+  &::placeholder { color: $color-muted; }
+  &:focus { border-color: $color-brown; }
+}
+
+.table-card {
+  background: $color-white;
+  border-radius: $radius;
+  border: 1px solid $color-border;
+  overflow: hidden;
+}
+
+.state-msg {
+  padding: 2rem;
+  text-align: center;
+  color: $color-muted;
+  font-size: 0.9rem;
+
+  &.error { color: $color-red; }
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead tr {
+    background: $color-cream-bg;
+
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      color: $color-muted;
+      font-family: sans-serif;
+      font-weight: 600;
+    }
+  }
+
+  tbody tr {
+    border-top: 1px solid $color-border;
+    transition: background 0.15s;
+
+    &:hover { background: rgba($color-cream, 0.5); }
+
+    td {
+      padding: 0.85rem 1rem;
+      font-size: 0.85rem;
+      color: $color-text;
+    }
+  }
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .user-nom { font-weight: 600; font-size: 0.88rem; }
+  .user-role { font-size: 0.75rem; color: $color-muted; }
+}
+
+.email-cell { color: $color-muted !important; font-size: 0.82rem !important; }
+.cv-cell    { font-weight: 600; }
+.date-cell  { color: $color-muted !important; font-size: 0.82rem !important; }
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: sans-serif;
+
+  &.badge-on  { background: rgba($color-green, 0.15); color: $color-green; }
+  &.badge-off { background: rgba($color-red, 0.15);   color: $color-red; }
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn-action {
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover { opacity: 0.8; }
+
+  &.desact {
+    background: rgba($color-beige, 0.3);
+    color: $color-brown-dark;
+  }
+
+  &.suppr {
+    background: rgba($color-red, 0.15);
+    color: $color-red;
+  }
+}

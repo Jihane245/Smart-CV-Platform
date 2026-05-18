@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - 'feature/*'
+      - 'feature-micro/*'
 
 jobs:
   create-pr:
     name: Créer la Pull Request automatiquement
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
       pull-requests: write
@@ -21,30 +23,61 @@ jobs:
         id: extract_branch
         run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
 
-      - name: Créer la Pull Request vers dev
+      - name: Déterminer la branche cible
+        id: determine_target
+        run: |
+          BRANCH="${{ steps.extract_branch.outputs.branch }}"
+
+          if [[ "$BRANCH" == feature-micro/* ]]; then
+            echo "base=dev" >> $GITHUB_OUTPUT
+
+          elif [[ "$BRANCH" == feature/* ]]; then
+            echo "base=main" >> $GITHUB_OUTPUT
+
+          else
+            echo "Branche non supportée"
+            exit 1
+          fi
+
+      - name: Créer la Pull Request automatiquement
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          BASE: ${{ steps.determine_target.outputs.base }}
+
         run: |
-          # Vérifier si un PR existe déjà
-          existing_pr=$(gh pr list --head "$BRANCH" --base dev --json number --jq '.[0].number')
+
+          echo "Branche source : $BRANCH"
+          echo "Branche cible : $BASE"
+
+          # Vérifier si une PR existe déjà
+          existing_pr=$(gh pr list \
+            --head "$BRANCH" \
+            --base "$BASE" \
+            --json number \
+            --jq '.[0].number')
 
           if [ -z "$existing_pr" ]; then
+
             gh pr create \
-              --title "Merge $BRANCH → dev" \
+              --title "Merge $BRANCH → $BASE" \
               --body "## Pull Request automatique
 
           La branche \`$BRANCH\` a reçu un nouveau push.
 
-          **Action requise** : L'équipe doit décider si cette branche doit être mergée dans \`dev\`.
-
+          ### Informations
           - Branche source : \`$BRANCH\`
-          - Branche cible : \`dev\`
+          - Branche cible : \`$BASE\`
           - Déclenché par : ${{ github.actor }}
-          - Commit : ${{ github.sha }}" \
-              --base dev \
-              --head "$BRANCH" 
-            echo "Pull Request créé avec succès"
+          - Commit : ${{ github.sha }}
+
+          ### Action requise
+          Merci de vérifier et valider cette Pull Request avant le merge." \
+              --base "$BASE" \
+              --head "$BRANCH"
+
+            echo "Pull Request créée avec succès"
+
           else
-            echo "Un Pull Request existe déjà (#$existing_pr)"
+            echo "Une Pull Request existe déjà (#$existing_pr)"
           fi
