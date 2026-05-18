@@ -88,11 +88,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
+      "projectUniqueName": "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
       "projectName": "SmartCV.API",
-      "projectPath": "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
+      "projectPath": "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj",
       "packagesPath": "C:\\Users\\Jihane El Ghazrani\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Jihane El Ghazrani\\smart-cv-platform\\backend\\src\\SmartCV.API\\obj\\",
+      "outputPath": "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Jihane El Ghazrani\\AppData\\Roaming\\NuGet\\NuGet.Config"
