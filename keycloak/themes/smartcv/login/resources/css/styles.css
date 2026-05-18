@@ -51,7 +51,9 @@ body {
 }
 
 .left-panel img.logo {
-  max-width: 180px;
+  width: clamp(50px, 60%, 360px);
+  height: auto;
+  object-fit: contain;
 }
 
 .right-panel {

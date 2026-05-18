@@ -54,6 +54,7 @@
   gap: 0.75rem;
   padding: 1.125rem 1rem;
   min-height: 60px;
+  position: relative;
 }
 
 .toggle-btn {
@@ -61,7 +62,7 @@
   border: none;
   color: var(--text-main);
   cursor: pointer;
-  padding: 0rem;
+  padding: 0.3rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -246,10 +247,16 @@
 }
 
 .sidebar-logo-img {
-  width: 32px;
-  height: 32px;
-  object-fit: cover;
-  border-radius: 4px;
-  flex-shrink: 0;
-  display: block;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  transition: opacity var(--transition);
+}
+
+.collapsed .sidebar-logo-img {
+  opacity: 0;
+  pointer-events: none;
 }

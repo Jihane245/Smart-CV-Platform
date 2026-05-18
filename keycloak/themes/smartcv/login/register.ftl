@@ -7,7 +7,7 @@
   <div class="two-panel">
 
     <div class="left-panel">
-      <img src="${url.resourcesPath}/img/logo.jpg" alt="Logo Cevia" class="logo">
+      <img src="${url.resourcesPath}/img/logo.png" alt="Logo Cevia" class="logo">
     </div>
 
     <div class="right-panel">
