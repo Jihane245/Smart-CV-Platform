@@ -1,0 +1,317 @@
+<div class="admin-layout">
+
+  <!-- Sidebar admin partagée (composant fonctionnel : routes, active state, logout) -->
+  <app-admin-sidebar></app-admin-sidebar>
+
+  <!-- Contenu principal -->
+  <main class="main-content">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Administration</h1>
+        <p class="page-subtitle">Gestion de la plateforme CVoptima</p>
+      </div>
+      <button class="btn-ajouter-template" (click)="ajouterTemplateGlobal()">
+        + Ajouter un template
+      </button>
+    </div>
+
+    <!-- Filtre mois (global pour toutes les stats) -->
+    <div class="month-filter">
+      <span class="month-filter-label">Filtrer par mois :</span>
+      <button
+        class="month-filter-btn"
+        [class.active]="selectedMonthIndex === null"
+        (click)="resetMonth()"
+      >Total</button>
+      <button
+        *ngFor="let label of monthLabels; let i = index"
+        class="month-filter-btn"
+        [class.active]="selectedMonthIndex === i"
+        (click)="selectMonth(i)"
+      >{{ label }}</button>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-grid">
+      <div
+        class="stat-card"
+        *ngFor="let stat of stats"
+        [class.active]="stat.couleur === 'red'"
+        [ngClass]="'stat-' + stat.couleur"
+      >
+        <div class="stat-label">{{ stat.label }}</div>
+        <div class="stat-valeur">{{ getStatValeur(stat) | number }}</div>
+        <div class="stat-delta">
+          <span *ngIf="selectedMonthIndex === null">↑ {{ stat.delta }} ce mois</span>
+          <span *ngIf="selectedMonthIndex !== null">{{ getStatLabel() }}</span>
+        </div>
+        <div class="bar-chart">
+          <div
+            *ngFor="let h of stat.historique; let i = index; let last = last"
+            class="bar"
+            [style.height.px]="h * 0.7"
+            [class.last]="last"
+            [class.selected-bar]="selectedMonthIndex === i"
+            (click)="selectMonth(i)"
+            [title]="monthLabels[i] + ' : ' + h"
+          ></div>
+        </div>
+        <div class="bar-labels">
+          <span
+            *ngFor="let label of monthLabels; let i = index"
+            class="month-label"
+            [class.selected-month]="selectedMonthIndex === i"
+            (click)="selectMonth(i)"
+          >{{ label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gestion utilisateurs -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Gestion des utilisateurs</h2>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Rechercher un utilisateur..."
+          [(ngModel)]="recherche"
+        />
+      </div>
+
+      <div class="table-card">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>UTILISATEUR</th>
+              <th>EMAIL</th>
+              <th>CV GÉNÉRÉS</th>
+              <th>INSCRIT LE</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of utilisateursApercu">
+              <td class="user-cell">
+                <div class="user-avatar" [style.background]="u.couleurAvatar">
+                  {{ u.initiales }}
+                </div>
+                <div>
+                  <div class="user-nom">{{ u.nom }}</div>
+                  <div class="user-role">{{ u.role }}</div>
+                </div>
+              </td>
+              <td class="email-cell">{{ u.email }}</td>
+              <td class="cv-cell">{{ u.cvGeneres }}</td>
+              <td class="date-cell">{{ u.inscritLe }}</td>
+              <td class="actions-cell">
+                <button
+                  class="btn-action desact"
+                  (click)="toggleActif(u)"
+                >
+                  {{ u.actif ? 'Désactiver' : 'Activer' }}
+                </button>
+                <button
+                  class="btn-action suppr"
+                  (click)="supprimerUtilisateur(u)"
+                >
+                  Supprimer
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="voir-plus-wrapper" *ngIf="utilisateursFiltres.length > 3">
+          <button class="btn-voir-plus" (click)="voirTousUtilisateurs()">
+            Voir plus ({{ utilisateursFiltres.length }} utilisateurs)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gestion templates -->
+    <div class="section">
+      <h2 class="section-title">Gestion des templates CV</h2>
+      <div class="templates-grid">
+
+        <!-- Templates existants -->
+        <div class="template-card" *ngFor="let t of templates" (click)="voirDetailTemplate(t)" style="cursor: pointer;">
+          <div class="template-preview">
+            <div class="preview-header" [style.background]="t.couleur"></div>
+            <div class="preview-lines">
+              <div class="preview-line" *ngFor="let l of t.lignes" [style.background]="l"></div>
+            </div>
+          </div>
+          <div class="template-footer">
+            <span class="template-nom">{{ t.nom }}</span>
+            <div class="template-actions">
+              <button class="btn-template-edit" (click)="editerTemplate(t); $event.stopPropagation()">Éditer</button>
+              <button class="btn-template-delete" (click)="supprimerTemplate(t); $event.stopPropagation()">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nouveau template -->
+        <div class="template-card nouveau" (click)="ajouterTemplate()">
+          <div class="nouveau-content">
+            <span class="nouveau-plus">+</span>
+            <span class="nouveau-label">Nouveau template</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal détail utilisateur -->
+  <div class="modal-backdrop" *ngIf="userDetail || loadingUserDetail" (click)="fermerUserDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" (click)="fermerUserDetail()" aria-label="Fermer">×</button>
+
+      <ng-container *ngIf="loadingUserDetail">
+        <p class="modal-loading">Chargement…</p>
+      </ng-container>
+
+      <ng-container *ngIf="userDetail as d">
+        <div class="modal-header">
+          <div class="modal-avatar" [style.background]="d.couleurAvatar">{{ d.initiales }}</div>
+          <div>
+            <h3 class="modal-nom">{{ d.nom }}</h3>
+            <p class="modal-role">{{ d.role }}</p>
+          </div>
+        </div>
+
+        <dl class="modal-infos">
+          <div><dt>Email</dt><dd>{{ d.email }}</dd></div>
+          <div><dt>Prénom</dt><dd>{{ d.prenom }}</dd></div>
+          <div><dt>Nom</dt><dd>{{ d.nomFamille }}</dd></div>
+          <div><dt>CV générés</dt><dd>{{ d.cvGeneres }}</dd></div>
+          <div><dt>Inscrit le</dt><dd>{{ d.inscritLe }}</dd></div>
+          <div>
+            <dt>Statut</dt>
+            <dd>
+              <span class="badge" [class.badge-on]="d.actif" [class.badge-off]="!d.actif">
+                {{ d.actif ? 'Actif' : 'Désactivé' }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MODAL : Détail d'un template                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="templateDetail" (click)="fermerDetailTemplate()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+
+      <!-- Header du modal -->
+      <div class="modal-header" [style.background]="templateDetail.couleur">
+        <h2>{{ templateDetail.nom }}</h2>
+        <button class="modal-close" (click)="fermerDetailTemplate()">✕</button>
+      </div>
+
+      <!-- Body du modal -->
+      <div class="modal-body">
+
+        <!-- Infos de base -->
+        <div class="modal-section">
+          <h3>Informations générales</h3>
+          <p><strong>Nom :</strong> {{ templateDetail.nom }}</p>
+          <p>
+            <strong>Couleur principale :</strong>
+            <span class="couleur-box" [style.background]="templateDetail.couleur"></span>
+            {{ templateDetail.couleur }}
+          </p>
+          <p><strong>ID :</strong> {{ templateDetail.id }}</p>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Aperçu visuel du template (nouveau format builder)        -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="modal-section" *ngIf="templateDetail.structure?.boxes?.length">
+          <h3>Aperçu du template</h3>
+          <p class="modal-section-hint">
+            Données d'exemple. Côté utilisateur, ces champs seront remplis par l'IA depuis le profil.
+          </p>
+          <div class="template-preview-wrapper">
+            <app-template-preview
+              [structure]="templateDetail.structure"
+              [couleur]="templateDetail.couleur">
+            </app-template-preview>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Format legacy : tableau des sections + champs             -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="modal-section" *ngIf="!templateDetail.structure?.boxes?.length && templateDetail.structure?.sections?.length">
+          <h3>Structure (format ancien)</h3>
+          <p class="modal-section-hint">
+            Ce template a été créé avec l'ancien éditeur. Cliquez sur « Éditer » pour le reconstruire dans le builder visuel.
+          </p>
+          <div *ngFor="let section of templateDetail.structure?.sections" class="detail-section">
+            <div class="detail-section-header" [style.background]="section.couleur || '#6b8068'">
+              <span class="detail-section-ordre">#{{ section.ordre }}</span>
+              <span class="detail-section-titre">{{ section.titre }}</span>
+            </div>
+            <div class="detail-champs">
+              <div *ngIf="section.champs?.length === 0" class="empty-fields">
+                Aucun champ dans cette section
+              </div>
+              <table *ngIf="section.champs?.length" class="detail-champs-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Nom technique</th><th>Label</th><th>Type</th>
+                    <th>Placeholder</th><th>Max</th><th>Requis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let champ of section.champs">
+                    <td>{{ champ.ordre }}</td>
+                    <td><code>{{ champ.nom || '—' }}</code></td>
+                    <td>{{ champ.label || '—' }}</td>
+                    <td><span class="type-badge">{{ champ.type }}</span></td>
+                    <td>{{ champ.placeholder || '—' }}</td>
+                    <td>{{ champ.maxLength || '∞' }}</td>
+                    <td>
+                      <span *ngIf="champ.requis" class="requis-oui">✓</span>
+                      <span *ngIf="!champ.requis" class="requis-non">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Aucune structure définie                                  -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="modal-section" *ngIf="!templateDetail.structure?.boxes?.length && !templateDetail.structure?.sections?.length">
+          <h3>Aperçu du template</h3>
+          <p class="empty-message">
+            Ce template n'a pas encore été construit dans le builder visuel.
+            Cliquez sur « Éditer » pour ajouter des composants CV.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Footer du modal -->
+      <div class="modal-footer">
+        <button class="modal-btn-edit" (click)="editerTemplate(templateDetail); fermerDetailTemplate()">
+          ✏️ Éditer ce template
+        </button>
+        <button class="modal-btn-close" (click)="fermerDetailTemplate()">Fermer</button>
+      </div>
+
+    </div>
+  </div>
+
+</div>

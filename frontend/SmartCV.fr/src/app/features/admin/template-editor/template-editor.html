@@ -1,0 +1,387 @@
+<div class="admin-layout">
+
+  <!-- Sidebar admin partagée (composant fonctionnel : routes, active state, logout) -->
+  <app-admin-sidebar></app-admin-sidebar>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Contenu principal                                            -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">
+          <span class="breadcrumb-link" (click)="annuler()">Administration</span>
+          <span class="breadcrumb-sep">›</span>
+          <span class="breadcrumb-current">Templates</span>
+          <span class="breadcrumb-sep">›</span>
+          <span class="breadcrumb-current">{{ mode === 'edit' ? 'Édition' : 'Nouveau' }}</span>
+        </div>
+        <h1 class="page-title">{{ mode === 'edit' ? 'Éditer le template' : 'Créer un template' }}</h1>
+        <p class="page-subtitle">
+          Composez visuellement la mise en page : choisissez un layout, glissez les composants CV dans les zones.
+        </p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-cancel" (click)="annuler()" [disabled]="saving">Annuler</button>
+        <button class="btn-save" (click)="enregistrer()" [disabled]="saving">
+          <span *ngIf="saving">⏳ Sauvegarde...</span>
+          <span *ngIf="!saving">{{ mode === 'edit' ? '💾 Enregistrer' : '✓ Créer le template' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Chargement du template...</p>
+    </div>
+
+    <!-- Builder -->
+    <div *ngIf="!loading" class="builder">
+
+      <!-- Barre du haut : nom + couleur + layout -->
+      <div class="builder-toolbar">
+        <label class="tb-field tb-field-name">
+          <span class="tb-label">Nom du template *</span>
+          <input type="text" [(ngModel)]="nom" placeholder="Ex: CV Développeur" required>
+        </label>
+
+        <label class="tb-field">
+          <span class="tb-label">Couleur principale</span>
+          <div class="color-wrapper">
+            <input type="color" [(ngModel)]="couleur" (change)="onCouleurChange()">
+            <span class="color-value">{{ couleur }}</span>
+          </div>
+        </label>
+
+        <div class="tb-field tb-field-layout">
+          <span class="tb-label">Layout</span>
+          <div class="layout-picker">
+            <button
+              *ngFor="let l of layouts"
+              type="button"
+              class="layout-btn"
+              [class.active]="layoutId === l.id"
+              (click)="changerLayout(l.id)"
+              [title]="l.label">
+              <span class="layout-preview" [attr.data-layout]="l.id">
+                <span class="lp-cell" *ngFor="let b of l.boxes" [attr.data-role]="b.defaultStyle"></span>
+              </span>
+              <span class="layout-label">{{ l.label }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corps : catalogue + canvas + properties -->
+      <div class="builder-body">
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Catalogue de composants (drag source)                    -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <aside class="catalog-panel">
+          <h3 class="panel-title">Composants CV</h3>
+          <p class="panel-hint">Glissez un composant dans une zone du canvas →</p>
+
+          <div
+            class="catalog-list"
+            cdkDropList
+            [cdkDropListData]="catalog"
+            [id]="catalogDropListId"
+            [cdkDropListConnectedTo]="boxDropListIds"
+            [cdkDropListSortingDisabled]="true"
+            (cdkDropListDropped)="onCatalogDrop($event)">
+
+            <div
+              *ngFor="let c of catalog; trackBy: trackByType"
+              class="catalog-item"
+              cdkDrag
+              [cdkDragData]="c">
+              <span class="catalog-icon">{{ c.icon }}</span>
+              <div class="catalog-text">
+                <span class="catalog-name">{{ c.label }}</span>
+                <span class="catalog-desc">{{ c.description }}</span>
+              </div>
+
+              <div class="catalog-drag-preview" *cdkDragPreview>
+                <span class="catalog-icon">{{ c.icon }}</span>
+                <span class="catalog-name">{{ c.label }}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Canvas (preview du template)                             -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <section class="canvas-panel">
+          <div class="canvas-header">
+            <span class="canvas-title">Aperçu du template</span>
+            <span class="canvas-stats">{{ totalComponents() }} composant(s)</span>
+          </div>
+
+          <div class="canvas-frame">
+            <div class="canvas-page" [attr.data-layout]="layoutId">
+
+              <div
+                *ngFor="let box of boxes; trackBy: trackBoxById"
+                class="canvas-box"
+                [attr.data-box]="box.id"
+                [style.background]="box.style.background"
+                [style.color]="box.style.textColor"
+                [style.padding]="box.style.padding">
+
+                <div class="box-header">
+                  <span class="box-label">{{ box.label }}</span>
+                  <span class="box-count">{{ box.components.length }}</span>
+                </div>
+
+                <div
+                  class="box-droplist"
+                  cdkDropList
+                  [id]="'box-' + box.id"
+                  [cdkDropListData]="box.components"
+                  [cdkDropListConnectedTo]="boxDropListIds"
+                  (cdkDropListDropped)="onBoxDrop($event, box)">
+
+                  <div
+                    *ngIf="box.components.length === 0"
+                    class="box-empty">
+                    Glissez ici un composant
+                  </div>
+
+                  <div
+                    *ngFor="let cmp of box.components; let ci = index; trackBy: trackComponentById"
+                    class="box-component"
+                    [class.selected]="selectedComponentId === cmp.id"
+                    [style.borderColor]="selectedComponentId === cmp.id ? box.style.accentColor : 'transparent'"
+                    cdkDrag
+                    [cdkDragData]="cmp"
+                    (click)="selectionner(cmp); $event.stopPropagation()">
+
+                    <!-- Rendu visuel réel du composant CV -->
+                    <app-cv-component-renderer
+                      [component]="cmp"
+                      [accentColor]="box.style.accentColor || couleur">
+                    </app-cv-component-renderer>
+
+                    <!-- Toolbar visible au hover ou quand sélectionné -->
+                    <div class="bc-toolbar">
+                      <span class="bc-toolbar-icon">{{ descriptorOf(cmp.type)?.icon }}</span>
+                      <span class="bc-toolbar-label">{{ descriptorOf(cmp.type)?.label }}</span>
+                      <div class="bc-actions">
+                        <button type="button" (click)="monterComposant(box, ci); $event.stopPropagation()" [disabled]="ci === 0" title="Monter">↑</button>
+                        <button type="button" (click)="descendreComposant(box, ci); $event.stopPropagation()" [disabled]="ci === box.components.length - 1" title="Descendre">↓</button>
+                        <button type="button" class="bc-delete" (click)="supprimerComposant(box, ci); $event.stopPropagation()" title="Supprimer">✕</button>
+                      </div>
+                    </div>
+
+                    <div class="bc-drag-preview" *cdkDragPreview>
+                      <span class="bc-icon">{{ descriptorOf(cmp.type)?.icon }}</span>
+                      <span>{{ cmp.titre || descriptorOf(cmp.type)?.label }}</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- Panneau de propriétés                                    -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <aside class="properties-panel">
+          <h3 class="panel-title">Propriétés</h3>
+
+          <div *ngIf="!selectedComponent" class="props-empty">
+            <p>Sélectionnez un composant dans le canvas pour modifier ses propriétés.</p>
+          </div>
+
+          <div *ngIf="selectedComponent && selectedDescriptor" class="props-form">
+            <div class="props-header">
+              <span class="props-icon">{{ selectedDescriptor.icon }}</span>
+              <div>
+                <div class="props-type">{{ selectedDescriptor.label }}</div>
+                <div class="props-sub">{{ selectedDescriptor.description }}</div>
+              </div>
+            </div>
+
+            <label class="props-field">
+              <span class="props-label">Titre affiché</span>
+              <input
+                type="text"
+                [(ngModel)]="selectedComponent.titre"
+                [placeholder]="selectedDescriptor.defaultTitre || 'Titre'">
+            </label>
+
+            <!-- Liste unifiée des champs : standards du catalogue + persos ajoutés -->
+            <div class="props-section">
+              <span class="props-label">Champs affichés</span>
+              <p class="props-hint-inline">Décochez pour masquer un champ dans le CV.</p>
+              <div class="props-fields-toggles">
+                <label
+                  *ngFor="let f of getAllFields(selectedComponent, selectedDescriptor); trackBy: trackByDisplayKey"
+                  class="field-toggle"
+                  [class.field-toggle-custom]="f.isCustom">
+                  <input
+                    type="checkbox"
+                    [checked]="isFieldVisible(selectedComponent, f.key)"
+                    (change)="toggleField(selectedComponent, f.key)">
+                  <span class="field-toggle-label">
+                    <code>{{ f.key }}</code>
+                    <span>{{ f.label }}</span>
+                  </span>
+                  <button
+                    *ngIf="f.isCustom && f.customId"
+                    type="button"
+                    class="field-delete"
+                    (click)="supprimerChampPerso(selectedComponent, f.customId); $event.preventDefault()"
+                    title="Supprimer définitivement ce champ">✕</button>
+                </label>
+              </div>
+            </div>
+
+            <!-- Ajout d'un champ personnalisé -->
+            <div class="props-section">
+              <span class="props-label">Ajouter un champ</span>
+              <div class="add-field-row">
+                <input
+                  type="text"
+                  [(ngModel)]="newCustomFieldLabel"
+                  placeholder="Nom du champ"
+                  (keydown.enter)="ajouterChampPerso(selectedComponent)">
+                <button
+                  type="button"
+                  class="btn-add-field"
+                  [disabled]="!newCustomFieldLabel.trim()"
+                  (click)="ajouterChampPerso(selectedComponent)">
+                  Ajouter
+                </button>
+              </div>
+            </div>
+
+            <!-- Style -->
+            <div class="props-section">
+              <span class="props-label">Apparence</span>
+
+              <label class="props-field-row">
+                <span>Couleur du titre</span>
+                <input
+                  type="color"
+                  [value]="getConfigValue(selectedComponent, 'titleColor', couleur)"
+                  (input)="setConfigValue(selectedComponent, 'titleColor', $any($event.target).value)">
+              </label>
+
+              <label class="props-field-row">
+                <span>Couleur du texte</span>
+                <input
+                  type="color"
+                  [value]="getConfigValue(selectedComponent, 'textColor', '#222222')"
+                  (input)="setConfigValue(selectedComponent, 'textColor', $any($event.target).value)">
+              </label>
+
+              <label class="props-field-row">
+                <span>Taille de police</span>
+                <input
+                  type="range"
+                  min="10"
+                  max="20"
+                  [value]="getConfigValue(selectedComponent, 'fontSize', 13)"
+                  (input)="setConfigValue(selectedComponent, 'fontSize', +$any($event.target).value)">
+                <span class="props-value">{{ getConfigValue(selectedComponent, 'fontSize', 13) }}px</span>
+              </label>
+
+              <div class="props-field">
+                <span class="props-label">Police</span>
+                <div class="font-picker">
+                  <select
+                    [value]="getConfigValue(selectedComponent, 'fontFamily', 'inherit')"
+                    (change)="setConfigValue(selectedComponent, 'fontFamily', $any($event.target).value)">
+                    <option *ngFor="let f of fontFamilies" [value]="f.value">{{ f.label }}</option>
+                  </select>
+                  <button
+                    type="button"
+                    class="btn-add-font"
+                    (click)="ouvrirPickerPolices()"
+                    title="Ajouter une police Google">+</button>
+                </div>
+              </div>
+            </div>
+
+            <p class="props-hint">
+              💡 Ces champs seront remplis automatiquement par l'IA à partir du profil utilisateur,
+              qui pourra ensuite les modifier.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MODAL : Picker de polices Google                              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="font-picker-overlay" *ngIf="fontPickerOpen" (click)="fermerPickerPolices()">
+    <div class="font-picker-modal" (click)="$event.stopPropagation()">
+
+      <div class="fp-header">
+        <h2>Ajouter une police</h2>
+        <button class="fp-close" (click)="fermerPickerPolices()">✕</button>
+      </div>
+
+      <div class="fp-toolbar">
+        <input
+          type="text"
+          class="fp-search"
+          [(ngModel)]="fontPickerSearch"
+          placeholder="Rechercher une police...">
+
+        <div class="fp-categories">
+          <button
+            *ngFor="let cat of fontCategories"
+            type="button"
+            class="fp-cat"
+            [class.active]="fontPickerCategory === cat.id"
+            (click)="fontPickerCategory = cat.id">
+            {{ cat.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="fp-list">
+        <div
+          *ngFor="let f of filteredGoogleFonts"
+          class="fp-item"
+          [class.added]="isFontAdded(f)">
+          <div class="fp-item-info">
+            <div class="fp-item-name">{{ f.name }}</div>
+            <div class="fp-item-cat">{{ fontCategoryLabels[f.category] }}</div>
+          </div>
+          <div class="fp-item-preview" [style.fontFamily]="fontPreviewStyle(f)">
+            Aa Bb Cc — Le vif zèbre
+          </div>
+          <button
+            type="button"
+            class="fp-item-add"
+            [disabled]="isFontAdded(f)"
+            (click)="ajouterGoogleFont(f)">
+            <span *ngIf="!isFontAdded(f)">+ Ajouter</span>
+            <span *ngIf="isFontAdded(f)">✓ Ajoutée</span>
+          </button>
+        </div>
+
+        <div *ngIf="filteredGoogleFonts.length === 0" class="fp-empty">
+          Aucune police ne correspond à votre recherche.
+        </div>
+      </div>
+
+      <div class="fp-footer">
+        <button class="fp-done" (click)="fermerPickerPolices()">Terminé</button>
+      </div>
+    </div>
+  </div>
+</div>

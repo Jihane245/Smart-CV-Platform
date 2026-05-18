@@ -1,0 +1,103 @@
+# =========================
+
+# Environment variables
+
+# =========================
+bin/
+obj/
+.env
+.env.*
+appsettings.Development.json
+
+# =========================
+
+# Python (ai-service)
+
+# =========================
+
+**pycache**/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+venv/
+.venv/
+*.pdf
+
+# =========================
+
+# Node / Frontend
+
+# =========================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# =========================
+
+# .NET / Backend
+
+# =========================
+
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.lscache
+
+# =========================
+
+# Logs
+
+# =========================
+
+*.log
+
+# =========================
+
+# OS files
+
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+
+# IDE / Editors
+
+# =========================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+
+# Docker
+
+# =========================
+
+docker-data/
+*.pid
+
+# =========================
+
+# Temporary files
+
+# =========================
+
+tmp/
+temp/
+*.tmp

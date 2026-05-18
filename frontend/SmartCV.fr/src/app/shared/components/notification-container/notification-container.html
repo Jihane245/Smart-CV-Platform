@@ -1,0 +1,17 @@
+<div class="notif-container">
+  <div
+    *ngFor="let n of notifications"
+    class="notif-item"
+    [class.notif-success]="n.type === 'success'"
+    [class.notif-error]="n.type === 'error'"
+    [class.notif-warning]="n.type === 'warning'"
+    [class.notif-info]="n.type === 'info'"
+  >
+    <div class="notif-icon">{{ iconFor(n.type) }}</div>
+    <div class="notif-body">
+      <div class="notif-message">{{ n.message }}</div>
+      <div class="notif-details" *ngIf="n.details">{{ n.details }}</div>
+    </div>
+    <button class="notif-close" (click)="close(n.id)">✕</button>
+  </div>
+</div>

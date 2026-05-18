@@ -1,0 +1,446 @@
+<main class="main-content" *ngIf="!chargementSession; else loadingTpl">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <a class="btn-retour" routerLink="/user/generate-cv">
+        <span class="retour-arrow">‹</span> Retour
+      </a>
+      <div>
+        <h1 class="page-title">Mise à niveau dynamique des compétences</h1>
+        <p class="page-subtitle">Adaptez votre profil à l'offre · {{ totalSkills }} compétences à acquérir</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Stepper ──────────────────────────────────────────────────────────── -->
+  <div class="stepper">
+    <ng-container *ngFor="let s of stepLabels; let last = last">
+      <div class="stepper-item"
+           [class.active]="pageStep === s.num"
+           [class.complete]="estComplete(s.num)">
+        <div class="stepper-circle">
+          <span *ngIf="estComplete(s.num); else numTpl" class="check">✓</span>
+          <ng-template #numTpl>{{ s.num }}</ng-template>
+        </div>
+        <span class="stepper-label">{{ s.label }}</span>
+      </div>
+      <div class="stepper-sep" *ngIf="!last"></div>
+    </ng-container>
+  </div>
+  <div class="stepper-line"></div>
+
+  <!-- ── Two-column layout ────────────────────────────────────────────────── -->
+  <div class="upgrade-layout">
+
+    <!-- ════ Left column ════ -->
+    <div class="upgrade-left">
+
+      <!-- ── ÉTAPE 1 : Écarts détectés ──────────────────────────────────── -->
+      <ng-container *ngIf="pageStep === 1">
+        <p class="etape-label">Étape 1 · ANALYSE IA</p>
+        <h2 class="etape-titre">Détection des écarts</h2>
+        <p class="etape-desc">
+          L'IA a comparé votre profil à l'offre et identifié les compétences à acquérir.<br>
+          Sélectionnez une compétence à droite pour commencer, ou cliquez ci-dessous.
+        </p>
+
+        <!-- Score badge -->
+        <div class="score-band" *ngIf="scoreCompatibilite">
+          <div class="score-circle">{{ scoreCompatibilite }}%</div>
+          <div class="score-info">
+            <strong>Compatibilité avec l'offre</strong>
+            <span>{{ skillsTerminesCount }} / {{ totalSkills }} compétences acquises</span>
+          </div>
+        </div>
+
+        <!-- Skills overview -->
+        <div class="skills-overview">
+          <div *ngFor="let sk of skills; let i = index"
+               class="skill-overview-row"
+               [class.skill-valide]="sk.competenceValidee"
+               (click)="selectionnerSkill(i)">
+            <div class="skill-ov-left">
+              <div class="skill-ov-dot"
+                   [class.dot-haute]="sk.priorite === 'haute'"
+                   [class.dot-renforcer]="sk.priorite === 'renforcer'"
+                   [class.dot-valide]="sk.competenceValidee">●</div>
+              <span class="skill-ov-nom">{{ sk.nomCompetence }}</span>
+            </div>
+            <div class="skill-ov-right">
+              <span class="skill-ov-badge"
+                    [class.badge-haute]="sk.priorite === 'haute' && !sk.competenceValidee"
+                    [class.badge-renforcer]="sk.priorite !== 'haute' && !sk.competenceValidee"
+                    [class.badge-valide]="sk.competenceValidee">
+                {{ sk.competenceValidee ? '✓ Validée' : labelPriorite(sk.priorite) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" (click)="allerEtape2()">
+          Lancer le test de niveau →
+        </button>
+      </ng-container>
+
+      <!-- ── ÉTAPE 2 : Choix compétence ────────────────────────────────── -->
+      <ng-container *ngIf="pageStep === 2">
+        <p class="etape-label">Étape 2 · SÉLECTION</p>
+        <h2 class="etape-titre">Choisissez une compétence</h2>
+        <p class="etape-desc">Cliquez sur une compétence pour lancer son évaluation.</p>
+
+        <div class="profil-card selection-card">
+          <p class="card-mini-label">Compétences à acquérir</p>
+          <div class="selection-grid">
+            <div *ngFor="let sk of skills; let i = index"
+                 class="selection-skill-item"
+                 [class.selection-skill-valide]="sk.competenceValidee"
+                 [class.selection-skill-active]="activeSkillIndex === i"
+                 (click)="!sk.competenceValidee && selectionnerSkill(i)">
+              <div class="selection-skill-left">
+                <span class="selection-skill-nom">{{ sk.nomCompetence }}</span>
+                <span class="selection-skill-sub">{{ sk.competenceValidee ? 'Compétence validée' : labelPriorite(sk.priorite) }}</span>
+              </div>
+              <div class="selection-skill-right">
+                <span *ngIf="sk.competenceValidee" class="check-icon">✓</span>
+                <span *ngIf="!sk.competenceValidee && sk.roadmapId" class="resume-icon">↩ Reprendre</span>
+                <span *ngIf="!sk.competenceValidee && !sk.roadmapId" class="start-icon">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- ── ÉTAPE 3 : Test de niveau ───────────────────────────────────── -->
+      <ng-container *ngIf="pageStep === 3">
+        <p class="etape-label">Étape 3 · TEST DE NIVEAU</p>
+        <h2 class="etape-titre">Évaluez votre niveau {{ activeSkill?.nomCompetence }}</h2>
+        <p class="etape-desc">{{ activeSkill?.questions?.length || 5 }} questions pour estimer votre niveau actuel</p>
+
+        <div class="loading-state" *ngIf="chargementTest">Génération du test en cours…</div>
+
+        <ng-container *ngIf="!chargementTest && activeSkill?.questions?.length">
+          <div class="question-card">
+            <div class="question-header">
+              <span class="question-num">Question {{ questionCourante + 1 }}</span>
+              <span class="question-count">{{ questionCourante + 1 }} / {{ activeSkill!.questions.length }}</span>
+            </div>
+            <p class="question-enonce">{{ activeSkill!.questions[questionCourante].enonce }}</p>
+            <div class="choix-list">
+              <div *ngFor="let choix of activeSkill!.questions[questionCourante].options; let i = index"
+                   class="choix-item"
+                   [class.selected]="reponseSelectionnee === choix"
+                   (click)="choisirReponse(choix)">
+                <span class="choix-lettre">{{ ['A','B','C','D'][i] }}</span>
+                <span class="choix-text">{{ choix }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row-right">
+            <button class="btn-primary"
+                    (click)="questionSuivante()"
+                    [disabled]="reponseSelectionnee === null">
+              {{ estDerniereQuestion ? 'Terminer le test →' : 'Question suivante →' }}
+            </button>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <!-- ── ÉTAPE 4 : Roadmap IA ────────────────────────────────────────── -->
+      <ng-container *ngIf="pageStep === 4">
+        <p class="etape-label">Étape 4 · ROADMAP IA</p>
+        <h2 class="etape-titre">Votre parcours personnalisé</h2>
+        <p class="etape-desc">Basé sur votre score, l'IA a tracé un parcours d'apprentissage sur mesure.</p>
+
+        <div class="loading-state" *ngIf="chargementRoadmap">Génération de votre roadmap…</div>
+
+        <ng-container *ngIf="!chargementRoadmap && activeSkill">
+          <!-- Score & niveau -->
+          <div class="roadmap-niveau-band">
+            <div class="niveau-badge">{{ activeSkill.niveauInitial.charAt(0) || '?' }}</div>
+            <div class="niveau-info">
+              <strong>{{ niveauInitialLabel }}</strong>
+              <span class="niveau-sub">Score {{ activeSkill.scoreInitial }}/100</span>
+            </div>
+            <div class="objectif-arrow">→</div>
+            <div class="objectif-badge">Expert</div>
+          </div>
+
+          <!-- Roadmap visual -->
+          <div class="roadmap-card">
+            <p class="roadmap-titre-label">Roadmap · {{ activeSkill.nomCompetence }}</p>
+
+            <div class="roadmap-steps-list">
+              <div *ngFor="let etape of activeSkill.etapesRoadmap; let i = index"
+                   class="roadmap-step-row">
+                <!-- connector line -->
+                <div class="step-connector">
+                  <div class="step-node"
+                       [class.node-video]="etape.type === 'video'"
+                       [class.node-doc]="etape.type === 'doc'"
+                       [class.node-projet]="etape.type === 'projet'">
+                    {{ iconEtapeType(etape.type) }}
+                  </div>
+                  <div class="step-line" *ngIf="i < activeSkill.etapesRoadmap.length - 1"></div>
+                </div>
+                <!-- content -->
+                <div class="step-content-card">
+                  <div class="step-header-row">
+                    <span class="step-type-label">{{ etape.type | uppercase }}</span>
+                    <span class="step-duree" *ngIf="etape.duree">{{ etape.duree }}</span>
+                  </div>
+                  <p class="step-titre">{{ etape.titre }}</p>
+                  <p class="step-desc">{{ etape.description }}</p>
+                  <a *ngIf="etapeUrl(etape)"
+                     [href]="etapeUrl(etape)"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     class="step-link">
+                    Ouvrir la ressource →
+                  </a>
+                </div>
+              </div>
+
+              <!-- Goal node -->
+              <div class="roadmap-goal">
+                <div class="goal-flag">🏁</div>
+                <span>Certification</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row-right">
+            <button class="btn-primary" (click)="demarrerParcours()">
+              Démarrer le parcours →
+            </button>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <!-- ── ÉTAPE 5 : Réalisation du parcours ──────────────────────────── -->
+      <ng-container *ngIf="pageStep === 5 && activeSkill">
+        <p class="etape-label">Étape 5 · RÉALISATION DU PARCOURS</p>
+        <h2 class="etape-titre">Cochez les étapes</h2>
+        <p class="etape-desc">
+          Cochez chaque étape au fur et à mesure de votre progression.<br>
+          Le test de certification se déverrouille à 100%.
+        </p>
+
+        <div class="parcours-card">
+          <!-- Progress bar -->
+          <div class="progression-bar-container">
+            <div class="progression-bar-fill" [style.width.%]="progressionParcours"></div>
+          </div>
+          <span class="progression-label">
+            {{ activeSkill.etapesCompletees.filter(v => v).length }} / {{ activeSkill.etapesRoadmap.length }} étapes
+          </span>
+
+          <!-- Steps list -->
+          <div *ngFor="let etape of activeSkill.etapesRoadmap; let i = index"
+               class="parcours-etape"
+               [class.etape-done]="activeSkill.etapesCompletees[i]">
+
+            <div class="etape-checkbox" (click)="toggleEtape(i)">
+              <div class="etape-check" [class.checked]="activeSkill.etapesCompletees[i]">
+                <span *ngIf="activeSkill.etapesCompletees[i]">✓</span>
+              </div>
+            </div>
+
+            <div class="etape-icon-type">
+              <span class="type-badge"
+                    [class.type-video]="etape.type === 'video'"
+                    [class.type-doc]="etape.type === 'doc'"
+                    [class.type-projet]="etape.type === 'projet'">
+                {{ iconEtapeType(etape.type) }}
+              </span>
+            </div>
+
+            <div class="etape-content">
+              <p class="etape-type-label">{{ etape.type | uppercase }}</p>
+              <p class="etape-titre-parcours">{{ etape.titre }}</p>
+              <p class="etape-desc-parcours">{{ etape.description }}<span *ngIf="etape.duree"> · {{ etape.duree }}</span></p>
+              <a *ngIf="etapeUrl(etape)"
+                 [href]="etapeUrl(etape)"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="etape-link-parcours"
+                 (click)="$event.stopPropagation()">
+                Ouvrir →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row-right">
+          <button class="btn-primary"
+                  (click)="passerCertification()"
+                  [disabled]="!toutesEtapesCompletees"
+                  [title]="toutesEtapesCompletees ? '' : 'Complétez toutes les étapes pour débloquer'">
+            Passer à la validation →
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- ── ÉTAPE 6 : Test de certification ────────────────────────────── -->
+      <ng-container *ngIf="pageStep === 6 && activeSkill">
+        <p class="etape-label">Étape 6 · TEST DE CERTIFICATION</p>
+        <h2 class="etape-titre">Validez votre maîtrise</h2>
+        <p class="etape-desc">Score requis : <strong>80% minimum</strong> pour ajouter la compétence à votre profil.</p>
+
+        <!-- Result card (shown after submission) -->
+        <div class="certif-result" *ngIf="resultatCertifAffiche">
+          <div class="certif-result-score" [class.score-fail]="activeSkill.scoreFinal < 80">
+            {{ activeSkill.scoreFinal }}%
+          </div>
+          <p class="certif-result-msg">{{ messageCertif }}</p>
+          <div class="certif-result-actions">
+            <button class="btn-outline" (click)="revoirRoadmap()">
+              ← Revoir la roadmap
+            </button>
+            <button class="btn-primary" (click)="reessayerCertification()" *ngIf="peutReessayer">
+              Réessayer →
+            </button>
+          </div>
+        </div>
+
+        <!-- Questions (hidden once result is shown) -->
+        <ng-container *ngIf="!resultatCertifAffiche && questionsCertif.length">
+          <div class="question-card">
+            <div class="question-header">
+              <span class="question-num">Question {{ questionCouranteCertif + 1 }}</span>
+              <span class="question-count">{{ questionCouranteCertif + 1 }} / {{ questionsCertif.length }}</span>
+            </div>
+            <p class="question-enonce">{{ questionsCertif[questionCouranteCertif].enonce }}</p>
+            <div class="choix-list">
+              <div *ngFor="let choix of questionsCertif[questionCouranteCertif].options; let i = index"
+                   class="choix-item"
+                   [class.selected]="reponseSelectionneCertif === choix"
+                   (click)="choisirReponseCertif(choix)">
+                <span class="choix-lettre">{{ ['A','B','C','D'][i] }}</span>
+                <span class="choix-text">{{ choix }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row-right">
+            <!-- "Question suivante" shown on all but last question -->
+            <button *ngIf="!estDerniereQuestionCertif"
+                    class="btn-primary"
+                    (click)="questionSuivanteCertif()"
+                    [disabled]="reponseSelectionneCertif === null">
+              Question suivante →
+            </button>
+            <!-- "Voir résultat" replaces it on the last question -->
+            <button *ngIf="estDerniereQuestionCertif"
+                    class="btn-primary"
+                    (click)="voirResultat()"
+                    [disabled]="reponseSelectionneCertif === null">
+              Voir résultat →
+            </button>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <!-- ── ÉTAPE 7 : Compétence validée ──────────────────────────────── -->
+      <ng-container *ngIf="pageStep === 7 && activeSkill">
+        <div class="success-card">
+          <div class="success-icon">✓</div>
+          <h2 class="success-titre">Compétence validée !</h2>
+          <p class="success-desc">
+            Score : {{ activeSkill.scoreFinal }}% —
+            <strong>{{ activeSkill.nomCompetence }}</strong> a été automatiquement
+            ajoutée à votre profil.
+          </p>
+
+          <div class="success-badge">
+            ✓ {{ activeSkill.nomCompetence }} — Niveau {{ niveauFinalLabel }}
+          </div>
+
+          <!-- Profile preview -->
+          <div class="success-profil-preview">
+            <p class="success-profil-name" *ngIf="profilNom">{{ profilPrenom }} {{ profilNom }}</p>
+            <p class="success-profil-titre" *ngIf="profilTitre">{{ profilTitre }}</p>
+            <div class="tags-row tags-center" style="margin-top: 0.75rem;">
+              <span *ngFor="let c of profilCompetences" class="tag tag-current">{{ c }}</span>
+            </div>
+          </div>
+
+          <!-- Progress on session -->
+          <div class="session-progress-band">
+            <span>{{ skillsTerminesCount }} / {{ totalSkills }} compétences de cette session acquises</span>
+            <div class="session-prog-bar">
+              <div class="session-prog-fill"
+                   [style.width.%]="(skillsTerminesCount / totalSkills) * 100"></div>
+            </div>
+          </div>
+
+          <div class="success-actions">
+            <a class="btn-outline" routerLink="/user/roadmap-historique">
+              ← Historique
+            </a>
+            <button class="btn-primary"
+                    *ngIf="skillsNonValides.length > 0"
+                    (click)="continuerCompetencesRestantes()">
+              Continuer — {{ skillsNonValides.length }} restante(s) →
+            </button>
+            <a class="btn-primary" routerLink="/user"
+               *ngIf="skillsNonValides.length === 0">
+              Retour au tableau de bord →
+            </a>
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
+
+    <!-- ════ Right sidebar ════ -->
+    <div class="upgrade-right" *ngIf="pageStep !== 7">
+      <div class="offre-card">
+        <p class="offre-label">OFFRE ANALYSÉE</p>
+        <h3 class="offre-titre">{{ offreTitre }}</h3>
+        <p class="offre-meta" *ngIf="offreEntreprise">{{ offreEntreprise }}</p>
+        <p class="offre-date" *ngIf="session?.createdAt">
+          Analysée le {{ session!.createdAt | date:'d MMM yyyy' }}
+        </p>
+
+        <div class="manquantes-banner">
+          <span class="manquantes-dot">●</span>
+          {{ totalSkills }} compétences à acquérir ·
+          {{ skillsTerminesCount }} validée(s)
+        </div>
+
+        <p class="comp-renforcer-label">COMPÉTENCES À ACQUÉRIR</p>
+        <div class="comp-renforcer-list">
+          <div *ngFor="let sk of skills; let i = index"
+               class="comp-renforcer-item"
+               [class.selected]="activeSkillIndex === i"
+               [class.comp-valide]="sk.competenceValidee"
+               (click)="switcherSkill(i)">
+            <div class="comp-dot"
+                 [class.dot-haute]="sk.priorite === 'haute' && !sk.competenceValidee"
+                 [class.dot-valide]="sk.competenceValidee">●</div>
+            <span class="comp-nom">{{ sk.nomCompetence }}</span>
+            <span class="comp-priorite-badge"
+                  [class.badge-haute]="sk.priorite === 'haute' && !sk.competenceValidee"
+                  [class.badge-renforcer]="sk.priorite !== 'haute' && !sk.competenceValidee"
+                  [class.badge-valide]="sk.competenceValidee">
+              {{ sk.competenceValidee ? '✓' : labelPriorite(sk.priorite) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /upgrade-layout -->
+
+</main>
+
+<!-- Loading template -->
+<ng-template #loadingTpl>
+  <main class="main-content">
+    <div class="loading-state" style="padding: 4rem; text-align: center;">
+      Chargement de votre session…
+    </div>
+  </main>
+</ng-template>

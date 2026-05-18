@@ -1,12 +1,16 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { NotificationContainer } from './shared/components/notification-container/notification-container';
+import { ConfirmDialog } from './shared/components/confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  standalone: true,
+  imports: [RouterOutlet, NotificationContainer, ConfirmDialog],
+  template: `
+    <router-outlet></router-outlet>
+    <app-notification-container></app-notification-container>
+    <app-confirm-dialog></app-confirm-dialog>
+  `,
 })
-export class App {
-  protected readonly title = signal('SmartCV.fr');
-}
+export class App {}

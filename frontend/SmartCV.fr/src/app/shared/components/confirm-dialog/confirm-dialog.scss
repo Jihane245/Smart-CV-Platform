@@ -1,0 +1,125 @@
+$color-brown:       #7A6040;
+$color-brown-dark:  #5C4220;
+$color-cream:       #f5f0e8;
+$color-cream-light: #faf7f2;
+$color-border:      #c8b89a;
+$color-text:        #4a3728;
+$color-muted:       #9e8a76;
+$color-error:       #c0392b;
+$color-error-dark:  #962C22;
+$radius-pill:       50px;
+$radius-card:       18px;
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(#1a1108, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ─── Carte (inspirée du panneau droit de l'auth : crème clair, font Georgia) ──
+.confirm-box {
+  background: $color-cream-light;
+  border-radius: $radius-card;
+  padding: 2.4rem 2.4rem 1.8rem;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 24px 60px rgba(#1a1108, 0.35);
+  text-align: center;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  animation: slideUp 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+// ─── Titre (style identique au .form-title des pages auth) ────────────────────
+.confirm-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: $color-brown;
+  text-transform: uppercase;
+  margin: 0 0 1rem;
+}
+
+// ─── Message ─────────────────────────────────────────────────────────────────
+.confirm-message {
+  margin: 0 0 1.8rem;
+  color: $color-text;
+  line-height: 1.55;
+  font-size: 0.95rem;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+// ─── Actions : 2 boutons pill (alignés sur .btn-submit de l'auth) ─────────────
+.confirm-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.confirm-btn-cancel,
+.confirm-btn-ok {
+  flex: 1 1 130px;
+  max-width: 200px;
+  padding: 0.85rem 1.5rem;
+  border-radius: $radius-pill;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1.5px solid transparent;
+}
+
+// Bouton « Annuler » : ghost / outlined
+.confirm-btn-cancel {
+  background: transparent;
+  color: $color-text;
+  border-color: $color-border;
+
+  &:hover {
+    background: rgba($color-brown, 0.06);
+    border-color: $color-brown;
+  }
+}
+
+// Bouton de confirmation : style identique au .btn-submit de l'auth
+.confirm-btn-ok {
+  background: $color-brown;
+  color: $color-cream;
+
+  &:hover {
+    background: $color-brown-dark;
+    box-shadow: 0 4px 16px rgba($color-brown, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: translateY(0); }
+
+  // Variante danger (déconnexion, suppression…)
+  &.danger {
+    background: $color-error;
+
+    &:hover {
+      background: $color-error-dark;
+      box-shadow: 0 4px 16px rgba($color-error, 0.35);
+    }
+  }
+}

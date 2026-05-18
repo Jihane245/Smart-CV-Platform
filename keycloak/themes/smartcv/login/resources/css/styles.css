@@ -1,0 +1,390 @@
+@import url('https://fonts.googleapis.com/css2?family=Inria+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* ── Variables ── */
+:root {
+  --brown-dark:   #5C4220;
+  --brown-mid:    #6B4E2A;
+  --brown-light:  #7B5C35;
+  --cream:        #F5F0E8;
+  --cream-dark:   #EDE6D8;
+  --red-accent:   #8B1A1A;
+  --text-dark:    #3B2A1A;
+  --text-muted:   #9A7B55;
+  --input-border: #C8B89A;
+  --green-btn:    #7A8C6E;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inria Serif', serif;
+  background: #F5F0E8;
+  min-height: 100vh;
+}
+
+/* ── TWO-PANEL LAYOUT (login + register) ── */
+.two-panel {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.left-panel {
+  flex: 0 0 30%;
+  background: #7A6040;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 2rem 2rem 0;
+}
+
+.left-panel .logo-placeholder {
+  font-family: 'Inria Serif', serif;
+  font-size: 2.5rem;
+  color: #F5F0E8;
+  opacity: 0.5;
+  letter-spacing: 0.15em;
+}
+
+.left-panel img.logo {
+  max-width: 180px;
+}
+
+.right-panel {
+  flex: 1;
+  background: #F5F0E8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 4rem;
+  position: relative;
+}
+
+.top-nav {
+  position: absolute;
+  top: 1.5rem;
+  right: 2rem;
+}
+
+.btn-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  color: var(--brown-dark);
+  font-family: 'Inria Serif', serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-nav:hover {
+  color: var(--red-accent);
+}
+
+.form-card {
+  width: 100%;
+  max-width: 520px;
+}
+
+.form-title {
+  font-family: 'Inria Serif', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--red-accent);
+  letter-spacing: 0.08em;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+/* ── CENTERED CARD LAYOUT (forgot password) ── */
+.card-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--brown-dark);
+  padding: 2rem;
+}
+
+.card {
+  background: var(--cream);
+  border-radius: 1.5rem;
+  padding: 3rem 3.5rem;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+}
+
+.card-title {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--red-accent);
+  margin-bottom: 1rem;
+}
+
+.card-desc {
+  font-family: 'Inria Serif', serif;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+/* ── FORM ELEMENTS ── */
+.field-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.85rem 1.2rem;
+  border: 1.5px solid var(--input-border);
+  border-radius: 2rem;
+  background: var(--cream);
+  font-family: 'Inria Serif', serif;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  border-color: var(--brown-mid);
+}
+
+.form-input.error {
+  border-color: var(--red-accent);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── BUTTONS ── */
+.btn-submit {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--red-accent);
+  color: white;
+  border: none;
+  border-radius: 2rem;
+  font-family: 'Inria Serif', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+
+.btn-submit:hover {
+  background: #6B1414;
+}
+
+.btn-green {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--green-btn);
+  color: white;
+  border: none;
+  border-radius: 2rem;
+  font-family: 'Inria Serif', serif;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+
+.btn-green:hover {
+  background: #667A5A;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--brown-mid);
+  font-family: 'Inria Serif', serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 1.5rem;
+  display: inline-block;
+}
+
+.btn-back:hover {
+  color: var(--red-accent);
+}
+
+/* ── GOOGLE BUTTON ── */
+.btn-google {
+  width: 100%;
+  padding: 0.85rem;
+  background: white;
+  border: 1.5px solid var(--input-border);
+  border-radius: 2rem;
+  font-family: 'Inria Serif', serif;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  transition: border-color 0.2s;
+  text-decoration: none;
+}
+
+.btn-google:hover {
+  border-color: var(--brown-mid);
+}
+
+/* ── DIVIDER ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.2rem 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--input-border);
+}
+
+/* ── ERROR MESSAGES ── */
+.error-msg {
+  color: var(--red-accent);
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+  display: block;
+  padding-left: 1rem;
+}
+
+.alert-error {
+  background: #fdf0f0;
+  border: 1px solid var(--red-accent);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--red-accent);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* ── EMAIL SENT ICON ── */
+.email-icon {
+  margin: 1rem auto 1.5rem;
+  width: 80px;
+  height: 80px;
+  color: var(--brown-mid);
+}
+
+.expire-msg {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+}
+
+/* ── FORGOT PASSWORD LINK ── */
+.forgot-link {
+  display: block;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.forgot-link:hover {
+  color: var(--red-accent);
+}
+
+/* ── PASSWORD WRAPPER ── */
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper .form-input {
+  padding-right: 3rem;
+}
+
+.toggle-eye {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .two-panel {
+    flex-direction: column;
+  }
+  .left-panel {
+    width: 100%;
+    height: 120px;
+  }
+  .right-panel {
+    width: 100%;
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* ── LOGOUT CONFIRM ── */
+.logout-form {
+  margin-top: 0.5rem;
+}
+
+.btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.btn-red {
+  background: var(--red-accent);
+  color: var(--cream);
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.85rem 2rem;
+  font-family: 'Inria Serif', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+
+.btn-red:hover {
+  background: #6e1414;
+}
+
+.btn-red:active {
+  transform: scale(0.98);
+}
+
+.btn-row .btn-back {
+  margin-top: 0;
+}

@@ -1,0 +1,1001 @@
+// competence-upgrade.scss
+// Design system: brown #6B4E2A/#5C4220/#7B5C35, cream #F5F0E8/#EDE6D8
+// Fonts: Inria Serif (titles), DM Sans (body/UI)
+
+@import url('https://fonts.googleapis.com/css2?family=Inria+Serif:wght@300;400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+$brown-dark:  #5C4220;
+$brown:       #6B4E2A;
+$brown-light: #7B5C35;
+$cream:       #F5F0E8;
+$cream-dark:  #EDE6D8;
+$cream-mid:   #E8E0D0;
+$green:       #4A7C59;
+$text:        #2C2010;
+$muted:       #9A8870;
+
+// ─── Layout ──────────────────────────────────────────────────────────────────
+
+.main-content {
+  padding: 2rem 2.5rem;
+  font-family: 'DM Sans', sans-serif;
+  color: $text;
+  min-height: 100vh;
+  background: $cream;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+.page-header { margin-bottom: 2rem; }
+
+.header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.btn-retour {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: $brown;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.4rem;
+  transition: color 0.2s;
+  &:hover { color: $brown-dark; }
+  .retour-arrow { font-size: 1.2rem; }
+}
+
+.page-title {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.25rem;
+}
+
+.page-subtitle {
+  color: $muted;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+// ─── Stepper ─────────────────────────────────────────────────────────────────
+
+.stepper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  gap: 0;
+}
+
+.stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+
+  &.active .stepper-circle { background: $brown-dark; color: #fff; }
+  &.complete .stepper-circle { background: $brown; color: #fff; }
+}
+
+.stepper-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: $cream-dark;
+  color: $muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 0.2s;
+  .check { font-size: 0.75rem; }
+}
+
+.stepper-label {
+  font-size: 0.78rem;
+  color: $muted;
+  white-space: nowrap;
+  .stepper-item.active &  { color: $brown-dark; font-weight: 600; }
+  .stepper-item.complete & { color: $brown; }
+}
+
+.stepper-sep {
+  width: 2rem;
+  height: 1px;
+  background: $cream-dark;
+  margin: 0 0.25rem;
+  flex-shrink: 0;
+}
+
+.stepper-line {
+  height: 1px;
+  background: $cream-dark;
+  margin-bottom: 2rem;
+}
+
+// ─── Two-column layout ────────────────────────────────────────────────────────
+
+.upgrade-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.upgrade-left { min-width: 0; }
+
+.upgrade-right {
+  position: sticky;
+  top: 1.5rem;
+}
+
+// ─── Step labels ──────────────────────────────────────────────────────────────
+
+.etape-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+
+.etape-titre {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.75rem;
+}
+
+.etape-desc {
+  color: $muted;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+// ─── Score band (step 1) ──────────────────────────────────────────────────────
+
+.score-band {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #fff;
+  border: 1.5px solid $cream-dark;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.score-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: $cream-dark;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: $brown-dark;
+  flex-shrink: 0;
+}
+
+.score-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  strong { font-size: 0.9rem; color: $text; }
+  span   { font-size: 0.8rem; color: $muted; }
+}
+
+// ─── Skills overview (step 1) ─────────────────────────────────────────────────
+
+.skills-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.skill-overview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1.5px solid $cream-dark;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover { border-color: $brown-light; background: rgba($cream, 0.5); }
+  &.skill-valide { border-color: rgba($green, 0.3); background: rgba($green, 0.04); }
+}
+
+.skill-ov-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.skill-ov-dot {
+  font-size: 0.6rem;
+  &.dot-haute     { color: $brown; }
+  &.dot-renforcer { color: $muted; }
+  &.dot-valide    { color: $green; }
+}
+
+.skill-ov-nom {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: $text;
+}
+
+.skill-ov-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.65rem;
+  border-radius: 12px;
+
+  &.badge-haute    { background: rgba($brown, 0.1); color: $brown-dark; }
+  &.badge-renforcer { background: $cream-dark; color: $muted; }
+  &.badge-valide   { background: rgba($green, 0.1); color: $green; }
+}
+
+// ─── Selection grid (step 2) ──────────────────────────────────────────────────
+
+.profil-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid $cream-dark;
+}
+
+.selection-card { min-height: 5rem; }
+
+.card-mini-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 1rem;
+}
+
+.selection-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.selection-skill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border: 1.5px solid $cream-dark;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fff;
+
+  &:hover:not(.selection-skill-valide) { border-color: $brown-light; background: rgba($cream, 0.5); }
+  &.selection-skill-active { border-color: $brown-dark; background: rgba($brown, 0.06); }
+  &.selection-skill-valide { border-color: rgba($green, 0.3); background: rgba($green, 0.04); cursor: default; }
+}
+
+.selection-skill-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.selection-skill-nom {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: $text;
+}
+
+.selection-skill-sub {
+  font-size: 0.78rem;
+  color: $muted;
+}
+
+.selection-skill-right {
+  flex-shrink: 0;
+}
+
+.check-icon  { color: $green; font-weight: 700; font-size: 1rem; }
+.resume-icon { font-size: 0.78rem; color: $brown; font-weight: 500; }
+.start-icon  { font-size: 1rem; color: $brown; }
+
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: $brown-dark;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  text-decoration: none;
+  margin-top: 1rem;
+
+  &:hover:not(:disabled) { background: $brown; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: $brown-dark;
+  border: 1.5px solid $brown-dark;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  &:hover { background: rgba($brown-dark, 0.06); }
+}
+
+.btn-row-right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+// ─── Loading ──────────────────────────────────────────────────────────────────
+
+.loading-state {
+  color: $muted;
+  font-style: italic;
+  padding: 2rem 0;
+  font-size: 0.9rem;
+}
+
+// ─── Question card ────────────────────────────────────────────────────────────
+
+.question-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.75rem;
+  margin-top: 1rem;
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.question-num   { font-size: 0.82rem; font-weight: 600; color: $muted; }
+.question-count { font-size: 0.82rem; color: $muted; }
+
+.question-enonce {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $text;
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+
+.choix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.choix-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid $cream-dark;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fff;
+
+  &:hover   { border-color: $brown-light; background: rgba($cream, 0.6); }
+  &.selected { border-color: $brown-dark; background: rgba($brown, 0.06); }
+}
+
+.choix-lettre {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: $cream-dark;
+  color: $brown;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  .selected & { background: $brown-dark; color: #fff; }
+}
+
+.choix-text { font-size: 0.88rem; color: $text; }
+
+// ─── Roadmap (step 4) ─────────────────────────────────────────────────────────
+
+.roadmap-niveau-band {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #fff;
+  border: 1.5px solid $cream-dark;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.niveau-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: $cream-dark;
+  color: $brown-dark;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.niveau-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  strong { font-size: 0.92rem; color: $text; }
+}
+
+.niveau-sub { font-size: 0.78rem; color: $muted; }
+
+.objectif-arrow { font-size: 1.25rem; color: $muted; }
+
+.objectif-badge {
+  padding: 0.35rem 0.9rem;
+  background: rgba($brown, 0.1);
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: $brown-dark;
+}
+
+.roadmap-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.5rem;
+}
+
+.roadmap-titre-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 1.5rem;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+.roadmap-steps-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.roadmap-step-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.step-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 40px;
+}
+
+.step-node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  background: $brown;
+  color: #fff;
+
+  &.node-video  { background: #D4891A; }
+  &.node-doc    { background: $green; }
+  &.node-projet { background: $brown-dark; }
+}
+
+.step-line {
+  width: 2px;
+  flex: 1;
+  min-height: 1.5rem;
+  background: $cream-dark;
+  margin: 0.25rem 0;
+}
+
+.step-content-card {
+  background: $cream;
+  border-radius: 10px;
+  padding: 0.85rem 1.1rem;
+  flex: 1;
+  margin-bottom: 0.75rem;
+}
+
+.step-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.step-type-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: $muted;
+  letter-spacing: 0.07em;
+}
+
+.step-duree {
+  font-size: 0.72rem;
+  color: $muted;
+}
+
+.step-titre {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.25rem;
+}
+
+.step-desc {
+  font-size: 0.8rem;
+  color: $muted;
+  margin: 0 0 0.5rem;
+  line-height: 1.4;
+}
+
+.step-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: $brown;
+  text-decoration: none;
+  &:hover { color: $brown-dark; text-decoration: underline; }
+}
+
+.roadmap-goal {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: $text;
+}
+
+.goal-flag { font-size: 1.5rem; }
+
+// ─── Parcours (step 5) ────────────────────────────────────────────────────────
+
+.parcours-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.progression-bar-container {
+  position: relative;
+  height: 8px;
+  background: $cream-dark;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.progression-bar-fill {
+  position: absolute;
+  left: 0; top: 0;
+  height: 100%;
+  background: $brown-dark;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.progression-label {
+  display: block;
+  text-align: right;
+  font-size: 0.78rem;
+  color: $muted;
+  margin-bottom: 1.25rem;
+}
+
+.parcours-etape {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1.5px solid $cream-dark;
+  margin-bottom: 0.6rem;
+  transition: all 0.15s;
+
+  &.etape-done {
+    border-color: rgba($green, 0.25);
+    background: rgba($green, 0.03);
+  }
+}
+
+.etape-checkbox { cursor: pointer; padding-top: 0.1rem; }
+
+.etape-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid $cream-dark;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  transition: all 0.2s;
+
+  &.checked { background: $green; border-color: $green; color: #fff; }
+}
+
+.etape-icon-type {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $cream-dark;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.type-badge {
+  font-size: 0.85rem;
+  &.type-video  { color: #D4891A; }
+  &.type-doc    { color: $green; }
+  &.type-projet { color: $brown-dark; }
+}
+
+.etape-content { flex: 1; min-width: 0; }
+
+.etape-type-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: $muted;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.2rem;
+}
+
+.etape-titre-parcours {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: $text;
+  margin: 0 0 0.2rem;
+}
+
+.etape-desc-parcours {
+  font-size: 0.78rem;
+  color: $muted;
+  margin: 0 0 0.4rem;
+  line-height: 1.4;
+}
+
+.etape-link-parcours {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: $brown;
+  text-decoration: none;
+  &:hover { color: $brown-dark; text-decoration: underline; }
+}
+
+// ─── Certification result (step 6) ───────────────────────────────────────────
+
+.certif-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 2.5rem 2rem;
+  margin-top: 1rem;
+}
+
+.certif-result-score {
+  font-family: 'Inria Serif', serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: $green;
+  margin-bottom: 0.5rem;
+
+  &.score-fail { color: #8B1A1A; }
+}
+
+.certif-result-msg {
+  font-size: 0.9rem;
+  color: $muted;
+  max-width: 400px;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.certif-result-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+// ─── Success (step 7) ─────────────────────────────────────────────────────────
+
+.success-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid $cream-dark;
+  padding: 3rem 2rem;
+  margin-top: 1rem;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba($green, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: $green;
+  margin-bottom: 1.5rem;
+}
+
+.success-titre {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.75rem;
+}
+
+.success-desc {
+  color: $muted;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto 1.5rem;
+}
+
+.success-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  border: 1.5px solid $green;
+  color: $green;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.success-profil-preview {
+  background: $cream;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  min-width: 280px;
+}
+
+.success-profil-name  { font-weight: 700; color: $text; font-size: 0.95rem; margin: 0 0 0.2rem; }
+.success-profil-titre { font-size: 0.82rem; color: $muted; margin: 0; }
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  &.tags-center { justify-content: center; }
+}
+
+.tag {
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: $cream-dark;
+  color: $brown;
+}
+
+.tag-current { background: rgba($brown, 0.12); color: $brown-dark; }
+
+// Session progress band
+.session-progress-band {
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 1.75rem;
+  font-size: 0.82rem;
+  color: $muted;
+  text-align: center;
+}
+
+.session-prog-bar {
+  height: 6px;
+  background: $cream-dark;
+  border-radius: 3px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.session-prog-fill {
+  height: 100%;
+  background: $green;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.success-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+// ─── Right sidebar ────────────────────────────────────────────────────────────
+
+.offre-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $cream-dark;
+  padding: 1.5rem;
+}
+
+.offre-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+
+.offre-titre {
+  font-family: 'Inria Serif', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 0.35rem;
+  word-break: break-word;
+}
+
+.offre-meta { font-size: 0.82rem; color: $muted; margin: 0 0 0.25rem; }
+.offre-date { font-size: 0.78rem; color: $muted; margin: 0 0 1rem; }
+
+.manquantes-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba($brown, 0.08);
+  border: 1px solid rgba($brown, 0.18);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: $brown-dark;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.manquantes-dot { color: $brown; font-size: 0.6rem; margin-top: 0.2rem; flex-shrink: 0; }
+
+.comp-renforcer-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: $muted;
+  text-transform: uppercase;
+  margin: 0 0 0.75rem;
+}
+
+.comp-renforcer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comp-renforcer-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid $cream-dark;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fff;
+
+  &:hover  { border-color: $brown-light; background: $cream; }
+  &.selected { border-color: $brown-dark; background: rgba($brown, 0.06); }
+  &.comp-valide { border-color: rgba($green, 0.3); background: rgba($green, 0.04); cursor: default; }
+}
+
+.comp-dot {
+  font-size: 0.6rem;
+  flex-shrink: 0;
+  &.dot-haute  { color: $brown; }
+  &.dot-valide { color: $green; }
+  color: $muted;
+}
+
+.comp-nom {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: $text;
+}
+
+.comp-priorite-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+
+  &.badge-haute     { background: rgba($brown, 0.1); color: $brown-dark; }
+  &.badge-renforcer { background: $cream-dark; color: $muted; }
+  &.badge-valide    { background: rgba($green, 0.1); color: $green; }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 900px) {
+  .upgrade-layout { grid-template-columns: 1fr; }
+  .upgrade-right  { position: static; order: -1; }
+}

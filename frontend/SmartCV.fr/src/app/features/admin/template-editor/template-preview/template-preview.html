@@ -1,0 +1,31 @@
+<div *ngIf="hasBoxes; else empty" class="tpl-preview" [attr.data-layout]="layoutId">
+
+  <div
+    *ngFor="let box of boxes; trackBy: trackBoxById"
+    class="tpl-preview-box"
+    [attr.data-box]="box.id"
+    [style.background]="box.style.background"
+    [style.color]="box.style.textColor"
+    [style.padding]="box.style.padding">
+
+    <div *ngIf="box.components.length === 0" class="tpl-preview-empty">
+      <em>Zone vide</em>
+    </div>
+
+    <div
+      *ngFor="let cmp of box.components; trackBy: trackComponentById"
+      class="tpl-preview-cmp">
+      <app-cv-component-renderer
+        [component]="cmp"
+        [accentColor]="box.style.accentColor || couleur">
+      </app-cv-component-renderer>
+    </div>
+  </div>
+</div>
+
+<ng-template #empty>
+  <div class="tpl-preview-no-data">
+    <p><strong>Ce template n'a pas encore été construit dans le builder visuel.</strong></p>
+    <p>Cliquez sur « Éditer » pour ajouter des composants CV via le builder.</p>
+  </div>
+</ng-template>
