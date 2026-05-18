@@ -4003,19 +4003,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Jihane El Ghazrani\\.nuget\\packages\\": {}
+    "C:\\Users\\Nyhasina\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\SmartCV.Tests\\SmartCV.Tests.csproj",
+      "projectUniqueName": "C:\\Users\\Nyhasina\\Desktop\\Projets\\Smart-CV-Platform\\backend\\SmartCV.Tests\\SmartCV.Tests.csproj",
       "projectName": "SmartCV.Tests",
-      "projectPath": "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\SmartCV.Tests\\SmartCV.Tests.csproj",
-      "packagesPath": "C:\\Users\\Jihane El Ghazrani\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\SmartCV.Tests\\obj\\",
+      "projectPath": "C:\\Users\\Nyhasina\\Desktop\\Projets\\Smart-CV-Platform\\backend\\SmartCV.Tests\\SmartCV.Tests.csproj",
+      "packagesPath": "C:\\Users\\Nyhasina\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Nyhasina\\Desktop\\Projets\\Smart-CV-Platform\\backend\\SmartCV.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Jihane El Ghazrani\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\Nyhasina\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
@@ -4027,8 +4027,8 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {
-            "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj": {
-              "projectPath": "C:\\Users\\Jihane El Ghazrani\\Documents\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj"
+            "C:\\Users\\Nyhasina\\Desktop\\Projets\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj": {
+              "projectPath": "C:\\Users\\Nyhasina\\Desktop\\Projets\\Smart-CV-Platform\\backend\\src\\SmartCV.API\\SmartCV.API.csproj"
             }
           }
         }

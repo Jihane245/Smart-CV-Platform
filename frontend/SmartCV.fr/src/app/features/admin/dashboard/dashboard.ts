@@ -220,6 +220,30 @@ export class Dashboard implements OnInit {
         u.actif = !next;
         return of(null);
       })
+    ).subscribe((res) => {
+      if (res === null) return;
+      if (this.userDetail?.id === u.id) {
+        this.userDetail = { ...this.userDetail, actif: next };
+      }
+    });
+  }
+
+  toggleActifFromDetail(): void {
+    const d = this.userDetail;
+    if (!d) return;
+    const u = this.utilisateurs.find(x => x.id === d.id);
+    if (u) {
+      this.toggleActif(u);
+      return;
+    }
+    const next = !d.actif;
+    d.actif = next;
+    this.adminService.updateActif(d.id, next).pipe(
+      catchError((err) => {
+        console.error('Erreur update actif', err);
+        d.actif = !next;
+        return of(null);
+      })
     ).subscribe();
   }
 
@@ -235,19 +259,44 @@ export class Dashboard implements OnInit {
       this.adminService.deleteUtilisateur(u.id).pipe(
         catchError((err) => {
           console.error('Erreur suppression utilisateur', err);
-          this.notif.error('Impossible de supprimer l\'utilisateur', err?.message);
+          const msg = err?.error?.message ?? err?.message ?? 'Erreur inconnue';
+          this.notif.error('Impossible de supprimer l\'utilisateur', msg);
           return of(null);
         })
       ).subscribe((res) => {
-        if (res !== null) {
-          this.zone.run(() => {
-            this.utilisateurs = this.utilisateurs.filter(x => x !== u);
-            this.cdr.detectChanges();
-          });
-          this.notif.success(`Utilisateur "${u.nom}" supprimé`);
-        }
+        if (res === null) return;
+        this.apresSuppressionUtilisateur(u);
       });
     });
+  }
+
+  supprimerUtilisateurDepuisDetail(): void {
+    const d = this.userDetail;
+    if (!d) return;
+    const u = this.utilisateurs.find(x => x.id === d.id) ?? {
+      id: d.id,
+      nom: d.nom,
+      initiales: d.initiales,
+      couleurAvatar: d.couleurAvatar,
+      role: d.role,
+      email: d.email,
+      cvGeneres: d.cvGeneres,
+      inscritLe: d.inscritLe,
+      actif: d.actif,
+    };
+    this.supprimerUtilisateur(u);
+  }
+
+  private apresSuppressionUtilisateur(u: AdminUtilisateurDto): void {
+    this.zone.run(() => {
+      this.utilisateurs = this.utilisateurs.filter(x => x.id !== u.id);
+      if (this.userDetail?.id === u.id) {
+        this.userDetail = null;
+      }
+      this.cdr.detectChanges();
+    });
+    this.refreshStats();
+    this.notif.success(`Utilisateur "${u.nom}" supprimé`);
   }
 
 

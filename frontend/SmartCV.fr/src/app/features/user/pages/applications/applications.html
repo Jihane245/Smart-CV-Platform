@@ -38,7 +38,7 @@
                 (change)="onStatutChange(c, $event)"
                 [attr.aria-label]="'Statut pour ' + c.entreprise"
               >
-                <option *ngFor="let s of statutOptions" [value]="s">{{ s }}</option>
+                <option *ngFor="let s of statutOptions" [value]="s">{{ statutLabel(s) }}</option>
               </select>
             </td>
           </tr>
@@ -83,7 +83,14 @@
     </div>
   </section>
 
-  <section *ngIf="!chargement" class="card card-form">
+  <section
+    *ngIf="!chargement"
+    id="nouvelle-candidature"
+    class="card card-form"
+  >
+    <p *ngIf="prefillActif" class="prefill-hint" role="status">
+      Champs pré-remplis depuis la génération de CV — modifiez-les si besoin, puis cliquez sur Ajouter.
+    </p>
     <div class="form-card-header">
       <h2 class="card-heading">Enregistrer une candidature</h2>
       <button
@@ -126,7 +133,7 @@
       <div class="field">
         <label for="app-statut">Statut</label>
         <select id="app-statut" class="form-input form-select" [(ngModel)]="formStatut">
-          <option *ngFor="let s of statutOptions" [ngValue]="s">{{ s }}</option>
+          <option *ngFor="let s of statutOptions" [ngValue]="s">{{ statutLabel(s) }}</option>
         </select>
       </div>
     </div>

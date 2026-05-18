@@ -9,6 +9,11 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    path: 'connexion',
+    loadComponent: () =>
+      import('./features/auth/connexion/connexion').then((m) => m.Connexion),
+  },
+  {
     path: 'user',
     canActivate: [authGuard],
     loadComponent: () =>

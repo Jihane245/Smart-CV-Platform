@@ -74,7 +74,7 @@ public class CandidatureControllerTests
                 Entreprise = "TechCorp",
                 Poste = "Développeur Full Stack",
                 DateEnvoi = DateTime.UtcNow.AddDays(-10),
-                Statut = StatutCandidature.envoyée,
+                Statut = StatutCandidature.envoyee,
                 Notes = "Premier entretien prévu"
             },
             new()
@@ -84,7 +84,7 @@ public class CandidatureControllerTests
                 Entreprise = "StartupXYZ",
                 Poste = "Dev React",
                 DateEnvoi = DateTime.UtcNow.AddDays(-5),
-                Statut = StatutCandidature.acceptée,
+                Statut = StatutCandidature.acceptee,
                 Notes = "Offre reçue"
             },
             new()
@@ -94,7 +94,7 @@ public class CandidatureControllerTests
                 Entreprise = "BigCorp",
                 Poste = "Tech Lead",
                 DateEnvoi = DateTime.UtcNow.AddDays(-20),
-                Statut = StatutCandidature.refusée,
+                Statut = StatutCandidature.refusee,
                 Notes = null
             }
         };
@@ -229,7 +229,7 @@ public class CandidatureControllerTests
 
         // Vérifier que le statut a bien changé
         var candidature = await db.Candidatures.FindAsync(1);
-        candidature!.Statut.Should().Be(StatutCandidature.acceptée);
+        candidature!.Statut.Should().Be(StatutCandidature.acceptee);
     }
 
     [Fact]

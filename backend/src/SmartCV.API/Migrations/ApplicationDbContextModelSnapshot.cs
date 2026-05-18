@@ -132,7 +132,7 @@ namespace SmartCV.API.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("text")
-                        .HasDefaultValue("enregistrée");
+                        .HasDefaultValue("enregistree");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");

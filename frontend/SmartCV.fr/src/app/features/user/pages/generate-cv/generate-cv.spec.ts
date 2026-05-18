@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
@@ -9,6 +8,8 @@ import { ProfilService } from '../../../../core/services/profil.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CvService } from '../../../../core/services/cv.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { CandidatureDraftService } from '../../../../core/services/candidature-draft.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 describe('GenerateCv', () => {
   let component: GenerateCv;
@@ -28,6 +29,8 @@ describe('GenerateCv', () => {
     warning: ReturnType<typeof vi.fn>;
     info: ReturnType<typeof vi.fn>;
   };
+  let routerMock: { navigate: ReturnType<typeof vi.fn> };
+  let candidatureDraftMock: { setDraft: ReturnType<typeof vi.fn> };
 
   afterEach(() => {
     vi.useRealTimers();
@@ -101,15 +104,25 @@ describe('GenerateCv', () => {
       info: vi.fn(),
     };
 
+    routerMock = { navigate: vi.fn().mockResolvedValue(true) };
+    candidatureDraftMock = { setDraft: vi.fn() };
+
     await TestBed.configureTestingModule({
       imports: [GenerateCv],
       providers: [
-        provideRouter([]),
+        { provide: Router, useValue: routerMock },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: { get: () => null } },
+          },
+        },
         { provide: ProfilService, useValue: profilServiceMock },
         { provide: AuthService, useValue: authServiceMock },
         { provide: CvService, useValue: cvServiceMock },
         { provide: HttpClient, useValue: httpMock },
         { provide: NotificationService, useValue: notifMock },
+        { provide: CandidatureDraftService, useValue: candidatureDraftMock },
       ],
     }).compileComponents();
 
@@ -300,9 +313,26 @@ describe('GenerateCv', () => {
       expect(notifMock.warning).toHaveBeenCalledWith('Aucun CV généré à télécharger.');
     });
 
-    it('enregistrerCandidature devrait notifier info', () => {
+    it('enregistrerCandidature devrait avertir si aucun CV généré', () => {
+      component.cvState.patch({ cvCreeId: null });
       component.enregistrerCandidature();
-      expect(notifMock.info).toHaveBeenCalledWith('Enregistrement candidature — disponible prochainement.');
+      expect(notifMock.warning).toHaveBeenCalledWith(
+        'Générez d\'abord votre CV avant d\'enregistrer une candidature.',
+      );
+      expect(routerMock.navigate).not.toHaveBeenCalled();
+    });
+
+    it('enregistrerCandidature devrait rediriger vers applications avec brouillon', () => {
+      component.cvState.patch({
+        cvCreeId: 5,
+        titreCv: 'Développeur Angular',
+        offreTexte: 'Entreprise: ACME Corp',
+      });
+      component.enregistrerCandidature();
+      expect(candidatureDraftMock.setDraft).toHaveBeenCalled();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/user/applications'], {
+        fragment: 'nouvelle-candidature',
+      });
     });
   });
 
