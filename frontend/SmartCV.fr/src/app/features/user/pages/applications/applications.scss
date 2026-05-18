@@ -257,6 +257,17 @@ $input-bg: #f0eae0;
   background: #c9a86c;
 }
 
+.prefill-hint {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: darken($brd, 8%);
+  background: rgba($gn, 0.12);
+  border: 1px solid rgba($gn, 0.35);
+  border-radius: 8px;
+}
+
 .form-card-header {
   display: flex;
   justify-content: space-between;

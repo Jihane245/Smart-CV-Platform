@@ -34,7 +34,9 @@ export class AuthService {
   }
 
   login(): void {
-    window.location.href = `${environment.backendUrl}/api/auth/login?returnUrl=${window.location.origin}`;
+    const returnPath = window.location.pathname.startsWith('/connexion') ? '/connexion' : '/';
+    const returnUrl = `${window.location.origin}${returnPath}`;
+    window.location.href = `${environment.backendUrl}/api/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`;
   }
 
   register(): void {

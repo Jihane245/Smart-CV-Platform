@@ -97,17 +97,17 @@ export class UsersList implements OnInit {
       this.adminService.deleteUtilisateur(u.id).pipe(
         catchError((err) => {
           console.error('Erreur suppression utilisateur', err);
-          this.notif.error('Impossible de supprimer l\'utilisateur', err?.message);
+          const msg = err?.error?.message ?? err?.message ?? 'Erreur inconnue';
+          this.notif.error('Impossible de supprimer l\'utilisateur', msg);
           return of(null);
         })
       ).subscribe((res) => {
-        if (res !== null) {
-          this.zone.run(() => {
-            this.utilisateurs = this.utilisateurs.filter(x => x !== u);
-            this.cdr.detectChanges();
-          });
-          this.notif.success(`Utilisateur "${u.nom}" supprimé`);
-        }
+        if (res === null) return;
+        this.zone.run(() => {
+          this.utilisateurs = this.utilisateurs.filter(x => x.id !== u.id);
+          this.cdr.detectChanges();
+        });
+        this.notif.success(`Utilisateur "${u.nom}" supprimé`);
       });
     });
   }

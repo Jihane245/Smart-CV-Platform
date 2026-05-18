@@ -109,7 +109,8 @@ builder.Services.AddAuthentication(options =>
             using var scope = ctx.HttpContext.RequestServices.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await db.Users.FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == email.ToLower());
             var roleAttendu = estAdmin ? RoleUtilisateur.Admin : RoleUtilisateur.Candidat;
 
             if (user == null)
@@ -124,10 +125,22 @@ builder.Services.AddAuthentication(options =>
                 });
                 await db.SaveChangesAsync();
             }
-            else if (user.Role != roleAttendu)
+            else
             {
-                user.Role = roleAttendu;
-                await db.SaveChangesAsync();
+                if (!user.IsActif)
+                {
+                    var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                    var frontendUrl = (config["FRONTEND_URL"] ?? "http://localhost").TrimEnd('/');
+                    ctx.HandleResponse();
+                    ctx.Response.Redirect($"{frontendUrl}/connexion?authError=account_disabled");
+                    return;
+                }
+
+                if (user.Role != roleAttendu)
+                {
+                    user.Role = roleAttendu;
+                    await db.SaveChangesAsync();
+                }
             }
         },
 
@@ -135,6 +148,7 @@ builder.Services.AddAuthentication(options =>
         {
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
             ctx.ProtocolMessage.PostLogoutRedirectUri = "https://cevia.duckdns.org/";
+
             if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
         },

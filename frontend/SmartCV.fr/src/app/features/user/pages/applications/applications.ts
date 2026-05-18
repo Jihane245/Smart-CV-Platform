@@ -1,16 +1,24 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
-import { StatutCandidature } from '../../../../core/models/models';
+import {
+  StatutCandidature,
+  STATUT_CANDIDATURE_LABELS,
+} from '../../../../core/models/models';
 import {
   CandidatureListeItem,
   CandidatureService,
   CandidatureStats,
 } from '../../../../core/services/candidature.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import {
+  CandidatureDraft,
+  CandidatureDraftService,
+} from '../../../../core/services/candidature-draft.service';
 
 const STATUT_OPTIONS: StatutCandidature[] = [
   StatutCandidature.enregistree,
@@ -30,11 +38,12 @@ const STATUT_OPTIONS: StatutCandidature[] = [
   templateUrl: './applications.html',
   styleUrl: './applications.scss',
 })
-export class Applications implements OnInit {
+export class Applications implements OnInit, AfterViewInit {
   readonly statutOptions = STATUT_OPTIONS;
 
   chargement = true;
   enregistrement = false;
+  prefillActif = false;
   candidatures: CandidatureListeItem[] = [];
   stats: CandidatureStats | null = null;
 
@@ -47,12 +56,40 @@ export class Applications implements OnInit {
 
   constructor(
     private candidatureService: CandidatureService,
+    private candidatureDraft: CandidatureDraftService,
     private notif: NotificationService,
     private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
+    const draft = this.candidatureDraft.consumeDraft();
+    if (draft) {
+      this.appliquerBrouillon(draft);
+    }
     this.recharger();
+  }
+
+  ngAfterViewInit(): void {
+    const scrollToForm =
+      this.prefillActif || this.route.snapshot.fragment === 'nouvelle-candidature';
+    if (scrollToForm) {
+      requestAnimationFrame(() => {
+        document.getElementById('nouvelle-candidature')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
+    }
+  }
+
+  private appliquerBrouillon(draft: CandidatureDraft): void {
+    if (draft.entreprise) this.formEntreprise = draft.entreprise;
+    if (draft.poste) this.formPoste = draft.poste;
+    if (draft.date) this.formDate = draft.date;
+    if (draft.statut) this.formStatut = draft.statut;
+    this.prefillActif = true;
+    this.notif.info('Formulaire pré-rempli depuis votre CV — vous pouvez modifier les champs avant d\'ajouter.');
   }
 
   recharger(silencieux = false): void {
@@ -126,6 +163,11 @@ export class Applications implements OnInit {
       g('#c9a86c', toTurn(envoyee)),
     ].filter(Boolean);
     return `conic-gradient(${parts.join(', ')})`;
+  }
+
+  statutLabel(statut: string): string {
+    const key = statut as StatutCandidature;
+    return STATUT_CANDIDATURE_LABELS[key] ?? statut;
   }
 
   statutPillClass(statut: string): string {
@@ -223,6 +265,7 @@ export class Applications implements OnInit {
     this.formPoste = '';
     this.formDate = '';
     this.formStatut = StatutCandidature.envoyee;
+    this.prefillActif = false;
     this.recharger(true);
   }
 }

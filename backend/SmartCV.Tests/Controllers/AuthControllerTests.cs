@@ -21,7 +21,7 @@ public class AuthControllerTests
         var mockHttp     = new Mock<IHttpClientFactory>();
         var mockKeycloak = new Mock<KeycloakAdminService>(mockHttp.Object, mockConfig.Object);
 
-        var controller = new AuthController(mockKeycloak.Object);
+        var controller = new AuthController(mockKeycloak.Object, mockConfig.Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = TestDbContext.CreateHttpContext()

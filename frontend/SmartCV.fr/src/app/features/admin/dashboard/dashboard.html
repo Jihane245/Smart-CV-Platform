@@ -200,6 +200,15 @@
             </dd>
           </div>
         </dl>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-action desact" (click)="toggleActifFromDetail()">
+            {{ d.actif ? 'Désactiver' : 'Activer' }}
+          </button>
+          <button type="button" class="btn-action suppr" (click)="supprimerUtilisateurDepuisDetail()">
+            Supprimer
+          </button>
+        </div>
       </ng-container>
     </div>
   </div>

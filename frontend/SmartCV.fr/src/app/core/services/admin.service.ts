@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 const API_BASE = `${environment.backendUrl}/api/admin`
@@ -31,8 +30,6 @@ export interface AdminUtilisateurDto {
   inscritLe: string;
   actif: boolean;
 }
-
-type AdminUtilisateurApiDto = Omit<AdminUtilisateurDto, 'id'> & { id: string | number };
 
 export interface AdminUtilisateurDetailDto {
   id: number;
@@ -166,16 +163,7 @@ export class AdminService {
   getUtilisateurs(search?: string): Observable<AdminUtilisateurDto[]> {
     const q = (search ?? '').trim();
     const url = q ? `${API_BASE}/utilisateurs?search=${encodeURIComponent(q)}` : `${API_BASE}/utilisateurs`;
-    return this.http
-      .get<AdminUtilisateurApiDto[]>(url, { withCredentials: true })
-      .pipe(
-        map((users) =>
-          users.map((u) => ({
-            ...u,
-            id: typeof u.id === 'number' ? u.id : Number.parseInt(u.id, 10),
-          }))
-        )
-      );
+    return this.http.get<AdminUtilisateurDto[]>(url, { withCredentials: true });
   }
 
   getUtilisateur(id: number): Observable<AdminUtilisateurDetailDto> {

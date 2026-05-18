@@ -2,7 +2,7 @@ namespace API.dtos;
 
 public class UtilisateurAdminDto
 {
-    public string Id { get; set; } = string.Empty;
+    public int Id { get; set; }
     public string Initiales { get; set; } = string.Empty;
     public string CouleurAvatar { get; set; } = string.Empty;
     public string Nom { get; set; } = string.Empty;

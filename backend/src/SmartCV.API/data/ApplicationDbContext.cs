@@ -38,7 +38,10 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Competence>().Property(c => c.Niveau).HasConversion<string>();
         modelBuilder.Entity<Cv>().Property(c => c.Statut).HasConversion<string>();
-        modelBuilder.Entity<Candidature>().Property(c => c.Statut).HasConversion<string>();
+        modelBuilder.Entity<Candidature>().Property(c => c.Statut)
+            .HasConversion(
+                v => StatutCandidatureConverter.ToDb(v),
+                v => StatutCandidatureConverter.FromDb(v));
         modelBuilder.Entity<Offre>().Property(o => o.TypeContrat).HasConversion<string>();
         modelBuilder.Entity<User>().Property(u => u.Role).HasConversion<string>();
         modelBuilder.Entity<SectionDynamique>().HasOne(s => s.Profil).WithMany(p => p.Sections).HasForeignKey(s => s.ProfilId).OnDelete(DeleteBehavior.Cascade);
@@ -71,7 +74,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().Property(u => u.Role).HasDefaultValue(RoleUtilisateur.Candidat);
         modelBuilder.Entity<Cv>().Property(c => c.Statut).HasDefaultValue(StatutCVEnum.BROUILLON);
      
-        modelBuilder.Entity<Candidature>().Property(c => c.Statut).HasDefaultValue(StatutCandidature.enregistrée);
+        modelBuilder.Entity<Candidature>().Property(c => c.Statut).HasDefaultValue(StatutCandidature.enregistree);
         modelBuilder.Entity<CvPersonnalise>()
             .HasOne(c => c.User)
             .WithMany()

@@ -68,7 +68,7 @@ public class CandidatureController : ControllerBase
             Entreprise = dto.Entreprise,
             Poste = dto.Poste,
             DateEnvoi = dto.DateEnvoi,
-            Statut = StatutCandidature.enregistrée,  // statut par défaut
+            Statut = StatutCandidature.enregistree,
             Notes = dto.Notes
         };
 
@@ -89,7 +89,7 @@ public class CandidatureController : ControllerBase
             return NotFound(new { message = "Candidature non trouvée" });
 
         // Convertir le texte reçu en enum
-        candidature.Statut = Enum.Parse<StatutCandidature>(dto.Statut);
+        candidature.Statut = StatutCandidatureConverter.ParseInput(dto.Statut);
         await _db.SaveChangesAsync();
 
         return Ok(new { message = $"Statut mis à jour : {dto.Statut}" });
@@ -118,13 +118,13 @@ public class CandidatureController : ControllerBase
             .ToListAsync();
 
         var total = candidatures.Count;
-        var nonArchivees = candidatures.Count(c => c.Statut != StatutCandidature.archivée);
-        var acceptees = candidatures.Count(c => c.Statut == StatutCandidature.acceptée);
-        var refusees = candidatures.Count(c => c.Statut == StatutCandidature.refusée);
+        var nonArchivees = candidatures.Count(c => c.Statut != StatutCandidature.archivee);
+        var acceptees = candidatures.Count(c => c.Statut == StatutCandidature.acceptee);
+        var refusees = candidatures.Count(c => c.Statut == StatutCandidature.refusee);
         var enCours = candidatures.Count(c => 
-            c.Statut != StatutCandidature.acceptée && 
-            c.Statut != StatutCandidature.refusée && 
-            c.Statut != StatutCandidature.archivée);
+            c.Statut != StatutCandidature.acceptee && 
+            c.Statut != StatutCandidature.refusee && 
+            c.Statut != StatutCandidature.archivee);
 
         var stats = new
         {
@@ -136,14 +136,14 @@ public class CandidatureController : ControllerBase
             tauxAcceptation = total > 0 ? Math.Round((double)acceptees / total * 100, 1) : 0,
             parStatut = new
             {
-                enregistree = candidatures.Count(c => c.Statut == StatutCandidature.enregistrée),
-                envoyee = candidatures.Count(c => c.Statut == StatutCandidature.envoyée),
-                recue = candidatures.Count(c => c.Statut == StatutCandidature.reçue),
+                enregistree = candidatures.Count(c => c.Statut == StatutCandidature.enregistree),
+                envoyee = candidatures.Count(c => c.Statut == StatutCandidature.envoyee),
+                recue = candidatures.Count(c => c.Statut == StatutCandidature.recue),
                 enCoursExamen = candidatures.Count(c => c.Statut == StatutCandidature.en_cours_d_examen),
                 entretien = candidatures.Count(c => c.Statut == StatutCandidature.entretien),
                 acceptee = acceptees,
                 refusee = refusees,
-                archivee = candidatures.Count(c => c.Statut == StatutCandidature.archivée)
+                archivee = candidatures.Count(c => c.Statut == StatutCandidature.archivee)
             }
         };
 

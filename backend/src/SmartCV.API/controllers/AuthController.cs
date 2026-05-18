@@ -27,6 +27,7 @@ namespace API.Controllers
             {
                 "http://localhost",
                 "http://localhost:80",
+                "https://cevia.duckdns.org",
                 frontendUrl
             };
         }
@@ -56,15 +57,11 @@ namespace API.Controllers
                 return Forbid();
             }
 
-            var frontendUrl = _configuration["FRONTEND_URL"] ?? "http://localhost";
+            var frontendUrl = (_configuration["FRONTEND_URL"] ?? "http://localhost").TrimEnd('/');
             return SignOut(
-                new AuthenticationProperties
-                {
-                    RedirectUri = $"{frontendUrl}/connexion"
-                },
+                new AuthenticationProperties { RedirectUri = $"{frontendUrl}/connexion" },
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                OpenIdConnectDefaults.AuthenticationScheme
-            );
+                OpenIdConnectDefaults.AuthenticationScheme);
         }
 
         public class ForgotPasswordRequest

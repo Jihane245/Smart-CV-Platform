@@ -144,7 +144,7 @@ public class AdminController : ControllerBase
         var users = await query
             .Select(u => new UtilisateurAdminDto
             {
-                Id           = u.Id.ToString(),  // Convertir Guid en string
+                Id           = u.Id,
                 Initiales    = GenererInitiales(u.Prenom, u.Nom),
                 CouleurAvatar = GenererCouleur(u.Id),
                 Nom          = $"{u.Prenom} {u.Nom}",
@@ -225,6 +225,9 @@ public class AdminController : ControllerBase
         if (user == null)
             return NotFound(new { message = "Utilisateur non trouvé" });
 
+        if (user.Role == RoleUtilisateur.Admin)
+            return BadRequest(new { message = "Impossible de supprimer un compte administrateur" });
+
         // Keycloak best-effort : on tente de supprimer côté Keycloak,
         // mais on procède à la suppression DB même en cas d'échec.
         var kcSynced = false;
@@ -239,8 +242,16 @@ public class AdminController : ControllerBase
             _logger.LogWarning(ex, "Keycloak indisponible pour DeleteUser ({Email}) — fallback DB-only", user.Email);
         }
 
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
+        try
+        {
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Échec suppression utilisateur {UserId} ({Email})", id, user.Email);
+            return StatusCode(500, new { message = "Impossible de supprimer cet utilisateur (données liées). Réessayez ou contactez le support." });
+        }
 
         return Ok(new { message = "Utilisateur supprimé", kcSynced });
     }

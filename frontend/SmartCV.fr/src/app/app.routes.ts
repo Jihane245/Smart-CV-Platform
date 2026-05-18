@@ -11,6 +11,11 @@ export const routes: Routes = [
       import('./features/user/pages/home/home').then(m => m.Home),
   },
   {
+    path: 'connexion',
+    loadComponent: () =>
+      import('./features/auth/connexion/connexion').then((m) => m.Connexion),
+  },
+  {
     path: 'user',
     canActivate: [authGuard],
     loadComponent: () =>

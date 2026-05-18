@@ -23,6 +23,10 @@ import { CvData, buildCvDataFromProfil, presentLabelFor, ALL_PRESENT_VALUES } fr
 import { GenerateCvStateService } from '../../../../core/services/generate-cv-state.service';
 import { CompetenceUpgradeService } from '../../../../core/services/competence-upgrade.service';
 import { GapSessionStateService } from '../../../../core/services/gap-session-state.service';
+import {
+  buildCandidatureDraftFromGenerateCv,
+  CandidatureDraftService,
+} from '../../../../core/services/candidature-draft.service';
 
 interface CompetenceAnalysee {
   nom: string;
@@ -192,6 +196,7 @@ export class GenerateCv implements OnInit {
     private router: Router,
     private competenceUpgradeService: CompetenceUpgradeService,
     private gapSessionState: GapSessionStateService,
+    private candidatureDraft: CandidatureDraftService,
   ) {}
 
   ngOnInit(): void {
@@ -637,7 +642,13 @@ export class GenerateCv implements OnInit {
   }
 
   enregistrerCandidature(): void {
-    this.notifService.info('Enregistrement candidature — disponible prochainement.');
+    if (!this.cvCreeId) {
+      this.notifService.warning('Générez d\'abord votre CV avant d\'enregistrer une candidature.');
+      return;
+    }
+
+    this.candidatureDraft.setDraft(buildCandidatureDraftFromGenerateCv(this.cvState.state));
+    this.router.navigate(['/user/applications'], { fragment: 'nouvelle-candidature' });
   }
 
   // ─── Étape 4 — Lettre de motivation ──────────────────────────────────────────
