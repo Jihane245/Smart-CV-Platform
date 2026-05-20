@@ -244,3 +244,18 @@
   transition: margin-left var(--transition);
   min-height: 100vh;
 }
+
+.sidebar-logo-img {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  transition: opacity var(--transition);
+}
+
+.collapsed .sidebar-logo-img {
+  opacity: 0;
+  pointer-events: none;
+}
