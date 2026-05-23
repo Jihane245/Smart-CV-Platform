@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -49,6 +50,18 @@ describe('Applications', () => {
   };
 
   beforeEach(async () => {
+    const origGetElementById = document.getElementById.bind(document);
+    vi.spyOn(document, 'getElementById').mockImplementation((id: string) => {
+      if (id === 'nouvelle-candidature') {
+        return { scrollIntoView: vi.fn() } as unknown as HTMLElement;
+      }
+      return origGetElementById(id);
+    });
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+
     candidatureServiceMock = {
       getMesCandidatures: vi.fn().mockReturnValue(
         of([
@@ -79,6 +92,16 @@ describe('Applications', () => {
     await TestBed.configureTestingModule({
       imports: [Applications],
       providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              fragment: null,
+              paramMap: { get: () => null },
+              queryParamMap: { get: () => null },
+            },
+          },
+        },
         { provide: CandidatureService, useValue: candidatureServiceMock },
         { provide: CandidatureDraftService, useValue: candidatureDraftMock },
         { provide: NotificationService, useValue: notifMock },
@@ -89,6 +112,11 @@ describe('Applications', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     await fixture.whenStable();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('should create', () => {
@@ -196,24 +224,36 @@ describe('Applications', () => {
     });
 
     it('should update row status and refresh stats on success', async () => {
-      const row = component.candidatures[0];
+      // Sans detectChanges : on teste la logique sans lier le template (évite NG0100 sur [disabled]/[ngClass])
+      const f = TestBed.createComponent(Applications);
+      const c = f.componentInstance;
+      const row = {
+        id: 1,
+        entreprise: 'ACME',
+        poste: 'Frontend',
+        dateEnvoi: '2026-01-10T00:00:00.000Z',
+        statut: StatutCandidature.envoyee,
+      };
+      c.candidatures = [row];
+
       const sel = document.createElement('select');
       sel.appendChild(new Option('old', row.statut));
       sel.appendChild(new Option('new', StatutCandidature.acceptee));
       sel.value = StatutCandidature.acceptee;
 
+      candidatureServiceMock.changerStatut.mockReturnValueOnce(of({}));
       candidatureServiceMock.getStats.mockReturnValueOnce(
         of({ ...(statsBase as any), tauxAcceptation: 42 }),
       );
 
-      component.onStatutChange(row, { target: sel } as any);
-      await fixture.whenStable();
+      c.onStatutChange(row, { target: sel } as any);
+      await f.whenStable();
 
       expect(candidatureServiceMock.changerStatut).toHaveBeenCalledWith(1, StatutCandidature.acceptee);
       expect(row.statut).toBe(StatutCandidature.acceptee);
       expect(notifMock.success).toHaveBeenCalledWith('Statut mis à jour.');
-      expect(component.majStatutId).toBeNull();
-      expect(component.stats?.tauxAcceptation).toBe(42);
+      expect(c.majStatutId).toBeNull();
+      expect(c.stats?.tauxAcceptation).toBe(42);
     });
 
     it('should revert select value and show error on failure', async () => {

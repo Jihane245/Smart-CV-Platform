@@ -62,6 +62,17 @@ describe('Dashboard', () => {
           provide: AuthService,
           useValue: {
             getMe: vi.fn().mockReturnValue(of({ claims: [] })),
+            getStatus: vi.fn().mockReturnValue(
+              of({
+                isAuthenticated: true,
+                identityName: 'admin',
+                preferredUsername: 'admin',
+                email: 'admin@example.com',
+                name: 'Admin User',
+                givenName: 'Admin',
+                surname: 'User',
+              }),
+            ),
             logout: vi.fn(),
           },
         },
