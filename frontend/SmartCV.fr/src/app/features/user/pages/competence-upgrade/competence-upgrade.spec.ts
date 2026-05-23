@@ -1,62 +1,113 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { CompetenceUpgrade } from './competence-upgrade';
 import {
   CompetenceUpgradeService,
-  CompetenceGapDto,
+  GapSessionDetailDto,
   QuestionDto,
-  ReponseDto,
 } from '../../../../core/services/competence-upgrade.service';
 import { ProfilService } from '../../../../core/services/profil.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { GenerateCvStateService } from '../../../../core/services/generate-cv-state.service';
+import { GapSessionStateService } from '../../../../core/services/gap-session-state.service';
 
 describe('CompetenceUpgrade', () => {
   let fixture: ComponentFixture<CompetenceUpgrade>;
   let component: CompetenceUpgrade;
 
   let competenceUpgradeServiceMock: {
+    getGapSessionDetail: ReturnType<typeof vi.fn>;
     genererTest: ReturnType<typeof vi.fn>;
     evaluerTest: ReturnType<typeof vi.fn>;
     genererRoadmap: ReturnType<typeof vi.fn>;
     marquerRoadmapSuivie: ReturnType<typeof vi.fn>;
     repasserTest: ReturnType<typeof vi.fn>;
+    linkRoadmapToSkill: ReturnType<typeof vi.fn>;
+    getRoadmapDetail: ReturnType<typeof vi.fn>;
   };
 
-  let profilServiceMock: {
-    getMe: ReturnType<typeof vi.fn>;
-  };
-
+  let profilServiceMock: { getMe: ReturnType<typeof vi.fn> };
   let notifMock: {
     success: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
     warning: ReturnType<typeof vi.fn>;
     info: ReturnType<typeof vi.fn>;
   };
+  let gapSessionStateMock: { consume: ReturnType<typeof vi.fn> };
+  let routerMock: { navigate: ReturnType<typeof vi.fn> };
 
-  let genCvState: GenerateCvStateService;
+  const QUESTIONS: QuestionDto[] = [
+    { numero: 1, enonce: 'Q1', options: ['A', 'B', 'C', 'D'] },
+    { numero: 2, enonce: 'Q2', options: ['A2', 'B2', 'C2', 'D2'] },
+  ];
+
+  const SESSION_DETAIL: GapSessionDetailDto = {
+    id: 1,
+    texteOffre: 'Offre développeur',
+    titreOffre: 'Dev Full Stack',
+    entreprise: 'ACME',
+    scoreCompatibilite: 72,
+    createdAt: '2026-01-01T00:00:00Z',
+    skills: [
+      { id: 1, nomCompetence: 'Docker', priorite: 'haute', roadmapId: null },
+      { id: 2, nomCompetence: 'K8s', priorite: 'renforcer', roadmapId: null },
+    ],
+  };
 
   function detect(): void {
-    // Some templates with ngModel/bindings can throw NG0100 in checkNoChanges mode.
     fixture.detectChanges(false);
   }
 
-  const QUESTIONS: QuestionDto[] = [
-    { Numero: 1, enonce: 'Q1', options: ['A', 'B', 'C', 'D'] },
-    { Numero: 2, enonce: 'Q2', options: ['A2', 'B2', 'C2', 'D2'] },
-  ];
+  async function setupComponent(options?: {
+    sessionDetail?: GapSessionDetailDto | null;
+    sessionId?: number | null;
+    querySessionId?: string | null;
+  }): Promise<void> {
+    const detail = options?.sessionDetail !== undefined ? options.sessionDetail : SESSION_DETAIL;
+    const sessionId = options?.sessionId !== undefined ? options.sessionId : (detail?.id ?? 1);
 
-  beforeEach(async () => {
+    gapSessionStateMock.consume.mockReturnValue({ detail, sessionId });
+
+    await TestBed.resetTestingModule()
+      .configureTestingModule({
+        imports: [CompetenceUpgrade],
+        providers: [
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              snapshot: {
+                queryParamMap: {
+                  get: (key: string) =>
+                    key === 'sessionId'
+                      ? (options?.querySessionId ?? String(sessionId ?? ''))
+                      : null,
+                },
+              },
+            },
+          },
+          { provide: Router, useValue: routerMock },
+          { provide: CompetenceUpgradeService, useValue: competenceUpgradeServiceMock },
+          { provide: ProfilService, useValue: profilServiceMock },
+          { provide: NotificationService, useValue: notifMock },
+          { provide: GapSessionStateService, useValue: gapSessionStateMock },
+        ],
+      })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(CompetenceUpgrade);
+    component = fixture.componentInstance;
+    detect();
+    await fixture.whenStable();
+    detect();
+  }
+
+  beforeEach(() => {
     competenceUpgradeServiceMock = {
+      getGapSessionDetail: vi.fn().mockReturnValue(of(SESSION_DETAIL)),
       genererTest: vi.fn().mockReturnValue(
-        of({
-          testId: 10,
-          nomCompetence: 'Docker',
-          questions: QUESTIONS,
-        }),
+        of({ testId: 10, nomCompetence: 'Docker', questions: QUESTIONS }),
       ),
       evaluerTest: vi.fn().mockReturnValue(
         of({
@@ -95,6 +146,27 @@ describe('CompetenceUpgrade', () => {
           peutReessayer: false,
         }),
       ),
+      linkRoadmapToSkill: vi.fn().mockReturnValue(of(void 0)),
+      getRoadmapDetail: vi.fn().mockReturnValue(
+        of({
+          roadmapId: 99,
+          userId: 1,
+          nomCompetence: 'Docker',
+          niveauDepart: 'Intermediaire',
+          createdAt: '2026-01-01',
+          etapes: [],
+          nombreEtapes: 0,
+          roadmapSuivie: false,
+          completee: false,
+          test: null,
+          phase: 'AParcourir',
+          phaseLibelle: 'À parcourir',
+          prochaineAction: '',
+          progression: 0,
+          peutPasserTestFinal: false,
+          peutReessayer: false,
+        }),
+      ),
     };
 
     profilServiceMock = {
@@ -114,112 +186,72 @@ describe('CompetenceUpgrade', () => {
       info: vi.fn(),
     };
 
-    genCvState = new GenerateCvStateService();
-    genCvState.reset();
-    genCvState.patch({
-      prenom: 'Jane',
-      nom: 'Doe',
-      competencesAnalysees: [
-        { nom: 'Docker', statut: 'renforcer' },
-        // { nom: 'K8s', statut: 'partiel' },
-        { nom: 'Angular', statut: 'maitrise' },
-      ],
-      niveauLabel: 'Intermediaire',
-    } as any);
+    gapSessionStateMock = {
+      consume: vi.fn(),
+    };
 
-    await TestBed.configureTestingModule({
-      imports: [CompetenceUpgrade],
-      providers: [
-        provideRouter([]),
-        { provide: CompetenceUpgradeService, useValue: competenceUpgradeServiceMock },
-        { provide: ProfilService, useValue: profilServiceMock },
-        { provide: NotificationService, useValue: notifMock },
-        { provide: GenerateCvStateService, useValue: genCvState },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(CompetenceUpgrade);
-    component = fixture.componentInstance;
-    detect();
-    await fixture.whenStable();
-    detect();
+    routerMock = { navigate: vi.fn().mockResolvedValue(true) };
   });
 
-  it('should create', () => {
+  it('should create and load session from GapSessionStateService', async () => {
+    await setupComponent();
     expect(component).toBeTruthy();
+    expect(profilServiceMock.getMe).toHaveBeenCalled();
+    expect(component.sessionId).toBe(1);
+    expect(component.skills.length).toBe(2);
+    expect(component.skills[0].nomCompetence).toBe('Docker');
+    expect(component.pageStep).toBe(1);
+    expect(component.chargementSession).toBe(false);
   });
 
-  describe('ngOnInit', () => {
-    it('should load profil and infer gaps from GenerateCvState', () => {
-      expect(profilServiceMock.getMe).toHaveBeenCalled();
-      // from profil
-      expect(component.competencesActuelles).toEqual(['Angular']);
-      // from state
-      expect(component.competencesManquantes.map(c => c.nom)).toEqual(['Docker', 'K8s']);
-      expect(component.totalManquantes).toBe(2);
-      expect(component.competencesRequises).toEqual(['Angular +', 'Docker -', 'K8s -']);
-      expect(component.profilPrenom).toBe('Jane');
-      expect(component.profilNom).toBe('Doe');
+  it('should fetch session detail when only sessionId is in state', async () => {
+    await setupComponent({ sessionDetail: null, sessionId: 1 });
+    expect(competenceUpgradeServiceMock.getGapSessionDetail).toHaveBeenCalledWith(1);
+    expect(component.skills.length).toBe(2);
+  });
+
+  it('should redirect to generate-cv when no session id', async () => {
+    await setupComponent({
+      sessionDetail: null,
+      sessionId: null,
+      querySessionId: null,
     });
-
-    it('should fallback to empty gaps when no analyse', async () => {
-      const s = new GenerateCvStateService();
-      s.reset();
-
-      await TestBed.resetTestingModule()
-        .configureTestingModule({
-          imports: [CompetenceUpgrade],
-          providers: [
-            provideRouter([]),
-            { provide: CompetenceUpgradeService, useValue: competenceUpgradeServiceMock },
-            { provide: ProfilService, useValue: profilServiceMock },
-            { provide: NotificationService, useValue: notifMock },
-            { provide: GenerateCvStateService, useValue: s },
-          ],
-        })
-        .compileComponents();
-
-      const f = TestBed.createComponent(CompetenceUpgrade);
-      f.detectChanges(false);
-      await f.whenStable();
-      f.detectChanges(false);
-
-      expect(f.componentInstance.competencesManquantes).toEqual([]);
-      expect(f.componentInstance.chargementGaps).toBe(false);
-    });
+    expect(notifMock.error).toHaveBeenCalled();
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/user/generate-cv']);
   });
 
   describe('navigation', () => {
-    it('estComplete should be true for prior steps', () => {
-      component.etapeActive = 4;
+    beforeEach(async () => {
+      await setupComponent();
+    });
+
+    it('estComplete should reflect pageStep', () => {
+      component.pageStep = 4;
       expect(component.estComplete(1)).toBe(true);
       expect(component.estComplete(4)).toBe(false);
     });
 
-    it('allerEtape should only allow going backward', () => {
-      component.etapeActive = 4;
-      component.allerEtape(2);
-      expect(component.etapeActive).toBe(2);
-      component.allerEtape(6);
-      expect(component.etapeActive).toBe(2);
+    it('allerEtape2 should go to step 2', () => {
+      component.allerEtape2();
+      expect(component.pageStep).toBe(2);
     });
   });
 
   describe('lancerTest', () => {
-    it('should guard when no competence selected', () => {
-      component.competenceSelectionnee = null;
-      component.lancerTest();
-      expect(competenceUpgradeServiceMock.genererTest).not.toHaveBeenCalled();
+    beforeEach(async () => {
+      await setupComponent();
     });
 
-    it('should call genererTest and populate questions', async () => {
-      component.competenceSelectionnee = { nom: 'Docker', priorite: 'haute' };
-      component.lancerTest();
+    it('should call genererTest when selecting a fresh skill', async () => {
+      component.selectionnerSkill(0);
       await fixture.whenStable();
-      expect(component.etapeActive).toBe(3);
+      detect();
+
+      expect(component.activeSkillIndex).toBe(0);
+      expect(component.pageStep).toBe(3);
       expect(competenceUpgradeServiceMock.genererTest).toHaveBeenCalledWith('Docker');
-      expect(component.testId).toBe(10);
-      expect(component.questions.length).toBe(2);
+      expect(component.activeSkill?.testId).toBe(10);
+      expect(component.activeSkill?.questions.length).toBe(2);
       expect(component.chargementTest).toBe(false);
     });
 
@@ -227,92 +259,112 @@ describe('CompetenceUpgrade', () => {
       competenceUpgradeServiceMock.genererTest.mockReturnValueOnce(
         of({ testId: 1, nomCompetence: 'Docker', questions: [] }),
       );
-      component.competenceSelectionnee = { nom: 'Docker', priorite: 'haute' };
-      component.lancerTest();
+      component.selectionnerSkill(0);
       await fixture.whenStable();
+      detect();
+
       expect(notifMock.error).toHaveBeenCalled();
-      expect(component.etapeActive).toBe(2);
-      expect(component.chargementTest).toBe(false);
+      expect(component.pageStep).toBe(2);
     });
 
     it('should show error when genererTest fails', async () => {
       competenceUpgradeServiceMock.genererTest.mockReturnValueOnce(
         throwError(() => new Error('fail')),
       );
-      component.competenceSelectionnee = { nom: 'Docker', priorite: 'haute' };
-      component.lancerTest();
+      component.selectionnerSkill(0);
       await fixture.whenStable();
+      detect();
+
       expect(notifMock.error).toHaveBeenCalledWith('Erreur lors de la génération du test.');
-      expect(component.chargementTest).toBe(false);
+      expect(component.pageStep).toBe(2);
     });
   });
 
-  describe('questionSuivante / evaluerTest -> genererRoadmap', () => {
+  describe('questionSuivante -> evaluerTest -> genererRoadmap', () => {
     beforeEach(async () => {
-      component.competenceSelectionnee = { nom: 'Docker', priorite: 'haute' };
-      component.lancerTest();
+      await setupComponent();
+      component.selectionnerSkill(0);
       await fixture.whenStable();
+      detect();
     });
 
-    it('should push responses and advance question index', () => {
-      component.choisirReponse('A');
-      component.questionSuivante();
-      expect(component.reponses).toEqual([{ Numero: 1, ReponseChoisie: 'A' } as ReponseDto]);
-      expect(component.questionCourante).toBe(1);
-    });
-
-    it('should evaluate test after last question and generate roadmap', async () => {
+    it('should advance questions then evaluate and generate roadmap', async () => {
       component.choisirReponse('A');
       component.questionSuivante();
       component.choisirReponse('B2');
       component.questionSuivante();
       await fixture.whenStable();
+      detect();
 
       expect(competenceUpgradeServiceMock.evaluerTest).toHaveBeenCalledWith(
         10,
         expect.arrayContaining([{ Numero: 1, ReponseChoisie: 'A' }]),
       );
       expect(competenceUpgradeServiceMock.genererRoadmap).toHaveBeenCalledWith(10);
-      expect(component.etapeActive).toBe(4);
-      expect(component.roadmapId).toBe(99);
-      expect(component.roadmapEtapes.length).toBe(1);
-      expect(component.etapesCompletees).toEqual([false]);
+      expect(component.pageStep).toBe(4);
+      expect(component.activeSkill?.roadmapId).toBe(99);
+      expect(component.activeSkill?.etapesRoadmap.length).toBe(1);
     });
 
-    it('should show error and go back to step 2 when evaluation fails', async () => {
+    it('should go back to step 2 when evaluation fails', async () => {
       competenceUpgradeServiceMock.evaluerTest.mockReturnValueOnce(
         throwError(() => new Error('fail')),
       );
       component.questionCourante = 1;
-      component.reponseSelectionnee = 'A2';
+      component.reponseSelectionnee = 'B2';
       component.questionSuivante();
       await fixture.whenStable();
+      detect();
 
-      expect(notifMock.error).toHaveBeenCalledWith("Erreur lors de l'évaluation. Veuillez réessayer.");
-      expect(component.etapeActive).toBe(2);
+      expect(notifMock.error).toHaveBeenCalledWith(
+        "Erreur lors de l'évaluation. Veuillez réessayer.",
+      );
+      expect(component.pageStep).toBe(2);
     });
   });
 
   describe('genererRoadmap fallback', () => {
-    it('should build local roadmap when API fails', async () => {
+    beforeEach(async () => {
+      await setupComponent();
+      component.selectionnerSkill(0);
+      await fixture.whenStable();
+      detect();
+      component.choisirReponse('A');
+      component.questionSuivante();
+      component.choisirReponse('B2');
+    });
+
+    it('should build fallback roadmap when API fails', async () => {
       competenceUpgradeServiceMock.genererRoadmap.mockReturnValueOnce(
         throwError(() => new Error('fail')),
       );
-      component.competenceSelectionnee = { nom: 'Docker', priorite: 'haute' };
-      component.testId = 10;
-      component.genererRoadmap();
+      component.questionSuivante();
       await fixture.whenStable();
+      detect();
 
-      expect(component.roadmapEtapes.length).toBeGreaterThan(0);
+      expect(component.activeSkill?.etapesRoadmap.length).toBeGreaterThan(0);
       expect(component.chargementRoadmap).toBe(false);
-      expect(component.etapesCompletees.length).toBe(component.roadmapEtapes.length);
+      expect(component.pageStep).toBe(4);
     });
   });
 
   describe('parcours', () => {
+    beforeEach(async () => {
+      await setupComponent();
+      component.selectionnerSkill(0);
+      await fixture.whenStable();
+      detect();
+      const skill = component.activeSkill!;
+      skill.roadmapId = 99;
+      skill.etapesRoadmap = [
+        { ordre: 1, type: 'video', titre: 't', description: '', url: null, duree: null },
+      ];
+      skill.etapesCompletees = [false];
+      skill.step = 'parcours';
+      component.pageStep = 5;
+    });
+
     it('progressionParcours should compute %', () => {
-      component.roadmapEtapes = [{ ordre: 1, type: 'video', titre: 't', description: '', url: null, duree: null }];
-      component.etapesCompletees = [false];
       expect(component.progressionParcours).toBe(0);
       component.toggleEtape(0);
       expect(component.progressionParcours).toBe(100);
@@ -321,36 +373,43 @@ describe('CompetenceUpgrade', () => {
   });
 
   describe('certification', () => {
-    beforeEach(() => {
-      component.competenceSelectionnee = { nom: 'Docker', priorite: 'haute' } as CompetenceGapDto;
-      component.questions = QUESTIONS;
-      component.roadmapId = 99;
+    beforeEach(async () => {
+      await setupComponent();
+      component.selectionnerSkill(0);
+      await fixture.whenStable();
+      detect();
+      const skill = component.activeSkill!;
+      skill.testId = 10;
+      skill.questions = QUESTIONS;
+      skill.roadmapId = 99;
     });
 
-    it('passerCertification should mark roadmap followed then launch certification', async () => {
+    it('passerCertification should mark roadmap followed and show certif UI', async () => {
       component.passerCertification();
       await fixture.whenStable();
+      detect();
+
       expect(competenceUpgradeServiceMock.marquerRoadmapSuivie).toHaveBeenCalledWith(99);
-      expect(component.etapeActive).toBe(6);
+      expect(component.pageStep).toBe(6);
       expect(component.questionsCertif.length).toBe(2);
     });
 
-    it('evaluerCertification should go to step 7 on success and append competence', async () => {
-      component.lancerCertification();
+    it('voirResultat should validate skill on success', async () => {
+      component.passerCertification();
       component.choisirReponseCertif('A');
       component.questionSuivanteCertif();
-      component.reponseSelectionnoCertif = 'B2';
+      component.reponseSelectionneCertif = 'B2';
       component.voirResultat();
       await fixture.whenStable();
+      detect();
 
       expect(competenceUpgradeServiceMock.repasserTest).toHaveBeenCalled();
-      expect(component.etapeActive).toBe(7);
-      expect(component.competenceValidee).toBe(true);
-      expect(component.profilCompetences.some(c => c.includes('Docker'))).toBe(true);
-      expect(component.niveauValide).toBe('Avance');
+      expect(component.pageStep).toBe(7);
+      expect(component.activeSkill?.competenceValidee).toBe(true);
+      expect(component.profilCompetences).toContain('Docker');
     });
 
-    it('evaluerCertification should show resultat when competence not validated', async () => {
+    it('voirResultat should show retry UI when not validated', async () => {
       competenceUpgradeServiceMock.repasserTest.mockReturnValueOnce(
         of({
           score: 60,
@@ -360,36 +419,31 @@ describe('CompetenceUpgrade', () => {
           peutReessayer: true,
         }),
       );
-      component.lancerCertification();
-      component.reponseSelectionnoCertif = 'A';
+      component.passerCertification();
+      component.reponseSelectionneCertif = 'A';
       component.voirResultat();
       await fixture.whenStable();
+      detect();
 
-      expect(component.etapeActive).toBe(6);
+      expect(component.pageStep).toBe(6);
       expect(component.resultatCertifAffiche).toBe(true);
       expect(component.peutReessayer).toBe(true);
-      expect(component.pointsManquantsCertif).toBe(20);
     });
   });
 
   describe('continuerCompetencesRestantes', () => {
-    it('should reset flow and remove selected competence from missing list', () => {
-      component.competencesManquantes = [
-        { nom: 'Docker', priorite: 'haute' },
-        { nom: 'K8s', priorite: 'renforcer' },
-      ];
-      component.competenceSelectionnee = { nom: 'Docker', priorite: 'haute' };
-      component.testId = 10;
-      component.roadmapId = 99;
-      component.etapeActive = 7;
+    beforeEach(async () => {
+      await setupComponent();
+      component.skills[0].competenceValidee = true;
+      component.pageStep = 7;
+    });
 
+    it('should reset flow for next non-validated skill', () => {
       component.continuerCompetencesRestantes();
-      expect(component.competencesManquantes.map(c => c.nom)).toEqual(['K8s']);
-      expect(component.competenceSelectionnee).toBeNull();
-      expect(component.testId).toBe(0);
-      expect(component.roadmapId).toBe(0);
-      expect(component.etapeActive).toBe(1);
+      expect(component.activeSkillIndex).toBe(1);
+      expect(component.pageStep).toBe(2);
+      expect(component.skillsNonValides.length).toBe(1);
+      expect(component.skillsNonValides[0].nomCompetence).toBe('K8s');
     });
   });
 });
-
