@@ -2,7 +2,7 @@ name: CI/CD private cloud
 
 on:
   push:
-    branches: [ "feature/lettreMotivation " ] # apres on peut changer vers main
+    branches: [ "feature/lettreMotivation" ] # apres on peut changer vers main
 
 env:
   REGISTRY: ghcr.io
