@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ACCOUNT_DISABLED_MESSAGE } from '../../../core/constants/auth-messages';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -14,6 +14,7 @@ import { NotificationService } from '../../../core/services/notification.service
 })
 export class Connexion implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(NotificationService);
@@ -25,6 +26,21 @@ export class Connexion implements OnInit {
     this.applyAuthError(Connexion.readAuthError(window.location.search));
     this.route.queryParamMap.subscribe((params) => {
       this.applyAuthError(params.get('authError'));
+    });
+
+    // Compte désactivé → on reste sur la page d'erreur, surtout pas de redirection
+    // (sinon login → erreur → /connexion → boucle).
+    if (this.accountDisabled) return;
+
+    // Cas normal après déconnexion : on dirige l'utilisateur vers le login.
+    this.authService.isAuthenticated().subscribe((isAuth) => {
+      if (isAuth) {
+        // Déjà connecté (ex. retour après login) → laisser le guard router vers /user ou /admin.
+        this.router.navigate(['/']);
+      } else {
+        // Déconnecté → page de login Keycloak.
+        this.authService.login();
+      }
     });
   }
 

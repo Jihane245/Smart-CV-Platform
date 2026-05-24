@@ -146,8 +146,13 @@ builder.Services.AddAuthentication(options =>
 
         OnRedirectToIdentityProviderForSignOut = async ctx =>
         {
+            var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var frontendUrl = config["FRONTEND_URL"];
+            if (string.IsNullOrWhiteSpace(frontendUrl)) frontendUrl = "http://localhost";
+            frontendUrl = frontendUrl.TrimEnd('/');
+
             var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
-            ctx.ProtocolMessage.PostLogoutRedirectUri = "https://cevia.duckdns.org/";
+            ctx.ProtocolMessage.PostLogoutRedirectUri = $"{frontendUrl}/connexion";
 
             if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
@@ -155,7 +160,7 @@ builder.Services.AddAuthentication(options =>
 
         OnRemoteFailure = ctx =>
         {
-            ctx.Response.Redirect("https://cevia.duckdns.org/api/auth/login");
+            ctx.Response.Redirect("/api/auth/login");
             ctx.HandleResponse();
             return Task.CompletedTask;
         }
