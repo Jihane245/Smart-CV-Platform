@@ -28,8 +28,11 @@ public class GapSession
     /// <summary>
     /// Optional human-readable title extracted or inferred from the offer.
     /// Stored as plain text; frontend sends it if available.
+    /// Hash ensures uniqueness
     /// </summary>
     public string? TitreOffre { get; set; }
+
+    public string? OffreHash { get; set; }
 
     /// <summary>
     /// Optional company name extracted from the offer.

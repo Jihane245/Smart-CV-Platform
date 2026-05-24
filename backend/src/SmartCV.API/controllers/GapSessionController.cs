@@ -40,6 +40,21 @@ public class GapSessionController : ControllerBase
         if (request.CompetencesManquantes.Count == 0)
             return BadRequest(new { message = "Aucune compétence manquante à enregistrer." });
 
+        // ── Deduplication via offer text hash ────────────────────────────────────
+        var normalized = request.TexteOffre.ToLowerInvariant()
+            .Replace("\r", "").Replace("\n", "").Replace(" ", "");
+        var hashBytes  = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(normalized));
+        var hash = Convert.ToHexString(hashBytes);
+
+        // If this user already has a session with the same offer, return it silently
+        var existing = await _db.GapSessions
+            .FirstOrDefaultAsync(s => s.UserId == user.Id && s.OffreHash == hash);
+
+        if (existing != null)
+            return Ok(new { sessionId = existing.Id });
+        // ─────────────────────────────────────────────────────────────────────────
+
         var session = new GapSession
         {
             UserId             = user.Id,
@@ -49,6 +64,7 @@ public class GapSessionController : ControllerBase
             TitreOffre         = request.TitreOffre,
             Entreprise         = request.Entreprise,
             ScoreCompatibilite = request.ScoreCompatibilite,
+            OffreHash          = hash,
         };
 
         foreach (var s in request.CompetencesManquantes)
