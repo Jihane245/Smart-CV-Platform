@@ -1,0 +1,12 @@
+<div class="connexion-page">
+  <div class="connexion-card connexion-card--error" *ngIf="accountDisabled">
+    <h1>Connexion impossible</h1>
+    <p class="connexion-message">{{ disabledMessage }}</p>
+    <button type="button" class="connexion-retry" (click)="retryLogin()">Réessayer la connexion</button>
+  </div>
+
+  <div class="connexion-card" *ngIf="!accountDisabled">
+    <h1>Connexion</h1>
+    <p class="connexion-hint">Redirection vers la page de connexion…</p>
+  </div>
+</div>

@@ -2,7 +2,7 @@ name: CI/CD SmartCV
 
 on:
   push:
-    branches: [ "main" ] # Déclenche l'automatisation lors d'un push sur main
+    branches: [ "feature/lettreMotivation " ] # apres on peut changer vers main
 
 env:
   REGISTRY: ghcr.io
@@ -30,8 +30,8 @@ jobs:
       - name: Build and push Backend
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: backend/Dockerfile
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/khadija11-was/backend:latest
 
@@ -43,19 +43,34 @@ jobs:
           file: ai-service/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/khadija11-was/ia-service:latest
+      
+      # build et push de frontend
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/khadija11-was/frontend:latest
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy to VM via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VM_IP }} # Ton IP Tailscale
-          username: ${{ secrets.VM_USER }} # Ton user Kali
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Ta clé SSH privée
+          host: ${{ secrets.VM_IP }} #  IP Tailscale vm app1
+          username: ${{ secrets.VM_USER }} #  user Kali
+          key: ${{ secrets.SSH_PRIVATE_KEY }} #  clé SSH privée
           script: |
-            cd ~/smartcv
+            cd /home/jihane
             docker compose pull
-            docker compose up -d
+            docker compose up -d --force-recreate
             docker image prune -f

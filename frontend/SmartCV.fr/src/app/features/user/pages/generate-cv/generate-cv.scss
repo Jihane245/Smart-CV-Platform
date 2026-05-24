@@ -361,11 +361,6 @@ $white:        #FFFFFF;
     color: #3B6741;
     border-color: #C0DDB8;
   }
-  &.partiel {
-    background: #FFF3D0;
-    color: #7A5C10;
-    border-color: #F0DFA0;
-  }
   &.renforcer {
     background: #FCE8E8;
     color: #8B1A1A;
@@ -810,4 +805,24 @@ $white:        #FFFFFF;
   transition: background 0.2s;
 
   &:hover { background: #6B4E2A; }
+}
+
+// ─── Bouton Combler les écarts ─────────────────────────────────────────────────
+
+.btn-combler {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: #5C4220;
+  border: 1.5px solid #5C4220;
+  border-radius: 8px;
+  padding: 0.75rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover:not(:disabled) { background: rgba(#5C4220, 0.06); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 }

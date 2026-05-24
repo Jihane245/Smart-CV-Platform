@@ -17,11 +17,13 @@ public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly KeycloakAdminService _keycloak;
+    private readonly ILogger<AdminController> _logger;
 
-    public AdminController(ApplicationDbContext db, KeycloakAdminService keycloak)
+    public AdminController(ApplicationDbContext db, KeycloakAdminService keycloak, ILogger<AdminController> logger)
     {
         _db = db;
         _keycloak = keycloak;
+        _logger = logger;
     }
 
     [HttpGet("test")]
@@ -52,12 +54,12 @@ public class AdminController : ControllerBase
             historiqueUsers.Add(count);
         }
 
-        // === Historique des CVs ===
+        // === Historique des CVs générés (CvsPersonnalises) ===
         var historiqueCvs = new List<int>();
         foreach (var m in mois)
         {
-            var count = await _db.Cvs
-                .Where(c => c.DateAnalyse.Year == m.Year && c.DateAnalyse.Month == m.Month)
+            var count = await _db.CvsPersonnalises
+                .Where(c => c.CreatedAt.Year == m.Year && c.CreatedAt.Month == m.Month)
                 .CountAsync();
             historiqueCvs.Add(count);
         }
@@ -91,7 +93,7 @@ public class AdminController : ControllerBase
             new StatDto
             {
                 Label      = "CV GENERES",
-                Valeur     = await _db.Cvs.CountAsync(),
+                Valeur     = await _db.CvsPersonnalises.CountAsync(),
                 Delta      = historiqueCvs.Count >= 2 ? historiqueCvs[^1] - historiqueCvs[^2] : historiqueCvs.LastOrDefault(),
                 Couleur    = "beige",
                 Historique = historiqueCvs
@@ -142,13 +144,13 @@ public class AdminController : ControllerBase
         var users = await query
             .Select(u => new UtilisateurAdminDto
             {
-                Id           = u.Id.ToString(),  // Convertir Guid en string
+                Id           = u.Id,
                 Initiales    = GenererInitiales(u.Prenom, u.Nom),
                 CouleurAvatar = GenererCouleur(u.Id),
                 Nom          = $"{u.Prenom} {u.Nom}",
                 Role         = u.Role.ToString(),  // Enum → string
                 Email        = u.Email,
-                CvGeneres    = u.Cvs.Count(),
+                CvGeneres    = _db.CvsPersonnalises.Count(cp => cp.UserId == u.Id),
                 InscritLe    = u.CreatedAt.ToString("MMM yyyy"),  // "Jan 2025"
                 Actif        = u.IsActif
             })
@@ -172,7 +174,7 @@ public class AdminController : ControllerBase
                 nomFamille  = u.Nom,
                 role        = u.Role.ToString(),
                 email       = u.Email,
-                cvGeneres   = u.Cvs.Count(),
+                cvGeneres   = _db.CvsPersonnalises.Count(cp => cp.UserId == u.Id),
                 inscritLe   = u.CreatedAt.ToString("MMM yyyy"),
                 dateCreation = u.CreatedAt,
                 actif       = u.IsActif
@@ -192,15 +194,28 @@ public class AdminController : ControllerBase
         if (user == null)
             return NotFound(new { message = "Utilisateur non trouvé" });
 
-        // Désactiver/activer dans Keycloak d'abord (source de vérité pour la connexion)
-        var kcOk = await _keycloak.SetUserEnabledAsync(user.Email, dto.Actif);
-        if (!kcOk)
-            return StatusCode(500, new { message = "Erreur Keycloak lors du changement d'état" });
+        // Keycloak best-effort : si les credentials admin sont absents ou si l'appel échoue,
+        // on continue en mettant à jour le flag IsActif côté DB (autorité applicative).
+        var kcSynced = false;
+        try
+        {
+            kcSynced = await _keycloak.SetUserEnabledAsync(user.Email, dto.Actif);
+            if (!kcSynced)
+                _logger.LogWarning("Keycloak SetUserEnabled a renvoyé false pour {Email} (utilisateur introuvable ou erreur API)", user.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Keycloak indisponible pour SetUserEnabled ({Email}) — fallback DB-only", user.Email);
+        }
 
         user.IsActif = dto.Actif;
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = $"Utilisateur {(dto.Actif ? "activé" : "désactivé")}" });
+        return Ok(new
+        {
+            message  = $"Utilisateur {(dto.Actif ? "activé" : "désactivé")}",
+            kcSynced
+        });
     }
 
     [HttpDelete("utilisateurs/{id}")]
@@ -210,15 +225,35 @@ public class AdminController : ControllerBase
         if (user == null)
             return NotFound(new { message = "Utilisateur non trouvé" });
 
-        // Supprimer d'abord dans Keycloak (pour empêcher toute reconnexion)
-        var kcOk = await _keycloak.DeleteUserAsync(user.Email);
-        if (!kcOk)
-            return StatusCode(500, new { message = "Erreur Keycloak lors de la suppression" });
+        if (user.Role == RoleUtilisateur.Admin)
+            return BadRequest(new { message = "Impossible de supprimer un compte administrateur" });
 
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
+        // Keycloak best-effort : on tente de supprimer côté Keycloak,
+        // mais on procède à la suppression DB même en cas d'échec.
+        var kcSynced = false;
+        try
+        {
+            kcSynced = await _keycloak.DeleteUserAsync(user.Email);
+            if (!kcSynced)
+                _logger.LogWarning("Keycloak DeleteUser a renvoyé false pour {Email}", user.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Keycloak indisponible pour DeleteUser ({Email}) — fallback DB-only", user.Email);
+        }
 
-        return Ok(new { message = "Utilisateur supprimé" });
+        try
+        {
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Échec suppression utilisateur {UserId} ({Email})", id, user.Email);
+            return StatusCode(500, new { message = "Impossible de supprimer cet utilisateur (données liées). Réessayez ou contactez le support." });
+        }
+
+        return Ok(new { message = "Utilisateur supprimé", kcSynced });
     }
 
     // GET /api/admin/templates

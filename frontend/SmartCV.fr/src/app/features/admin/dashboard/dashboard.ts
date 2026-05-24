@@ -29,15 +29,13 @@ export class Dashboard implements OnInit {
   templateDetail: AdminTemplateDto | null = null;
 
   // Sélection du mois pour filtrer les stats
-  // null = afficher le total ; index 0-6 = afficher le mois correspondant
   selectedMonthIndex: number | null = null;
 
-  // Labels des 7 derniers mois générés dynamiquement
+
   monthLabels: string[] = [];
 
-  // ─────────────────────────────────────────────────────────────────────────
+  
   // ÉTAT UI
-  // ─────────────────────────────────────────────────────────────────────────
   recherche = '';
   initiales = 'JG';
   loadingStats = false;
@@ -45,7 +43,7 @@ export class Dashboard implements OnInit {
   loadingTemplates = false;
   lastError: string | null = null;
 
-  // Modal détail utilisateur
+
   userDetail: AdminUtilisateurDetailDto | null = null;
   loadingUserDetail = false;
 
@@ -66,11 +64,8 @@ export class Dashboard implements OnInit {
     this.refreshTemplates();
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  
   // MOIS DYNAMIQUE
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // Génère les 12 mois de l'année en cours (Jan → Déc)
   private genererMonthLabels(): void {
     this.monthLabels = [
       'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
@@ -78,12 +73,11 @@ export class Dashboard implements OnInit {
     ];
   }
 
-  // L'utilisateur clique sur un mois
+
   selectMonth(index: number): void {
     this.selectedMonthIndex = this.selectedMonthIndex === index ? null : index;
   }
 
-  // Réinitialise la sélection (revient au total)
   resetMonth(): void {
     this.selectedMonthIndex = null;
   }
@@ -108,6 +102,15 @@ export class Dashboard implements OnInit {
     return this.utilisateurs.filter(
       u => u.nom.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     );
+  }
+
+  // Aperçu : seulement les 3 premiers (dashboard). Liste complète sur /admin/utilisateurs.
+  get utilisateursApercu(): AdminUtilisateurDto[] {
+    return this.utilisateursFiltres.slice(0, 3);
+  }
+
+  voirTousUtilisateurs(): void {
+    this.router.navigate(['/admin/utilisateurs']);
   }
 
   refreshStats(): void {
@@ -186,9 +189,7 @@ export class Dashboard implements OnInit {
       });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // ACTIONS UTILISATEURS
-  // ─────────────────────────────────────────────────────────────────────────
   voirUtilisateur(u: AdminUtilisateurDto): void {
     this.loadingUserDetail = true;
     this.userDetail = null;
@@ -219,6 +220,30 @@ export class Dashboard implements OnInit {
         u.actif = !next;
         return of(null);
       })
+    ).subscribe((res) => {
+      if (res === null) return;
+      if (this.userDetail?.id === u.id) {
+        this.userDetail = { ...this.userDetail, actif: next };
+      }
+    });
+  }
+
+  toggleActifFromDetail(): void {
+    const d = this.userDetail;
+    if (!d) return;
+    const u = this.utilisateurs.find(x => x.id === d.id);
+    if (u) {
+      this.toggleActif(u);
+      return;
+    }
+    const next = !d.actif;
+    d.actif = next;
+    this.adminService.updateActif(d.id, next).pipe(
+      catchError((err) => {
+        console.error('Erreur update actif', err);
+        d.actif = !next;
+        return of(null);
+      })
     ).subscribe();
   }
 
@@ -234,34 +259,56 @@ export class Dashboard implements OnInit {
       this.adminService.deleteUtilisateur(u.id).pipe(
         catchError((err) => {
           console.error('Erreur suppression utilisateur', err);
-          this.notif.error('Impossible de supprimer l\'utilisateur', err?.message);
+          const msg = err?.error?.message ?? err?.message ?? 'Erreur inconnue';
+          this.notif.error('Impossible de supprimer l\'utilisateur', msg);
           return of(null);
         })
       ).subscribe((res) => {
-        if (res !== null) {
-          this.zone.run(() => {
-            this.utilisateurs = this.utilisateurs.filter(x => x !== u);
-            this.cdr.detectChanges();
-          });
-          this.notif.success(`Utilisateur "${u.nom}" supprimé`);
-        }
+        if (res === null) return;
+        this.apresSuppressionUtilisateur(u);
       });
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  supprimerUtilisateurDepuisDetail(): void {
+    const d = this.userDetail;
+    if (!d) return;
+    const u = this.utilisateurs.find(x => x.id === d.id) ?? {
+      id: d.id,
+      nom: d.nom,
+      initiales: d.initiales,
+      couleurAvatar: d.couleurAvatar,
+      role: d.role,
+      email: d.email,
+      cvGeneres: d.cvGeneres,
+      inscritLe: d.inscritLe,
+      actif: d.actif,
+    };
+    this.supprimerUtilisateur(u);
+  }
+
+  private apresSuppressionUtilisateur(u: AdminUtilisateurDto): void {
+    this.zone.run(() => {
+      this.utilisateurs = this.utilisateurs.filter(x => x.id !== u.id);
+      if (this.userDetail?.id === u.id) {
+        this.userDetail = null;
+      }
+      this.cdr.detectChanges();
+    });
+    this.refreshStats();
+    this.notif.success(`Utilisateur "${u.nom}" supprimé`);
+  }
+
+
   // ACTIONS TEMPLATES
-  // ─────────────────────────────────────────────────────────────────────────
   editerTemplate(t: AdminTemplateDto): void {
     this.router.navigate(['/admin/templates', t.id, 'edit']);
   }
 
-  // Ouvre le modal détail quand on clique sur une carte template
   voirDetailTemplate(t: AdminTemplateDto): void {
     this.templateDetail = t;
   }
 
-  // Ferme le modal détail
   fermerDetailTemplate(): void {
     this.templateDetail = null;
   }
@@ -301,9 +348,7 @@ export class Dashboard implements OnInit {
     this.router.navigate(['/admin/templates/nouveau']);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // DÉCONNEXION (immédiate, sans confirmation)
-  // ─────────────────────────────────────────────────────────────────────────
+  // DÉCONNEXION 
   async logout(): Promise<void> {
     const ok = await this.confirmService.confirm({
       title: 'Se déconnecter ?',

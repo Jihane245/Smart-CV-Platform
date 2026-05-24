@@ -13,6 +13,9 @@ using API.services;
 using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
+builder.Services.AddScoped<ICoverLetterAiClient, CoverLetterAiClient>();
+builder.Services.AddScoped<ICoverLetterService, CoverLetterService>();
+builder.Services.AddScoped<IPdfTextExtractor, PdfTextExtractor>();
 
 // ===== Forwarded Headers (derrière Caddy) =====
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -106,7 +109,8 @@ builder.Services.AddAuthentication(options =>
             using var scope = ctx.HttpContext.RequestServices.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await db.Users.FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == email.ToLower());
             var roleAttendu = estAdmin ? RoleUtilisateur.Admin : RoleUtilisateur.Candidat;
 
             if (user == null)
@@ -121,25 +125,36 @@ builder.Services.AddAuthentication(options =>
                 });
                 await db.SaveChangesAsync();
             }
-            else if (user.Role != roleAttendu)
+            else
             {
-                user.Role = roleAttendu;
-                await db.SaveChangesAsync();
+                if (!user.IsActif)
+                {
+                    var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                    var frontendUrl = (config["FRONTEND_URL"] ?? "http://localhost").TrimEnd('/');
+                    ctx.HandleResponse();
+                    ctx.Response.Redirect($"{frontendUrl}/connexion?authError=account_disabled");
+                    return;
+                }
+
+                if (user.Role != roleAttendu)
+                {
+                    user.Role = roleAttendu;
+                    await db.SaveChangesAsync();
+                }
             }
         },
 
         OnRedirectToIdentityProviderForSignOut = async ctx =>
         {
-            // ✅ URL dynamique depuis config
+            var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var frontendUrl = config["FRONTEND_URL"];
+            if (string.IsNullOrWhiteSpace(frontendUrl)) frontendUrl = "http://localhost";
+            frontendUrl = frontendUrl.TrimEnd('/');
+
+            var idToken = await ctx.HttpContext.GetTokenAsync("id_token");
             ctx.ProtocolMessage.PostLogoutRedirectUri = $"{frontendUrl}/connexion";
 
-            // Keycloak requires either client_id or id_token_hint when post_logout_redirect_uri is used.
-            // Always send client_id to keep logout working even if id_token_hint isn't available.
-            ctx.ProtocolMessage.ClientId ??= keycloakConfig["ClientId"];
-
-            // Keycloak may require id_token_hint; we store it as a claim at sign-in time.
-            var idToken = ctx.HttpContext.User.FindFirst("id_token")?.Value;
-            if (!string.IsNullOrWhiteSpace(idToken))
+            if (!string.IsNullOrEmpty(idToken))
                 ctx.ProtocolMessage.IdTokenHint = idToken;
         },
 

@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 import { StatutCandidature } from '../../../../core/models/models';
 import { CandidatureService } from '../../../../core/services/candidature.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { CandidatureDraftService } from '../../../../core/services/candidature-draft.service';
 import { Applications } from './applications';
 
 describe('Applications', () => {
@@ -21,6 +22,11 @@ describe('Applications', () => {
   let notifMock: {
     success: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
+    info: ReturnType<typeof vi.fn>;
+  };
+
+  let candidatureDraftMock: {
+    consumeDraft: ReturnType<typeof vi.fn>;
   };
 
   const statsBase = {
@@ -63,12 +69,18 @@ describe('Applications', () => {
     notifMock = {
       success: vi.fn(),
       error: vi.fn(),
+      info: vi.fn(),
+    };
+
+    candidatureDraftMock = {
+      consumeDraft: vi.fn().mockReturnValue(null),
     };
 
     await TestBed.configureTestingModule({
       imports: [Applications],
       providers: [
         { provide: CandidatureService, useValue: candidatureServiceMock },
+        { provide: CandidatureDraftService, useValue: candidatureDraftMock },
         { provide: NotificationService, useValue: notifMock },
       ],
     }).compileComponents();
@@ -81,6 +93,29 @@ describe('Applications', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  describe('brouillon generate-cv', () => {
+    it('should prefill form when draft is consumed', async () => {
+      candidatureDraftMock.consumeDraft.mockReturnValueOnce({
+        entreprise: 'Synara',
+        poste: 'Dev Frontend',
+        date: '2026-05-18',
+        statut: StatutCandidature.enregistree,
+      });
+
+      const f = TestBed.createComponent(Applications);
+      const c = f.componentInstance;
+      f.detectChanges();
+      await f.whenStable();
+
+      expect(c.formEntreprise).toBe('Synara');
+      expect(c.formPoste).toBe('Dev Frontend');
+      expect(c.formDate).toBe('2026-05-18');
+      expect(c.formStatut).toBe(StatutCandidature.enregistree);
+      expect(c.prefillActif).toBe(true);
+      expect(notifMock.info).toHaveBeenCalled();
+    });
   });
 
   describe('ngOnInit/recharger', () => {

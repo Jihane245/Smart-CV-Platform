@@ -28,7 +28,10 @@ public class AdminControllerTests
             Mock.Of<Microsoft.Extensions.Configuration.IConfiguration>()
         );
 
-        var controller = new AdminController(db, keycloakService);
+        var controller = new AdminController(
+            db,
+            keycloakService,
+            Mock.Of<Microsoft.Extensions.Logging.ILogger<AdminController>>());
 
         // Utiliser le helper existant pour l'utilisateur ADMIN
         controller.ControllerContext = new ControllerContext
@@ -181,5 +184,43 @@ public class AdminControllerTests
 
         // ASSERT
         result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    // ========== 4. TESTS POUR DeleteUtilisateur ==========
+
+    [Fact]
+    public async Task DeleteUtilisateur_IdExistant_SupprimeUtilisateur()
+    {
+        var db = await CreateDbWithMultipleUsers();
+        var controller = CreateController(customDb: db);
+
+        var result = await controller.DeleteUtilisateur(1);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().NotBeNull();
+        (await db.Users.FindAsync(1)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteUtilisateur_IdInexistant_RetourneNotFound()
+    {
+        var db = await CreateDbWithMultipleUsers();
+        var controller = CreateController(customDb: db);
+
+        var result = await controller.DeleteUtilisateur(999);
+
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    [Fact]
+    public async Task DeleteUtilisateur_Admin_RetourneBadRequest()
+    {
+        var db = await CreateDbWithMultipleUsers();
+        var controller = CreateController(customDb: db);
+
+        var result = await controller.DeleteUtilisateur(4);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+        (await db.Users.FindAsync(4)).Should().NotBeNull();
     }
 }

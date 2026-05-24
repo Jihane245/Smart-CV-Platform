@@ -1,0 +1,138 @@
+<main class="main-content">
+
+  <div class="page-header">
+    <div class="header-title-block">
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-subtitle">Vue d'ensemble de votre activité sur Cevia</p>
+    </div>
+  </div>
+  <div class="header-rule" aria-hidden="true"></div>
+
+  <p *ngIf="chargement" class="page-subtitle loading-hint">Chargement…</p>
+
+  <ng-container *ngIf="!chargement && dashboard as d">
+
+    <div class="reco-banner" *ngIf="d.recommendation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" stroke-linejoin="round"/>
+      </svg>
+      <p class="reco-text">{{ d.recommendation }}</p>
+    </div>
+
+    <section class="stats-grid" aria-label="Statistiques d'activité">
+      <article *ngFor="let s of statCards" class="stat-card" [ngClass]="s.accent">
+        <span class="stat-label">{{ s.label }}</span>
+        <span class="stat-value">{{ s.value }}</span>
+        <a class="stat-link" [routerLink]="s.link">{{ s.linkLabel }} →</a>
+      </article>
+    </section>
+
+    <section class="charts-grid" aria-label="Graphiques">
+
+      <article class="chart-card chart-card-pie">
+        <h2 class="card-heading">Répartition de l'activité</h2>
+        <div class="chart-body chart-body-pie">
+          <div class="pie-wrap" aria-hidden="true">
+            <div class="pie" [style.background]="activitePieGradient"></div>
+            <span class="pie-center" *ngIf="activiteTotal > 0">{{ activiteTotal }}</span>
+          </div>
+          <ul class="chart-legend" *ngIf="activiteTotal > 0; else emptyActivite">
+            <li *ngFor="let slice of activiteSlices">
+              <span class="dot" [style.background]="slice.color"></span>
+              <span>{{ slice.label }}</span>
+              <strong>{{ slice.value }}</strong>
+            </li>
+          </ul>
+          <ng-template #emptyActivite>
+            <p class="empty-inline">Aucune activité enregistrée pour le moment.</p>
+          </ng-template>
+        </div>
+      </article>
+
+      <article class="chart-card">
+        <h2 class="card-heading">Performances</h2>
+        <div class="chart-body chart-body-bars">
+          <div class="vbar" *ngFor="let bar of scoreBars">
+            <div class="vbar-track">
+              <div
+                class="vbar-fill"
+                [style.height.%]="bar.pct"
+                [style.background]="bar.color"
+              ></div>
+            </div>
+            <span class="vbar-value">{{ bar.value }}%</span>
+            <span class="vbar-label">{{ bar.label }}</span>
+            <span class="vbar-badge" [ngClass]="scoreClasse(bar.value)">{{ scoreNiveau(bar.value) }}</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="chart-card">
+        <h2 class="card-heading">Taux de réussite aux tests</h2>
+        <div class="chart-body chart-body-donut">
+          <div class="donut-wrap" aria-hidden="true">
+            <div class="donut" [style.background]="reussitePieGradient"></div>
+            <span class="donut-center">{{ tauxReussiteArrondi }}<small>%</small></span>
+          </div>
+          <ul class="chart-legend chart-legend-compact">
+            <li>
+              <span class="dot dot-ok"></span> Réussite (≥ 60 %)
+            </li>
+            <li>
+              <span class="dot dot-pending"></span> En dessous du seuil
+            </li>
+            <li class="legend-meta">
+              Score tests moyen : <strong>{{ scoreTestsArrondi }} %</strong>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="chart-card">
+        <h2 class="card-heading">Top compétences (CV)</h2>
+        <div class="chart-body" *ngIf="topCompetenceBars.length; else emptyTop">
+          <div class="hbar-row" *ngFor="let bar of topCompetenceBars; let i = index">
+            <span class="hbar-rank">{{ i + 1 }}</span>
+            <div class="hbar-meta">
+              <div class="hbar-head">
+                <span class="hbar-label">{{ bar.label }}</span>
+              </div>
+              <div class="hbar-track">
+                <div class="hbar-fill" [style.width.%]="bar.pct" [style.background]="bar.color"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #emptyTop>
+          <p class="empty-inline">Générez des CV pour détecter vos compétences les plus citées.</p>
+        </ng-template>
+      </article>
+
+    </section>
+
+    <section class="analysis-section" aria-label="Compétences à renforcer" *ngIf="faibleBars.length">
+      <article class="chart-card chart-card-wide">
+        <h2 class="card-heading">Compétences à renforcer</h2>
+        <div class="chart-body">
+          <div class="hbar-row hbar-row-weak" *ngFor="let bar of faibleBars">
+            <div class="hbar-meta">
+              <div class="hbar-head">
+                <span class="hbar-label">{{ bar.label }}</span>
+              </div>
+              <div class="hbar-track hbar-track-weak">
+                <div class="hbar-fill" [style.width.%]="bar.pct"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </ng-container>
+
+  <div *ngIf="!chargement && !dashboard" class="empty-state">
+    <h2 class="empty-title">Tableau de bord indisponible</h2>
+    <p class="empty-desc">Réessayez dans quelques instants ou reconnectez-vous.</p>
+  </div>
+
+</main>

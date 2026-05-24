@@ -22,11 +22,14 @@ namespace API.Controllers
             _keycloakAdmin = keycloakAdmin;
             _configuration = configuration;
 
-            var frontendUrl = _configuration["FRONTEND_URL"] ?? "http://localhost:80";
+            var frontendUrl = _configuration["App:FrontendUrl"] 
+                           ?? _configuration["FRONTEND_URL"] 
+                           ?? "http://localhost:80";
             _allowedOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "http://localhost",
                 "http://localhost:80",
+                "https://cevia.duckdns.org",
                 frontendUrl
             };
         }
@@ -56,15 +59,13 @@ namespace API.Controllers
                 return Forbid();
             }
 
-            var frontendUrl = _configuration["FRONTEND_URL"] ?? "http://localhost";
+            var frontendUrl = (_configuration["App:FrontendUrl"] 
+                           ?? _configuration["FRONTEND_URL"] 
+                           ?? "http://localhost").TrimEnd('/');
             return SignOut(
-                new AuthenticationProperties
-                {
-                    RedirectUri = $"{frontendUrl}/connexion"
-                },
+                new AuthenticationProperties { RedirectUri = $"{frontendUrl}/connexion" },
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                OpenIdConnectDefaults.AuthenticationScheme
-            );
+                OpenIdConnectDefaults.AuthenticationScheme);
         }
 
         public class ForgotPasswordRequest
@@ -132,5 +133,29 @@ namespace API.Controllers
         {
             return BadRequest(new { error = message });
         }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> RequestPasswordChange()
+        {
+            var email = User.FindFirst(ClaimTypes.Email)?.Value
+                        ?? User.FindFirst("email")?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized();
+
+            try
+            {
+                var ok = await _keycloakAdmin.SendUpdatePasswordEmailAsync(email);
+                if (!ok)
+                    return StatusCode(500, new { message = "Erreur lors de l'envoi de l'email." });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("admin client credentials"))
+            {
+                return StatusCode(503, new { message = "Service non configuré. Contactez un administrateur." });
+            }
+
+            return Ok(new { message = "Un email de réinitialisation a été envoyé à votre adresse." });
+        }
+
     }
 }

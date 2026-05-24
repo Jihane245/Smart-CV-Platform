@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
   import { environment } from '../../../../../environments/environment'
 import { AdminService, AdminTemplateDto, TemplateBoxDto, TemplateLayoutId } from '../../../../core/services/admin.service';
 import {
@@ -21,10 +21,16 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { CvComponentRenderer } from '../../../admin/template-editor/cv-component-renderer/cv-component-renderer';
 import { CvData, buildCvDataFromProfil, presentLabelFor, ALL_PRESENT_VALUES } from './cv-data';
 import { GenerateCvStateService } from '../../../../core/services/generate-cv-state.service';
+import { CompetenceUpgradeService } from '../../../../core/services/competence-upgrade.service';
+import { GapSessionStateService } from '../../../../core/services/gap-session-state.service';
+import {
+  buildCandidatureDraftFromGenerateCv,
+  CandidatureDraftService,
+} from '../../../../core/services/candidature-draft.service';
 
 interface CompetenceAnalysee {
   nom: string;
-  statut: 'maitrise' | 'partiel' | 'renforcer';
+  statut: 'maitrise' | 'renforcer';
 }
 
 interface CompetenceCvPreview {
@@ -86,6 +92,7 @@ export class GenerateCv implements OnInit {
   analyseEnCours = false;
   generationEnCours = false;
   telechargementEnCours = false;
+  comblerEnCours = false;
 
   // ─── Profil (persisté) ───────────────────────────────────────────────────────
   get prenom(): string { return this.cvState.state.prenom; }
@@ -157,8 +164,8 @@ export class GenerateCv implements OnInit {
   set langueSelectionnee(v: string) { this.cvState.patch({ langueSelectionnee: v }); }
 
   // ─── Étape 4 (persisté) ───────────────────────────────────────────────────────
-  get cvCreéId(): number | null { return this.cvState.state.cvCreéId; }
-  set cvCreéId(v: number | null) { this.cvState.patch({ cvCreéId: v }); }
+  get cvCreeId(): number | null { return this.cvState.state.cvCreeId; }
+  set cvCreeId(v: number | null) { this.cvState.patch({ cvCreeId: v }); }
 
   get resumeEdite(): string { return this.cvState.state.resumeEdite; }
   set resumeEdite(v: string) { this.cvState.patch({ resumeEdite: v }); }
@@ -186,6 +193,10 @@ export class GenerateCv implements OnInit {
     private http: HttpClient,
     public cvState: GenerateCvStateService,
     private route: ActivatedRoute,
+    private router: Router,
+    private competenceUpgradeService: CompetenceUpgradeService,
+    private gapSessionState: GapSessionStateService,
+    private candidatureDraft: CandidatureDraftService,
   ) {}
 
   ngOnInit(): void {
@@ -255,7 +266,7 @@ export class GenerateCv implements OnInit {
 
         // 2. Données issues du CV existant : on pré-remplit le template, la
         //    couleur et la langue choisis lors de la 1ère génération.
-        this.cvCreéId = cv.id;
+        this.cvCreeId = cv.id;
         this.templatesDisponibles = templates;
         this.templateSelectionne =
           templates.find(t => t.id === cv.templateId) ?? templates[0] ?? null;
@@ -412,15 +423,17 @@ export class GenerateCv implements OnInit {
     this.resumeEdite = res.resume ?? this.resume;
     this.recommandations = res.recommandations ?? null;
 
+    // If offer came from image, offreTexte is empty — use the AI summary as fallback
+    if (!this.offreTexte.trim()) {
+      this.offreTexte = res.resume ?? '';
+    }
+
     const matchSet = new Set((res.competences_match ?? []).map(n => n.toLowerCase()));
     const manquantSet = new Set((res.competences_manquantes ?? []).map(n => n.toLowerCase()));
 
     this.competencesAnalysees = [
       ...(res.competences_match ?? []).map(nom => ({ nom, statut: 'maitrise' as const })),
       ...(res.competences_manquantes ?? []).map(nom => ({ nom, statut: 'renforcer' as const })),
-      ...this.competencesNoms
-        .filter(n => !matchSet.has(n.toLowerCase()) && !manquantSet.has(n.toLowerCase()))
-        .map(nom => ({ nom, statut: 'partiel' as const })),
     ];
 
     this.analyseEnCours = false;
@@ -451,6 +464,72 @@ export class GenerateCv implements OnInit {
     });
   }
 
+    // ─── Gérer les écarts/Gaps ──────────────────────────────────────────────────
+
+  /**
+  * Builds the CreateGapSessionRequest from the current analysis state,
+  * calls the backend to persist it, stores the result in GapSessionStateService,
+  * then navigates to /user/competence-upgrade?sessionId=X.
+  *
+  * Called from:
+  *  (a) the "Combler les écarts" button on step 2
+  *  (b) telechargerPdf() — so gaps are always saved when a CV is downloaded
+  */
+  private sauvegarderGapSession(): Promise<number | null> {
+    const toutes = this.competencesAnalysees
+      .filter(c => c.statut === 'renforcer')
+      .map(c => ({ nomCompetence: c.nom, priorite: 'haute' as const }));
+    if (!toutes.length) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      this.competenceUpgradeService.createGapSession({
+        texteOffre:           this.offreTexte || this.resumeIA || '',
+        titreOffre:           undefined,   // AI doesn't return a parsed title
+        entreprise:           undefined,   // AI doesn't return a parsed company
+        scoreCompatibilite:   this.scoreCompatibilite,
+        competencesManquantes: toutes,
+      }).subscribe({
+        next: ({ sessionId }) => resolve(sessionId),
+        error: ()            => resolve(null),   // non-blocking — CV download must not fail
+      });
+    });
+  }
+
+  async comblerLesEcarts(): Promise<void> {
+    if (this.comblerEnCours) return;
+    this.comblerEnCours = true;
+
+    const sessionId = await this.sauvegarderGapSession();
+
+    if (!sessionId) {
+      this.notifService.error(
+        'Impossible de sauvegarder les écarts. Veuillez réessayer.'
+      );
+      this.comblerEnCours = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Fetch the full session detail so the upgrade page has it immediately
+    this.competenceUpgradeService.getGapSessionDetail(sessionId).subscribe({
+      next: (detail) => {
+        this.gapSessionState.setSession(detail);
+        this.comblerEnCours = false;
+        this.router.navigate(['/user/competence-upgrade'], {
+          queryParams: { sessionId },
+        });
+      },
+      error: () => {
+        // Still navigate — upgrade page will fetch it on its own
+        this.gapSessionState.setSessionId(sessionId);
+        this.comblerEnCours = false;
+        this.router.navigate(['/user/competence-upgrade'], {
+          queryParams: { sessionId },
+        });
+      },
+    });
+  }
+
   // ─── Étape 3 → 4 ─────────────────────────────────────────────────────────────
   generer(): void {
     if (!this.templateSelectionne) {
@@ -467,7 +546,7 @@ export class GenerateCv implements OnInit {
       langue: LANGUE_CODE[this.langueSelectionnee] ?? 'fr',
     }).subscribe({
       next: (cv) => {
-        this.cvCreéId = cv.id;
+        this.cvCreeId = cv.id;
         this.scoreApresOptimisation = Math.min(100, this.scoreCompatibilite + 6);
         this.pointsGagnes = this.scoreApresOptimisation - this.scoreCompatibilite;
         this.generationEnCours = false;
@@ -486,7 +565,7 @@ export class GenerateCv implements OnInit {
 
   // ─── Étape 4 — PDF ───────────────────────────────────────────────────────────
   telechargerPdf(): void {
-    if (!this.cvCreéId) {
+    if (!this.cvCreeId) {
       this.notifService.warning('Aucun CV généré à télécharger.');
       return;
     }
@@ -526,7 +605,7 @@ export class GenerateCv implements OnInit {
     else if (nomPdf)              downloadName = `CV_${nomPdf}.pdf`;
     else if (prenomPdf)           downloadName = `CV_${prenomPdf}.pdf`;
 
-    this.cvService.exporterPdf(this.cvCreéId, htmlContent, prenomPdf, nomPdf).subscribe({
+    this.cvService.exporterPdf(this.cvCreeId, htmlContent, prenomPdf, nomPdf).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -538,6 +617,20 @@ export class GenerateCv implements OnInit {
         URL.revokeObjectURL(url);
         this.telechargementEnCours = false;
         this.notifService.success('CV téléchargé avec succès !');
+        // ── NEW: persist gap session silently after PDF download ──────────
+        // Only if there are skills to save and no session has been saved yet
+        const hasGaps = this.competencesAnalysees.some(c => c.statut === 'renforcer');
+        if (hasGaps) {
+          this.sauvegarderGapSession().then(sessionId => {
+            if (sessionId) {
+              this.competenceUpgradeService.getGapSessionDetail(sessionId).subscribe({
+                next: (detail) => this.gapSessionState.setSession(detail),
+                error: ()      => this.gapSessionState.setSessionId(sessionId),
+              });
+            }
+          });
+        }
+        // ─────────────────────────────────────────────────────────────────
         this.cdr.detectChanges();
       },
       error: () => {
@@ -549,7 +642,28 @@ export class GenerateCv implements OnInit {
   }
 
   enregistrerCandidature(): void {
-    this.notifService.info('Enregistrement candidature — disponible prochainement.');
+    if (!this.cvCreeId) {
+      this.notifService.warning('Générez d\'abord votre CV avant d\'enregistrer une candidature.');
+      return;
+    }
+
+    this.candidatureDraft.setDraft(buildCandidatureDraftFromGenerateCv(this.cvState.state));
+    this.router.navigate(['/user/applications'], { fragment: 'nouvelle-candidature' });
+  }
+
+  // ─── Étape 4 — Lettre de motivation ──────────────────────────────────────────
+  genererLettreMotivation(): void {
+    if (!this.cvCreeId) {
+      this.notifService.warning('Veuillez d\'abord générer votre CV.');
+      return;
+    }
+
+    this.router.navigate(['/user/lettre-motivation'], {
+      queryParams: {
+        cvId: this.cvCreeId,
+        offreText: this.offreTexte,
+      },
+    });
   }
 
   // ─── CSS pour PDF ─────────────────────────────────────────────────────────────
@@ -641,14 +755,11 @@ export class GenerateCv implements OnInit {
 
   statutCompetence(statut: string): string {
     if (statut === 'maitrise') return '✓';
-    if (statut === 'partiel') return '~';
     return '✕';
   }
 
-  couleurPriorite(priorite: string): string {
-    if (priorite === 'haute') return '#8B1A1A';
-    if (priorite === 'moyenne') return '#B8720A';
-    return '#3B5E3A';
+  couleurPriorite(statut: string): string {
+    return statut === 'maitrise' ? '✓' : '✕';
   }
 
   get competencesManquantesNoms(): string[] {

@@ -93,7 +93,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let u of utilisateursFiltres">
+            <tr *ngFor="let u of utilisateursApercu">
               <td class="user-cell">
                 <div class="user-avatar" [style.background]="u.couleurAvatar">
                   {{ u.initiales }}
@@ -107,19 +107,28 @@
               <td class="cv-cell">{{ u.cvGeneres }}</td>
               <td class="date-cell">{{ u.inscritLe }}</td>
               <td class="actions-cell">
-                <button class="btn-action voir" (click)="voirUtilisateur(u)">Voir</button>
                 <button
-                  class="btn-action"
-                  [class.desact]="u.actif"
-                  [class.suppr]="!u.actif"
-                  (click)="u.actif ? toggleActif(u) : supprimerUtilisateur(u)"
+                  class="btn-action desact"
+                  (click)="toggleActif(u)"
                 >
-                  {{ u.actif ? 'Désact.' : 'Suppr.' }}
+                  {{ u.actif ? 'Désactiver' : 'Activer' }}
+                </button>
+                <button
+                  class="btn-action suppr"
+                  (click)="supprimerUtilisateur(u)"
+                >
+                  Supprimer
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <div class="voir-plus-wrapper" *ngIf="utilisateursFiltres.length > 3">
+          <button class="btn-voir-plus" (click)="voirTousUtilisateurs()">
+            Voir plus ({{ utilisateursFiltres.length }} utilisateurs)
+          </button>
+        </div>
       </div>
     </div>
 
@@ -191,6 +200,15 @@
             </dd>
           </div>
         </dl>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-action desact" (click)="toggleActifFromDetail()">
+            {{ d.actif ? 'Désactiver' : 'Activer' }}
+          </button>
+          <button type="button" class="btn-action suppr" (click)="supprimerUtilisateurDepuisDetail()">
+            Supprimer
+          </button>
+        </div>
       </ng-container>
     </div>
   </div>

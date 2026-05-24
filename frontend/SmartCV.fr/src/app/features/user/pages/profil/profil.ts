@@ -1,9 +1,11 @@
 import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, Observable } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 
+import { environment } from '../../../../../environments/environment';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ConfirmService } from '../../../../core/services/confirm.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -24,14 +26,14 @@ import {
 import { Competence, Experience, Formation, NiveauCompetence } from '../../../../core/models/models';
 
 interface LigneSection {
-  id?: string; // Guid
+  id?: string; 
   ordre: number;
   detail: string;
   description: string;
 }
 
 interface Section {
-  id?: string; // Guid
+  id?: string; 
   ordre: number;
   titre: string;
   lignes: LigneSection[];
@@ -55,17 +57,17 @@ export class MonProfil implements OnInit {
   linkedIn = '';
   resume = '';
 
-  // Snapshot of last saved values — used for dirty detection (not private: template needs access)
+  // Snapshot of last saved values 
   savedTitre = '';
   savedTelephone = '';
   savedVille = '';
   savedLinkedIn = '';
   savedResume = '';
 
-  // Snapshots of saved experience values keyed by idExp — for modified detection
+  
   expSnapshots = new Map<number, { poste: string; entreprise: string; dateDebut: string; dateFin: string | undefined; description: string }>();
 
-  // Snapshots of saved formation values keyed by idFrmt
+
   formSnapshots = new Map<number, { diplome: string; etablissement: string; annee: number; mention: string }>();
 
   competences: Competence[] = [];
@@ -78,6 +80,7 @@ export class MonProfil implements OnInit {
 
   loading = false;
   saving = false;
+  changingPassword = false;
 
   // Photo de profil
   photoUrl: string | null = null;
@@ -97,7 +100,8 @@ export class MonProfil implements OnInit {
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private confirmService: ConfirmService,
-    private notif: NotificationService
+    private notif: NotificationService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -143,7 +147,7 @@ export class MonProfil implements OnInit {
       });
   }
 
-  // ─── Dirty detection ──────────────────────────────────────────────────────
+  //Dirty detection 
 
   get isInfoDirty(): boolean {
     return (
@@ -192,7 +196,6 @@ export class MonProfil implements OnInit {
     return this.formations.some((f) => this.isFormationNew(f) || this.isFormationModified(f));
   }
 
-  // Toggle add-competence input; also resets field if hiding
   toggleAjoutCompetence(): void {
     this.ajoutCompetenceVisible = !this.ajoutCompetenceVisible;
     if (!this.ajoutCompetenceVisible) {
@@ -200,7 +203,7 @@ export class MonProfil implements OnInit {
     }
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
+  //Helpers 
 
   private computeInitiales(prenom: string, nom: string): string {
     const a = prenom.trim().charAt(0);
@@ -218,7 +221,6 @@ export class MonProfil implements OnInit {
     this.resume = p.description ?? '';
     this.photoUrl = toAbsolutePhotoUrl(p.photoUrl);
 
-    // Update snapshots to match saved state
     this.savedTitre = this.titre;
     this.savedTelephone = this.telephone;
     this.savedVille = this.ville;
@@ -336,7 +338,7 @@ export class MonProfil implements OnInit {
     this.completude = Math.round((filled / total) * 100);
   }
 
-  // ─── Photo de profil ──────────────────────────────────────────────────────
+  //Photo de profil
 
   /** Click sur l'avatar : ouvre la modale de visualisation si photo, sinon ouvre le sélecteur */
   onAvatarClick(): void {
@@ -347,12 +349,10 @@ export class MonProfil implements OnInit {
     }
   }
 
-  /** Ferme la modale de visualisation */
   fermerPhotoViewer(): void {
     this.photoViewerOuvert = false;
   }
 
-  /** Ouvre le sélecteur de fichier (appelé par le bouton ou depuis la modale) */
   ouvrirSelecteurPhoto(): void {
     if (this.uploadingPhoto) return;
     this.photoError = null;
@@ -436,6 +436,32 @@ export class MonProfil implements OnInit {
     });
   }
 
+  // ─── Changer le Mot de Passe ──────────────────────────────────────────────
+
+  changerMotDePasse(): void {
+    this.changingPassword = true;
+    this.http.post(
+      `${environment.backendUrl}/api/auth/change-password`,
+      {},
+      { withCredentials: true }
+    ).subscribe({
+      next: () => {
+        this.changingPassword = false;
+        this.notif.success('Email de réinitialisation envoyé. Vérifiez votre boîte mail.');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.changingPassword = false;
+        this.notif.error(
+          err.status === 503
+            ? 'Service non configuré. Contactez un administrateur.'
+            : 'Erreur lors de l\'envoi. Veuillez réessayer.'
+        );
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   // ─── Compétences ──────────────────────────────────────────────────────────
 
   ajouterCompetence(): void {
@@ -448,8 +474,6 @@ export class MonProfil implements OnInit {
         next: (res: any) => {
           this.nouvelleCompetence = '';
           this.ajoutCompetenceVisible = false;
-          // FIX issue 3: append locally instead of reloading the whole profil,
-          // which would overwrite unsaved field edits.
           this.competences.push({
             idComp: res?.idComp ?? 0,
             profilId: this.profilId,

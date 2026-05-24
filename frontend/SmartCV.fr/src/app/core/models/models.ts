@@ -30,15 +30,27 @@ export enum StatutCVEnum {
 }
 
 export enum StatutCandidature {
-  enregistree = 'enregistrée',
-  envoyee = 'envoyée',
-  recue = 'reçue',
+  enregistree = 'enregistree',
+  envoyee = 'envoyee',
+  recue = 'recue',
   en_cours_d_examen = 'en_cours_d_examen',
   entretien = 'entretien',
-  acceptee = 'acceptée',
-  refusee = 'refusée',
-  archivee = 'archivée',
+  acceptee = 'acceptee',
+  refusee = 'refusee',
+  archivee = 'archivee',
 }
+
+/** Libellés affichés dans l’UI (les valeurs API restent ASCII). */
+export const STATUT_CANDIDATURE_LABELS: Record<StatutCandidature, string> = {
+  [StatutCandidature.enregistree]: 'Enregistrée',
+  [StatutCandidature.envoyee]: 'Envoyée',
+  [StatutCandidature.recue]: 'Reçue',
+  [StatutCandidature.en_cours_d_examen]: 'En cours d’examen',
+  [StatutCandidature.entretien]: 'Entretien',
+  [StatutCandidature.acceptee]: 'Acceptée',
+  [StatutCandidature.refusee]: 'Refusée',
+  [StatutCandidature.archivee]: 'Archivée',
+};
 
 export enum StatutTraitement {
   EnAttente = 'EnAttente',

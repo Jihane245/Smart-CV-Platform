@@ -4,32 +4,77 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 const BASE = `${environment.backendUrl}/api/competences`;
+const GAP_BASE = `${environment.backendUrl}/api/gap-sessions`;
 
-// ─── DTOs alignés exactement sur CompetenceGapDto.cs (camelCase JSON) ────────
+// ─── Gap Session DTOs ─────────────────────────────────────────────────────────
 
-export interface CompetenceGapDto {
-  nom: string;
+export interface GapSkillRequest {
+  nomCompetence: string;
   priorite: 'haute' | 'renforcer' | 'evaluer';
 }
 
-// POST /api/competences/test/generate — body: { nomCompetence }
+export interface CreateGapSessionRequest {
+  texteOffre: string;
+  titreOffre?: string;
+  entreprise?: string;
+  scoreCompatibilite: number;
+  competencesManquantes: GapSkillRequest[];
+}
+
+export interface GapSessionSummaryDto {
+  id: number;
+  texteOffre: string;
+  titreOffre?: string;
+  entreprise?: string;
+  scoreCompatibilite: number;
+  createdAt: string;
+  totalSkills: number;
+  skillsTermines: number;
+  skillsEnCours: number;
+}
+
+export interface GapSessionSkillDto {
+  id: number;
+  nomCompetence: string;
+  priorite: 'haute' | 'renforcer' | 'evaluer';
+  roadmapId: number | null;
+  // populated when roadmap exists
+  phase?: 'AParcourir' | 'PreteAuTestFinal' | 'TestFinalEchoue' | 'Validee';
+  phaseLibelle?: string;
+  progression?: number;
+  completee?: boolean;
+  testScore?: number | null;
+  niveauDepart?: string;
+}
+
+export interface GapSessionDetailDto {
+  id: number;
+  texteOffre: string;
+  titreOffre?: string;
+  entreprise?: string;
+  scoreCompatibilite: number;
+  createdAt: string;
+  skills: GapSessionSkillDto[];
+}
+
+// ─── Competence upgrade DTOs ──────────────────────────────────────────────────
+
 export interface QuestionDto {
   numero: number;
   enonce: string;
-  options: string[];        // C# QuestionDto.Options → "options"
+  options: string[];
+  bonne_reponse?: string;
 }
 
 export interface TestGeneratedDto {
-  testId: number;           // C# TestGeneratedDto.TestId → "testId"
+  testId: number;
   nomCompetence: string;
   questions: QuestionDto[];
 }
 
-// POST /api/competences/test/evaluate — body: { testId, reponses }
-// C# ReponseDto.ReponseChoisie → "reponseChoisie"
 export interface ReponseDto {
-  numero: number;
-  reponseChoisie: string;
+  Numero: number;
+  ReponseChoisie: string;
 }
 
 export interface EvaluationResultDto {
@@ -40,15 +85,13 @@ export interface EvaluationResultDto {
   roadmapNecessaire: boolean;
 }
 
-// POST /api/competences/roadmap — body: { testId }
-// C# EtapeRoadmapDto fields: Ordre, Type, Titre, Description, Url, Duree
 export interface EtapeRoadmapDto {
   ordre: number;
-  type: string;             // "video" | "doc" | "projet"
+  type: 'video' | 'doc' | 'projet';
   titre: string;
   description: string;
-  url: string | null;       // C# Url → "url"
-  duree: string | null;     // C# Duree → "duree"
+  url: string | null;
+  duree: string | null;
 }
 
 export interface RoadmapDto {
@@ -59,7 +102,6 @@ export interface RoadmapDto {
   etapes: EtapeRoadmapDto[];
 }
 
-// POST /api/competences/roadmaps/{id}/retest — body: ReponseDto[] directement
 export interface RetestResultDto {
   score: number;
   niveau: string;
@@ -68,19 +110,64 @@ export interface RetestResultDto {
   peutReessayer: boolean;
 }
 
-export interface RoadmapHistoriqueDto {
+// Full roadmap detail — GET /api/competences/roadmaps/{id}
+export interface RoadmapTestDetail {
   id: number;
   nomCompetence: string;
-  niveauDepart: string;
-  completee: boolean;
+  score: number | null;
+  niveauDetecte: string | null;
+  statut: string;
   createdAt: string;
-  testScore?: number;
-  testStatut?: string;
+  completedAt: string | null;
+  questions: QuestionDto[];
+}
+
+export interface RoadmapDetailDto {
+  roadmapId: number;
+  userId: number;
+  nomCompetence: string;
+  niveauDepart: string;
+  createdAt: string;
+  etapes: EtapeRoadmapDto[];
+  nombreEtapes: number;
+  roadmapSuivie: boolean;
+  completee: boolean;
+  test: RoadmapTestDetail | null;
+  phase: 'AParcourir' | 'PreteAuTestFinal' | 'TestFinalEchoue' | 'Validee';
+  phaseLibelle: string;
+  prochaineAction: string;
+  progression: number;
+  peutPasserTestFinal: boolean;
+  peutReessayer: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
 export class CompetenceUpgradeService {
   constructor(private http: HttpClient) {}
+
+  // ─── Gap Sessions ──────────────────────────────────────────────────────────
+
+  createGapSession(req: CreateGapSessionRequest): Observable<{ sessionId: number }> {
+    return this.http.post<{ sessionId: number }>(GAP_BASE, req, { withCredentials: true });
+  }
+
+  getGapSessions(): Observable<GapSessionSummaryDto[]> {
+    return this.http.get<GapSessionSummaryDto[]>(GAP_BASE, { withCredentials: true });
+  }
+
+  getGapSessionDetail(id: number): Observable<GapSessionDetailDto> {
+    return this.http.get<GapSessionDetailDto>(`${GAP_BASE}/${id}`, { withCredentials: true });
+  }
+
+  linkRoadmapToSkill(sessionId: number, skillId: number, roadmapId: number): Observable<void> {
+    return this.http.patch<void>(
+      `${GAP_BASE}/${sessionId}/skills/${skillId}/roadmap`,
+      { roadmapId },
+      { withCredentials: true }
+    );
+  }
+
+  // ─── Test & Roadmap ────────────────────────────────────────────────────────
 
   genererTest(nomCompetence: string): Observable<TestGeneratedDto> {
     return this.http.post<TestGeneratedDto>(
@@ -122,9 +209,9 @@ export class CompetenceUpgradeService {
     );
   }
 
-  getHistorique(): Observable<RoadmapHistoriqueDto[]> {
-    return this.http.get<RoadmapHistoriqueDto[]>(
-      `${BASE}/roadmaps`,
+  getRoadmapDetail(id: number): Observable<RoadmapDetailDto> {
+    return this.http.get<RoadmapDetailDto>(
+      `${BASE}/roadmaps/${id}`,
       { withCredentials: true }
     );
   }

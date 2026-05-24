@@ -8,7 +8,10 @@ services:
       ports:
         - "80:80"
       depends_on:
-        - backend
+        backend:
+          condition: service_started
+        keycloak:
+          condition: service_started
       networks:
         - app-network
   backend:
@@ -26,9 +29,11 @@ services:
       - Keycloak__ClientSecret=${KEYCLOAK_CLIENT_SECRET}
       - Keycloak__AdminBaseUrl=http://keycloak:8080
       - Keycloak__Realm=${KEYCLOAK_REALM}
-      - Keycloak__AdminRealm=master
+      - Keycloak__AdminRealm=cv-platform
       - Keycloak__AdminClientId=${KEYCLOAK_ADMIN_CLIENT_ID}
       - Keycloak__AdminClientSecret=${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      - Keycloak__AdminUser=${KEYCLOAK_ADMIN}
+      - Keycloak__AdminPassword=${KEYCLOAK_ADMIN_PASSWORD}
       - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       db:
@@ -96,9 +101,8 @@ services:
       - app-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.6
+    build: ./keycloak
     container_name: keycloak
-    command: start-dev --import-realm
     restart: unless-stopped
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}

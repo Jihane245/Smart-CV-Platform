@@ -11,7 +11,7 @@
           <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
-      <span class="app-name">SmartCV</span>
+      <img src="/assets/logo.png" alt="Cevia" class="sidebar-logo-img">
     </div>
 
     <!-- Navigation -->
@@ -45,20 +45,52 @@
         </svg>
         <span class="nav-label">Generate CV</span>
       </a>
-  <a class="nav-item" routerLink="/user/historique" routerLinkActive="active">
-    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M3 12a9 9 0 1 0 3-6.7" stroke-linecap="round"/>
-      <path d="M3 4v5h5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <span class="nav-label">Historique-CV</span>
-  </a>
+
+      <a class="nav-item" routerLink="/user/historique" routerLinkActive="active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 12a9 9 0 1 0 3-6.7" stroke-linecap="round"/>
+          <path d="M3 4v5h5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="nav-label">Historique-CV</span>
+      </a>
+
+      <a class="nav-item" routerLink="/user/roadmap-historique" routerLinkActive="active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 17l4-8 4 4 4-6 4 4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="7" cy="9" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="11" cy="13" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="15" cy="7" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="19" cy="11" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <span class="nav-label">Roadmap</span>
+      </a>
+
+      <a class="nav-item" routerLink="/user/lettre-motivation" routerLinkActive="active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M4 4h12l4 4v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+          <line x1="7" y1="10" x2="17" y2="10"/>
+          <line x1="7" y1="14" x2="17" y2="14"/>
+          <line x1="7" y1="18" x2="13" y2="18"/>
+        </svg>
+        <span class="nav-label">Lettre de motivation</span>
+      </a>
+
       <a class="nav-item" routerLink="/user/applications" routerLinkActive="active">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <rect x="3" y="4" width="18" height="16" rx="2"/>
           <path d="M9 9h6M9 13h4"/>
         </svg>
         <span class="nav-label">Candidatures</span>
+      </a>
+
+      <a class="nav-item" *ngIf="isAdmin" routerLink="/admin" routerLinkActive="active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/>
+          <path d="M12 14c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/>
+          <circle cx="19" cy="8" r="3" fill="currentColor" stroke="none"/>
+        </svg>
+        <span class="nav-label">Administration</span>
       </a>
 
     </nav>

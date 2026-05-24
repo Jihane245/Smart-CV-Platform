@@ -55,7 +55,15 @@ public class CompetenceUpgradeController : ControllerBase
 
     // Helper : lit une propriété JsonElement sans crasher si absent
     private static JsonElement GetProp(JsonElement el, string name)
-        => el.TryGetProperty(name, out var val) ? val : default;
+    {
+        // Try exact match first
+        if (el.TryGetProperty(name, out var val)) return val;
+        // Fall back to case-insensitive search
+        foreach (var prop in el.EnumerateObject())
+            if (prop.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                return prop.Value;
+        return default;
+    }
 
     // ─── 1. Détecter les écarts ─────────────────────────────────────────────
 
@@ -131,8 +139,8 @@ public class CompetenceUpgradeController : ControllerBase
 
         var questionsSansReponses = questionsObj?.Select(q => new QuestionDto
         {
-            Numero  = GetProp(q, "numero").ValueKind == JsonValueKind.Number
-                        ? GetProp(q, "numero").GetInt32() : 0,
+            Numero  = GetProp(q, "Numero").ValueKind == JsonValueKind.Number
+                        ? GetProp(q, "Numero").GetInt32() : 0,
             Enonce  = GetProp(q, "enonce").ValueKind == JsonValueKind.String
                         ? GetProp(q, "enonce").GetString() ?? "" : "",
             Options = GetProp(q, "options").ValueKind == JsonValueKind.Array
@@ -356,6 +364,138 @@ public class CompetenceUpgradeController : ControllerBase
         });
 
         return Ok(result);
+    }
+
+    // ─── 6 bis. Détails d'une roadmap (étapes + phase actuelle) ─────────────
+
+    /// <summary>
+    /// Renvoie l'état complet d'une roadmap : ses étapes, le test associé,
+    /// et surtout la phase actuelle (à parcourir / prête au test final / échouée / validée).
+    /// </summary>
+    [HttpGet("roadmaps/{id}")]
+    public async Task<IActionResult> GetRoadmapDetails(int id)
+    {
+        var user = await GetCurrentUser();
+        if (user == null) return Unauthorized();
+
+        var roadmap = await _db.Roadmaps
+            .Include(r => r.Test)
+            .FirstOrDefaultAsync(r => r.Id == id && r.UserId == user.Id);
+
+        if (roadmap == null) return NotFound(new { message = "Roadmap introuvable." });
+
+        // 1. Parse des étapes JSON (silencieux si malformé)
+        List<EtapeRoadmapDto> etapes = [];
+        if (!string.IsNullOrWhiteSpace(roadmap.EtapesJson))
+        {
+            try
+            {
+                etapes = JsonSerializer.Deserialize<List<EtapeRoadmapDto>>(
+                    roadmap.EtapesJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                ) ?? [];
+            }
+            catch (JsonException) { /* étapes vides — on remonte tout de même la roadmap */ }
+        }
+
+        // 2. Calcul de la phase actuelle
+        RoadmapPhase phase;
+        string phaseLibelle;
+        string prochaineAction;
+        int progression;
+        bool peutPasserTestFinal;
+        bool peutReessayer;
+
+        if (roadmap.Completee)
+        {
+            phase = RoadmapPhase.Validee;
+            phaseLibelle = "Compétence validée";
+            prochaineAction = $"« {roadmap.NomCompetence} » a été ajoutée à votre profil.";
+            progression = 100;
+            peutPasserTestFinal = false;
+            peutReessayer = false;
+        }
+        else if (roadmap.Test?.Statut == StatutParcours.Echoue)
+        {
+            phase = RoadmapPhase.TestFinalEchoue;
+            phaseLibelle = "Test final échoué";
+            prochaineAction = "Revisitez la roadmap puis retentez le test de validation.";
+            progression = 70;
+            peutPasserTestFinal = false;
+            peutReessayer = true;
+        }
+        else if (roadmap.RoadmapSuivie)
+        {
+            phase = RoadmapPhase.PreteAuTestFinal;
+            phaseLibelle = "Prête pour le test final";
+            prochaineAction = "Lancez le test de validation pour ajouter la compétence à votre profil.";
+            progression = 75;
+            peutPasserTestFinal = true;
+            peutReessayer = false;
+        }
+        else
+        {
+            phase = RoadmapPhase.AParcourir;
+            phaseLibelle = "Roadmap à parcourir";
+            prochaineAction = "Suivez les étapes ci-dessous, puis marquez la roadmap comme suivie.";
+            progression = 25;
+            peutPasserTestFinal = false;
+            peutReessayer = false;
+        }
+
+        // 3. Test info (optionnel)
+        TestInfoDto? testInfo = null;
+        if (roadmap.Test != null)
+        {
+            // Parse questions to return to frontend (needed for resume-from-history)
+            // FIX: deserialize stored JSON back into typed list so TestInfoDto.Questions is populated
+            List<QuestionDto> questionsParsees = [];
+            if (!string.IsNullOrWhiteSpace(roadmap.Test.QuestionsJson))
+            {
+                try
+                {
+                    questionsParsees = JsonSerializer.Deserialize<List<QuestionDto>>(
+                        roadmap.Test.QuestionsJson,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    ) ?? [];
+                }
+                catch (JsonException) { /* leave empty — non-fatal */ }
+            }
+        
+            testInfo = new TestInfoDto
+            {
+                Id            = roadmap.Test.Id,
+                NomCompetence = roadmap.Test.NomCompetence,
+                Score         = roadmap.Test.Score,
+                NiveauDetecte = roadmap.Test.NiveauDetecte?.ToString(),
+                Statut        = roadmap.Test.Statut.ToString(),
+                CreatedAt     = roadmap.Test.CreatedAt,
+                CompletedAt   = roadmap.Test.CompletedAt,
+                Questions     = questionsParsees   // FIX: populate for frontend resume
+            };
+        }
+
+        var dto = new RoadmapDetailsDto
+        {
+            RoadmapId = roadmap.Id,
+            UserId = roadmap.UserId,
+            NomCompetence = roadmap.NomCompetence,
+            NiveauDepart = roadmap.NiveauDepart.ToString(),
+            CreatedAt = roadmap.CreatedAt,
+            Etapes = etapes.OrderBy(e => e.Ordre).ToList(),
+            NombreEtapes = etapes.Count,
+            RoadmapSuivie = roadmap.RoadmapSuivie,
+            Completee = roadmap.Completee,
+            Test = testInfo,
+            Phase = phase.ToString(),
+            PhaseLibelle = phaseLibelle,
+            ProchaineAction = prochaineAction,
+            Progression = progression,
+            PeutPasserTestFinal = peutPasserTestFinal,
+            PeutReessayer = peutReessayer
+        };
+
+        return Ok(dto);
     }
 /// <summary>Repasser le test après avoir suivi la roadmap</summary>
 [HttpPost("roadmaps/{roadmapId}/retest")]

@@ -1,24 +1,56 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProfilService } from '../../../../core/services/profil.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { GenerateCvStateService } from '../../../../core/services/generate-cv-state.service';
+import { GapSessionStateService } from '../../../../core/services/gap-session-state.service';
 import {
   CompetenceUpgradeService,
-  CompetenceGapDto,
+  GapSessionDetailDto,
+  GapSessionSkillDto,
   QuestionDto,
   ReponseDto,
   EtapeRoadmapDto,
 } from '../../../../core/services/competence-upgrade.service';
 
-type Etape = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface EtapeInfo {
-  num: number;
-  label: string;
+/** Steps for a single skill's upgrade journey */
+type SkillStep = 'test' | 'roadmap' | 'parcours' | 'certification' | 'valide';
+
+/** Full in-memory state for one skill being worked on */
+interface SkillState {
+  /** GapSessionSkill.id from backend */
+  skillId: number;
+  nomCompetence: string;
+  priorite: 'haute' | 'renforcer' | 'evaluer';
+
+  /** Which step this skill is currently on */
+  step: SkillStep;
+
+  // ── Test ──────────────────────────────────────────────────────────────────
+  testId: number;
+  questions: QuestionDto[];
+  scoreInitial: number;
+  niveauInitial: string;
+
+  // ── Roadmap ───────────────────────────────────────────────────────────────
+  roadmapId: number;
+  etapesRoadmap: EtapeRoadmapDto[];
+  objectifFinal: string;
+  etapesCompletees: boolean[];
+
+  // ── Certification result ───────────────────────────────────────────────────
+  scoreFinal: number;
+  niveauFinal: string;
+  competenceValidee: boolean;
 }
+
+const STORAGE_KEY = (roadmapId: number) => `smartcv_parcours_${roadmapId}`;
+
+// Page-level steps (the stepper across the top)
+type PageStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 @Component({
   selector: 'app-competence-upgrade',
@@ -29,9 +61,15 @@ interface EtapeInfo {
 })
 export class CompetenceUpgrade implements OnInit {
 
-  // ─── Stepper ──────────────────────────────────────────────────────────────
-  etapeActive: Etape = 1;
-  etapes: EtapeInfo[] = [
+  // ─── Session ──────────────────────────────────────────────────────────────
+  session: GapSessionDetailDto | null = null;
+  sessionId: number | null = null;
+  chargementSession = true;
+
+  // ─── Page stepper ─────────────────────────────────────────────────────────
+  pageStep: PageStep = 1;
+
+  readonly stepLabels: { num: number; label: string }[] = [
     { num: 1, label: 'Écarts détectés' },
     { num: 2, label: 'Choix compétence' },
     { num: 3, label: 'Test de niveau' },
@@ -41,183 +79,264 @@ export class CompetenceUpgrade implements OnInit {
     { num: 7, label: 'Profil mis à jour' },
   ];
 
-  // ─── Étape 1 : Gaps ───────────────────────────────────────────────────────
-  chargementGaps = false;
-  competencesManquantes: CompetenceGapDto[] = [];
-  competencesActuelles: string[] = [];
-  competencesRequises: string[] = [];
-  offreTitre = '';
-  offreEntreprise = '';
-  offreVille = '';
-  dateAnalyse = '';
-  totalManquantes = 0;
+  // ─── Skills ───────────────────────────────────────────────────────────────
+  /** All skills from the session, initialized once session loads */
+  skills: SkillState[] = [];
 
-  // ─── Étape 2 : Sélection ──────────────────────────────────────────────────
-  competenceSelectionnee: CompetenceGapDto | null = null;
+  /** Currently focused skill */
+  activeSkillIndex: number | null = null;
 
-  // ─── Étape 3 : Test de niveau ─────────────────────────────────────────────
-  chargementTest = false;
-  testId = 0;             // int, pas string
-  questions: QuestionDto[] = [];
-  questionCourante = 0;
-  reponseSelectionnee: string | null = null;
-  reponses: ReponseDto[] = [];
-  scoreInitial = 0;
-  niveauInitial = '';
-
-  // ─── Étape 4 : Roadmap ────────────────────────────────────────────────────
-  chargementRoadmap = false;
-  roadmapId = 0;          // int, pas string
-  roadmapEtapes: EtapeRoadmapDto[] = [];
-  objectifFinal = '';
-
-  // ─── Étape 5 : Parcours ───────────────────────────────────────────────────
-  etapesCompletees: boolean[] = [];
-
-  get progressionParcours(): number {
-    if (!this.roadmapEtapes.length) return 0;
-    return Math.round((this.etapesCompletees.filter(Boolean).length / this.roadmapEtapes.length) * 100);
+  get activeSkill(): SkillState | null {
+    return this.activeSkillIndex !== null ? this.skills[this.activeSkillIndex] : null;
   }
 
-  get toutesEtapesCompletees(): boolean {
-    return this.roadmapEtapes.length > 0 && this.etapesCompletees.every(Boolean);
-  }
-
-  // ─── Étape 6 : Certification ──────────────────────────────────────────────
-  questionsCertif: QuestionDto[] = [];
-  questionCouranteCertif = 0;
-  reponseSelectionnoCertif: string | null = null;
-  reponsesCertif: ReponseDto[] = [];
-  scoreFinale = 0;
-  competenceValidee = false;
-  peutReessayer = false;
-  resultatCertifAffiche = false;
-  messageCertif = '';
-  niveauCertif = '';
-
-  // ─── Étape 7 : Succès ─────────────────────────────────────────────────────
-  niveauValide = '';
+  // ─── Profil (for step 7 success card) ────────────────────────────────────
   profilNom = '';
   profilPrenom = '';
   profilTitre = '';
   profilCompetences: string[] = [];
 
+  // ─── Loading flags ────────────────────────────────────────────────────────
+  chargementTest = false;
+  chargementRoadmap = false;
+
+  // ─── Test UI state ────────────────────────────────────────────────────────
+  questionCourante = 0;
+  reponseSelectionnee: string | null = null;
+  reponses: ReponseDto[] = [];
+
+  // ─── Certification UI state ───────────────────────────────────────────────
+  questionsCertif: QuestionDto[] = [];
+  questionCouranteCertif = 0;
+  reponseSelectionneCertif: string | null = null;
+  reponsesCertif: ReponseDto[] = [];
+  resultatCertifAffiche = false;
+  messageCertif = '';
+  peutReessayer = false;
+
   constructor(
     private competenceUpgradeService: CompetenceUpgradeService,
     private profilService: ProfilService,
+    private gapSessionState: GapSessionStateService,
     private notif: NotificationService,
-    private generateCvState: GenerateCvStateService,
+    private router: Router,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.chargerProfil();
-    this.chargerGapsDepuisState();
-  }
 
-  // ─── Chargement profil ────────────────────────────────────────────────────
-  chargerProfil(): void {
-    this.profilService.getMe().subscribe({
-      next: (profil) => {
-        this.competencesActuelles = profil.competences.map(c => c.nom);
-        this.profilCompetences = [...this.competencesActuelles];
-        this.profilTitre = profil.titre ?? '';
-      },
-      error: () => {},
-    });
-    // Nom/prénom depuis le state GenCV (déjà chargé depuis Keycloak)
-    const state = this.generateCvState.state;
-    if (state.prenom || state.nom) {
-      this.profilNom = state.nom;
-      this.profilPrenom = state.prenom;
-    }
-  }
+    // Priority 1: in-memory state from GapSessionStateService (set before navigation)
+    const { detail, sessionId } = this.gapSessionState.consume();
 
-  // ─── Gaps depuis l'analyse GenCV déjà en mémoire ─────────────────────────
-  chargerGapsDepuisState(): void {
-    const state = this.generateCvState.state;
+    // Priority 2: ?sessionId= query param (supports page refresh)
+    const paramId = this.route.snapshot.queryParamMap.get('sessionId');
+    const resolvedId = sessionId ?? (paramId ? Number(paramId) : null);
 
-    if (this.generateCvState.hasAnalyse && state.competencesAnalysees.length > 0) {
-      const manquantes = state.competencesAnalysees
-        .filter(c => c.statut === 'renforcer')
-        .map(c => ({ nom: c.nom, priorite: 'haute' as const }));
-
-      const partielles = state.competencesAnalysees
-        .filter(c => c.statut === 'partiel')
-        .map(c => ({ nom: c.nom, priorite: 'renforcer' as const }));
-
-      this.competencesManquantes = [...manquantes, ...partielles];
-      this.offreTitre = state.niveauLabel ? `Offre analysée` : 'Offre analysée';
-      this.totalManquantes = this.competencesManquantes.length;
-      this.competencesRequises = [
-        ...state.competencesAnalysees
-          .filter(c => c.statut === 'maitrise')
-          .map(c => c.nom + ' +'),
-        ...this.competencesManquantes.map(c => c.nom + ' -'),
-      ];
+    if (!resolvedId) {
+      // No session — redirect back to CV generation
+      this.notif.error('Aucune session de mise à niveau trouvée. Veuillez analyser une offre d\'emploi.');
+      this.router.navigate(['/user/generate-cv']);
       return;
     }
 
-    // Fallback si on arrive directement sans passer par GenCV
-    this.competencesManquantes = [];
-    this.chargementGaps = false;
+    this.sessionId = resolvedId;
+
+    if (detail && detail.id === resolvedId) {
+      // Fast path — detail already in memory
+      this.initFromSession(detail);
+    } else {
+      // Fetch from backend (page refresh or navigated with id only)
+      this.competenceUpgradeService.getGapSessionDetail(resolvedId).subscribe({
+        next: (d) => this.initFromSession(d),
+        error: () => {
+          this.notif.error('Impossible de charger la session. Veuillez réessayer.');
+          this.router.navigate(['/user/generate-cv']);
+        },
+      });
+    }
   }
 
-  // ─── Sidebar droite ───────────────────────────────────────────────────────
-  get offreAnalyseeInfo() {
+  // ─── Session init ─────────────────────────────────────────────────────────
+
+  private initFromSession(session: GapSessionDetailDto): void {
+    this.session = session;
+    this.chargementSession = false;
+    this.skills = session.skills.map(sk => this.skillStateFromDto(sk));
+
+    this.activeSkillIndex = null;
+    this.pageStep = 1;
+
+    this.cdr.detectChanges();
+  }
+
+  private skillStateFromDto(sk: GapSessionSkillDto): SkillState {
+    const step = this.phaseToSkillStep(sk.phase, sk.roadmapId);
     return {
-      titre: this.offreTitre || 'Offre analysée',
-      entreprise: this.offreEntreprise,
-      ville: this.offreVille,
-      dateAnalyse: this.dateAnalyse,
+      skillId: sk.id,
+      nomCompetence: sk.nomCompetence,
+      priorite: sk.priorite,
+      step,
+      // test — will be populated when test is generated
+      testId: 0,
+      questions: [],
+      scoreInitial: sk.testScore ?? 0,
+      niveauInitial: sk.niveauDepart ?? '',
+      // roadmap
+      roadmapId: sk.roadmapId ?? 0,
+      etapesRoadmap: [],
+      objectifFinal: '',
+      etapesCompletees: [],
+      // certification
+      scoreFinal: 0,
+      niveauFinal: '',
+      competenceValidee: sk.completee ?? false,
     };
   }
 
-  // ─── Navigation ───────────────────────────────────────────────────────────
-  estComplete(num: number): boolean {
-    return num < this.etapeActive;
+  private phaseToSkillStep(
+    phase: GapSessionSkillDto['phase'],
+    roadmapId: number | null,
+  ): SkillStep {
+    if (!roadmapId) return 'test';
+    switch (phase) {
+      case 'Validee':          return 'valide';
+      case 'PreteAuTestFinal':
+      case 'TestFinalEchoue':  return 'certification';
+      case 'AParcourir':       return 'parcours';
+      default:                 return 'test';
+    }
   }
 
-  allerEtape(num: number): void {
-    if (num < this.etapeActive) this.etapeActive = num as Etape;
+  private skillStepToPageStep(step: SkillStep): PageStep {
+    const map: Record<SkillStep, PageStep> = {
+      test:          3,
+      roadmap:       4,
+      parcours:      5,
+      certification: 6,
+      valide:        7,
+    };
+    return map[step];
   }
 
-  allerEtape2(): void {
-    this.etapeActive = 2;
+  // ─── Profil ───────────────────────────────────────────────────────────────
+
+  private chargerProfil(): void {
+    this.profilService.getMe().subscribe({
+      next: (p) => {
+        this.profilCompetences = (p.competences ?? []).map(c => c.nom);
+        this.profilTitre = p.titre ?? '';
+      },
+      error: () => {},
+    });
   }
 
-  selectionnerEtLancer(comp: CompetenceGapDto): void {
-    this.competenceSelectionnee = comp;
-    this.lancerTest();
+  // ─── Getters for template ─────────────────────────────────────────────────
+
+  get skillsNonValides(): SkillState[] {
+    return this.skills.filter(s => !s.competenceValidee);
   }
 
-  // ─── Étape 2 → 3 : Lancer test ───────────────────────────────────────────
+  get skillsValides(): SkillState[] {
+    return this.skills.filter(s => s.competenceValidee);
+  }
+
+  get totalSkills(): number { return this.skills.length; }
+  get skillsTerminesCount(): number { return this.skillsValides.length; }
+
+  get offreTitre(): string {
+    return this.session?.titreOffre || this.session?.texteOffre?.substring(0, 60) + '…' || 'Offre analysée';
+  }
+
+  get offreEntreprise(): string { return this.session?.entreprise ?? ''; }
+  get scoreCompatibilite(): number { return this.session?.scoreCompatibilite ?? 0; }
+
+  estComplete(stepNum: number): boolean { return stepNum < this.pageStep; }
+
+  // ─── Step 1 → 2 ───────────────────────────────────────────────────────────
+
+  allerEtape2(): void { this.pageStep = 2; }
+
+  // ─── Step 2: select skill and launch test ─────────────────────────────────
+
+  selectionnerSkill(index: number): void {
+    const skill = this.skills[index];
+    this.activeSkillIndex = index;
+
+    if (skill.roadmapId && skill.step !== 'test') {
+      // Already has a roadmap — go to its current step
+      // If returning to parcours, reload etapes from backend
+      if (skill.etapesRoadmap.length === 0 && skill.roadmapId) {
+        this.chargerDetailRoadmap(skill);
+      } else {
+        this.pageStep = this.skillStepToPageStep(skill.step);
+        if (skill.step === 'certification') this.initCertificationUI(skill);
+        this.cdr.detectChanges();
+      }
+    } else {
+      // Fresh — launch the level test
+      this.lancerTest();
+    }
+  }
+
+  private chargerDetailRoadmap(skill: SkillState): void {
+    this.chargementRoadmap = true;
+    this.competenceUpgradeService.getRoadmapDetail(skill.roadmapId).subscribe({
+      next: (detail) => {
+        skill.etapesRoadmap    = detail.etapes;
+        skill.objectifFinal    = '';
+        skill.testId           = detail.test?.id ?? skill.testId;
+        skill.questions        = detail.test?.questions ?? skill.questions;
+        skill.scoreInitial     = detail.test?.score ?? skill.scoreInitial;
+        skill.niveauInitial    = detail.test?.niveauDetecte ?? skill.niveauInitial;
+        skill.etapesCompletees = this.loadParcoursFromStorage(skill.roadmapId)
+          ?? new Array(detail.etapes.length).fill(false);
+        this.chargementRoadmap = false;
+        this.pageStep = this.skillStepToPageStep(skill.step);
+        if (skill.step === 'certification') this.initCertificationUI(skill);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.chargementRoadmap = false;
+        this.notif.error('Impossible de charger la roadmap.');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  // ─── Step 3: Test ─────────────────────────────────────────────────────────
+
   lancerTest(): void {
-    if (!this.competenceSelectionnee || this.chargementTest) return; // guard against duplicate calls
+    const skill = this.activeSkill;
+    if (!skill || this.chargementTest) return;
+
     this.chargementTest = true;
-    this.etapeActive = 3;
+    this.pageStep = 3;
     this.questionCourante = 0;
     this.reponses = [];
     this.reponseSelectionnee = null;
     this.cdr.detectChanges();
 
-    this.competenceUpgradeService.genererTest(this.competenceSelectionnee.nom).subscribe({
+    this.competenceUpgradeService.genererTest(skill.nomCompetence).subscribe({
       next: (res) => {
-        this.testId = res.testId;
-        this.questions = res.questions ?? [];
-        if (this.questions.length === 0) {
+        if (!res.questions?.length) {
           this.notif.error('Le test n\'a pas pu être généré. Veuillez réessayer.');
           this.chargementTest = false;
-          this.etapeActive = 2;
+          this.pageStep = 2;
           this.cdr.detectChanges();
           return;
         }
+        skill.testId    = res.testId;
+        skill.questions = res.questions;
+        skill.step      = 'test';
         this.chargementTest = false;
         this.cdr.detectChanges();
       },
       error: () => {
         this.notif.error('Erreur lors de la génération du test.');
         this.chargementTest = false;
+        this.pageStep = 2;
         this.cdr.detectChanges();
       },
     });
@@ -227,216 +346,333 @@ export class CompetenceUpgrade implements OnInit {
     this.reponseSelectionnee = choix;
   }
 
+  get estDerniereQuestion(): boolean {
+    return this.questionCourante === (this.activeSkill?.questions.length ?? 0) - 1;
+  }
+
   questionSuivante(): void {
-    if (this.reponseSelectionnee === null) return;
-    const q = this.questions[this.questionCourante];
-    this.reponses.push({ numero: q.numero, reponseChoisie: this.reponseSelectionnee });
+    const skill = this.activeSkill;
+    if (!skill || this.reponseSelectionnee === null) return;
+
+    const q = skill.questions[this.questionCourante];
+    this.reponses.push({ Numero: q.numero, ReponseChoisie: this.reponseSelectionnee });
     this.reponseSelectionnee = null;
 
-    if (this.questionCourante < this.questions.length - 1) {
+    if (this.questionCourante < skill.questions.length - 1) {
       this.questionCourante++;
     } else {
       this.evaluerTest();
     }
   }
 
-  evaluerTest(): void {
-    this.competenceUpgradeService.evaluerTest(this.testId, this.reponses).subscribe({
+  private evaluerTest(): void {
+    const skill = this.activeSkill;
+    if (!skill) return;
+
+    this.competenceUpgradeService.evaluerTest(skill.testId, this.reponses).subscribe({
       next: (res) => {
-        this.scoreInitial = res.score;
-        this.niveauInitial = res.niveau;
-        this.cdr.detectChanges();
+        skill.scoreInitial  = res.score;
+        skill.niveauInitial = res.niveau;
         this.genererRoadmap();
       },
       error: () => {
         this.notif.error('Erreur lors de l\'évaluation. Veuillez réessayer.');
-        this.chargementTest = false;
-        this.etapeActive = 2;
+        this.pageStep = 2;
         this.cdr.detectChanges();
       },
     });
   }
 
-  // ─── Étape 4 : Roadmap ────────────────────────────────────────────────────
-  genererRoadmap(): void {
+  // ─── Step 4: Roadmap ──────────────────────────────────────────────────────
+
+  private genererRoadmap(): void {
+    const skill = this.activeSkill;
+    if (!skill) return;
+
     this.chargementRoadmap = true;
-    this.etapeActive = 4;
+    this.pageStep = 4;
     this.cdr.detectChanges();
 
-    this.competenceUpgradeService.genererRoadmap(this.testId).subscribe({
+    this.competenceUpgradeService.genererRoadmap(skill.testId).subscribe({
       next: (res) => {
-        this.roadmapId = res.roadmapId;
-        this.roadmapEtapes = res.etapes;
-        this.objectifFinal = res.objectifFinal;
-        this.etapesCompletees = new Array(res.etapes.length).fill(false);
+        skill.roadmapId        = res.roadmapId;
+        skill.etapesRoadmap    = res.etapes;
+        skill.objectifFinal    = res.objectifFinal;
+        skill.etapesCompletees = new Array(res.etapes.length).fill(false);
+        skill.step             = 'roadmap';
+
+        // Link roadmap to the session skill in backend
+        if (this.sessionId) {
+          this.competenceUpgradeService
+            .linkRoadmapToSkill(this.sessionId, skill.skillId, res.roadmapId)
+            .subscribe({ error: () => {} }); // non-blocking
+        }
+
         this.chargementRoadmap = false;
         this.cdr.detectChanges();
       },
       error: () => {
-        this.roadmapId = 0;
-        this.roadmapEtapes = [
-          { ordre: 1, type: 'video', titre: `${this.competenceSelectionnee?.nom} Full Course`, description: 'Regarder la vidéo complète', url: 'https://www.youtube.com', duree: '~2h30' },
-          { ordre: 2, type: 'doc', titre: `Lire la doc officielle ${this.competenceSelectionnee?.nom}`, description: 'Sections principales', url: null, duree: '~1h' },
-          { ordre: 3, type: 'projet', titre: 'Réaliser et publier le mini-projet', description: 'Publier sur GitHub avec README', url: null, duree: '~3h' },
-        ];
-        this.etapesCompletees = new Array(this.roadmapEtapes.length).fill(false);
+        // Fallback roadmap so user isn't blocked
+        skill.roadmapId        = 0;
+        skill.etapesRoadmap    = this.fallbackEtapes(skill.nomCompetence);
+        skill.etapesCompletees = new Array(3).fill(false);
+        skill.step             = 'roadmap';
         this.chargementRoadmap = false;
+        this.notif.error('Roadmap générée en mode hors-ligne.');
         this.cdr.detectChanges();
       },
     });
   }
 
   demarrerParcours(): void {
-    this.etapeActive = 5;
+    const skill = this.activeSkill;
+    if (!skill) return;
+    skill.step = 'parcours';
+    this.pageStep = 5;
     this.cdr.detectChanges();
   }
 
-  // ─── Étape 5 : Parcours ───────────────────────────────────────────────────
+  // ─── Step 5: Parcours ─────────────────────────────────────────────────────
+
   toggleEtape(index: number): void {
-    this.etapesCompletees[index] = !this.etapesCompletees[index];
+    const skill = this.activeSkill;
+    if (!skill) return;
+    skill.etapesCompletees[index] = !skill.etapesCompletees[index];
+    if (skill.roadmapId) {
+      this.saveParcoursToStorage(skill.roadmapId, skill.etapesCompletees);
+    }
+    this.cdr.detectChanges();
+  }
+
+  get progressionParcours(): number {
+    const skill = this.activeSkill;
+    if (!skill?.etapesRoadmap.length) return 0;
+    return Math.round(
+      (skill.etapesCompletees.filter(Boolean).length / skill.etapesRoadmap.length) * 100
+    );
+  }
+
+  get toutesEtapesCompletees(): boolean {
+    const skill = this.activeSkill;
+    return !!skill?.etapesRoadmap.length && skill.etapesCompletees.every(Boolean);
   }
 
   passerCertification(): void {
-    if (this.roadmapId) {
-      this.competenceUpgradeService.marquerRoadmapSuivie(this.roadmapId).subscribe({ error: () => {} });
+    const skill = this.activeSkill;
+    if (!skill) return;
+
+    if (skill.roadmapId) {
+      this.competenceUpgradeService
+        .marquerRoadmapSuivie(skill.roadmapId)
+        .subscribe({ error: () => {} });
     }
-    this.lancerCertification();
+
+    skill.step = 'certification';
+    this.initCertificationUI(skill);
   }
 
-  // ─── Étape 6 : Certification ──────────────────────────────────────────────
-  lancerCertification(): void {
-    this.etapeActive = 6;
-    this.questionsCertif = [...this.questions];
+  // ─── Step 6: Certification ────────────────────────────────────────────────
+
+  private initCertificationUI(skill: SkillState): void {
+    this.pageStep = 6;
+    this.questionsCertif = [...skill.questions];
     this.questionCouranteCertif = 0;
+    this.reponseSelectionneCertif = null;
     this.reponsesCertif = [];
-    this.reponseSelectionnoCertif = null;
     this.resultatCertifAffiche = false;
     this.messageCertif = '';
-    this.niveauCertif = '';
+    this.peutReessayer = false;
     this.cdr.detectChanges();
   }
 
   choisirReponseCertif(choix: string): void {
-    this.reponseSelectionnoCertif = choix;
-  }
-
-  questionSuivanteCertif(): void {
-    if (this.reponseSelectionnoCertif === null) return;
-    const q = this.questionsCertif[this.questionCouranteCertif];
-    this.reponsesCertif.push({ numero: q.numero, reponseChoisie: this.reponseSelectionnoCertif });
-    this.reponseSelectionnoCertif = null;
-    if (this.questionCouranteCertif < this.questionsCertif.length - 1) {
-      this.questionCouranteCertif++;
-    }
-  }
-
-  voirResultat(): void {
-    if (this.reponseSelectionnoCertif) {
-      const q = this.questionsCertif[this.questionCouranteCertif];
-      this.reponsesCertif.push({ numero: q.numero, reponseChoisie: this.reponseSelectionnoCertif });
-    }
-    this.evaluerCertification();
-  }
-
-  evaluerCertification(): void {
-    this.competenceUpgradeService.repasserTest(this.roadmapId, this.reponsesCertif).subscribe({
-      next: (res) => {
-        this.scoreFinale = res.score;
-        this.competenceValidee = res.competenceAjoutee;
-        this.peutReessayer = res.peutReessayer;
-        this.niveauCertif = res.niveau;
-        this.messageCertif = res.message || '';
-        if (this.competenceValidee) {
-          this.niveauValide = res.niveau;
-          this.profilCompetences = [...this.profilCompetences, this.competenceSelectionnee!.nom + ' ✓'];
-          this.etapeActive = 7;
-        } else {
-          this.resultatCertifAffiche = true;
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.notif.error('Erreur lors de l\'évaluation finale.');
-      },
-    });
-  }
-
-  get bonnesReponsesCertif(): number {
-    const total = this.questionsCertif.length || 12;
-    return Math.round((this.scoreFinale / 100) * total);
-  }
-
-  get totalQuestionsCertif(): number {
-    return this.questionsCertif.length || 12;
-  }
-
-  get pointsManquantsCertif(): number {
-    return Math.max(0, 80 - this.scoreFinale);
-  }
-
-  revoirRoadmap(): void {
-    this.resultatCertifAffiche = false;
-    this.etapeActive = 5;
-    this.cdr.detectChanges();
-  }
-
-  reessayerCertification(): void {
-    this.lancerCertification();
-  }
-
-  // ─── Étape 7 : Continuer ──────────────────────────────────────────────────
-  continuerCompetencesRestantes(): void {
-    this.competencesManquantes = this.competencesManquantes.filter(
-      c => c.nom !== this.competenceSelectionnee?.nom
-    );
-    this.competenceSelectionnee = null;
-    this.reponses = [];
-    this.reponsesCertif = [];
-    this.questionCourante = 0;
-    this.questionCouranteCertif = 0;
-    this.testId = 0;
-    this.roadmapId = 0;
-    this.etapeActive = 1;
-    this.cdr.detectChanges();
-  }
-
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-  labelPriorite(priorite: string): string {
-    switch (priorite) {
-      case 'haute': return 'Priorité haute';
-      case 'renforcer': return 'À renforcer';
-      default: return 'À évaluer';
-    }
-  }
-
-  iconEtapeType(type: string): string {
-    switch (type) {
-      case 'video': return '▶';
-      case 'doc': return '□';
-      case 'projet': return '✦';
-      default: return '○';
-    }
-  }
-
-  get estDerniereQuestionTest(): boolean {
-    return this.questionCourante === this.questions.length - 1;
+    this.reponseSelectionneCertif = choix;
   }
 
   get estDerniereQuestionCertif(): boolean {
     return this.questionCouranteCertif === this.questionsCertif.length - 1;
   }
 
-  get niveauInitialLabel(): string {
-    const map: Record<string, string> = { Debutant: 'Débutant', Intermediaire: 'Intermédiaire', Avance: 'Avancé', Expert: 'Expert' };
-    return map[this.niveauInitial] ?? this.niveauInitial;
+  questionSuivanteCertif(): void {
+    if (this.reponseSelectionneCertif === null) return;
+    const q = this.questionsCertif[this.questionCouranteCertif];
+    this.reponsesCertif.push({ Numero: q.numero, ReponseChoisie: this.reponseSelectionneCertif });
+    this.reponseSelectionneCertif = null;
+    if (this.questionCouranteCertif < this.questionsCertif.length - 1) {
+      this.questionCouranteCertif++;
+    }
   }
 
-  get niveauValideLabel(): string {
-    const map: Record<string, string> = { Debutant: 'Débutant', Intermediaire: 'Intermédiaire', Avance: 'Avancé', Expert: 'Expert' };
-    return map[this.niveauValide] ?? this.niveauValide;
+  voirResultat(): void {
+    if (this.reponseSelectionneCertif !== null) {
+      const q = this.questionsCertif[this.questionCouranteCertif];
+      this.reponsesCertif.push({ Numero: q.numero, ReponseChoisie: this.reponseSelectionneCertif });
+    }
+    this.evaluerCertification();
+  }
+
+  private evaluerCertification(): void {
+    const skill = this.activeSkill;
+    if (!skill) return;
+
+    this.competenceUpgradeService
+      .repasserTest(skill.roadmapId, this.reponsesCertif)
+      .subscribe({
+        next: (res) => {
+          skill.scoreFinal      = res.score;
+          skill.niveauFinal     = res.niveau;
+          skill.competenceValidee = res.competenceAjoutee;
+          this.messageCertif    = res.message;
+          this.peutReessayer    = res.peutReessayer;
+
+          if (res.competenceAjoutee) {
+            skill.step = 'valide';
+            this.profilCompetences = [...this.profilCompetences, skill.nomCompetence];
+            if (skill.roadmapId) this.clearParcoursFromStorage(skill.roadmapId);
+            this.pageStep = 7;
+          } else {
+            this.resultatCertifAffiche = true;
+          }
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.notif.error('Erreur lors de l\'évaluation finale.');
+        },
+      });
+  }
+
+  revoirRoadmap(): void {
+    const skill = this.activeSkill;
+    if (!skill) return;
+    skill.step = 'parcours';
+    this.resultatCertifAffiche = false;
+    this.pageStep = 5;
+    this.cdr.detectChanges();
+  }
+
+  reessayerCertification(): void {
+    const skill = this.activeSkill;
+    if (!skill) return;
+    this.initCertificationUI(skill);
+  }
+
+  // ─── Step 7: Success / continue ───────────────────────────────────────────
+
+  continuerCompetencesRestantes(): void {
+    const restantes = this.skillsNonValides;
+    if (!restantes.length) return;
+
+    const nextIndex = this.skills.findIndex(s => !s.competenceValidee);
+    this.activeSkillIndex = nextIndex;
+    this.pageStep = 2;
+    this.reponses = [];
+    this.reponsesCertif = [];
+    this.questionCourante = 0;
+    this.questionCouranteCertif = 0;
+    this.cdr.detectChanges();
+  }
+
+  toutesCompetencesValidees(): boolean {
+    return this.skills.length > 0 && this.skills.every(s => s.competenceValidee);
+  }
+
+  // ─── Sidebar: switch between skills mid-session ───────────────────────────
+
+  switcherSkill(index: number): void {
+    const skill = this.skills[index];
+    if (!skill) return;
+    this.activeSkillIndex = index;
+    this.questionCourante = 0;
+    this.reponses = [];
+    this.reponseSelectionnee = null;
+
+    if (skill.competenceValidee) {
+      this.pageStep = 7;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!skill.roadmapId) {
+      // Fresh skill — generate test
+      this.lancerTest();
+      return;
+    }
+
+    // Has a roadmap — load its detail if not yet loaded
+    if (skill.etapesRoadmap.length === 0) {
+      this.chargerDetailRoadmap(skill);
+    } else {
+      this.pageStep = this.skillStepToPageStep(skill.step);
+      if (skill.step === 'certification') this.initCertificationUI(skill);
+      this.cdr.detectChanges();
+    }
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  labelPriorite(priorite: string): string {
+    switch (priorite) {
+      case 'haute':     return 'Priorité haute';
+      case 'renforcer': return 'À renforcer';
+      default:          return 'À évaluer';
+    }
+  }
+
+  iconEtapeType(type: string): string {
+    switch (type) {
+      case 'video':  return '▶';
+      case 'doc':    return '□';
+      case 'projet': return '✦';
+      default:       return '○';
+    }
   }
 
   roadmapStagePercent(index: number): number {
-    return Math.round(((index + 1) / this.roadmapEtapes.length) * 100);
+    const skill = this.activeSkill;
+    if (!skill?.etapesRoadmap.length) return 0;
+    return Math.round(((index + 1) / skill.etapesRoadmap.length) * 100);
+  }
+
+  get niveauInitialLabel(): string { return this.niveauLabel(this.activeSkill?.niveauInitial ?? ''); }
+  get niveauFinalLabel(): string   { return this.niveauLabel(this.activeSkill?.niveauFinal ?? ''); }
+
+  niveauLabel(n: string): string {
+    const map: Record<string, string> = { Debutant: 'Débutant', Moyen: 'Moyen', Expert: 'Expert' };
+    return map[n] ?? n;
+  }
+
+  get bonnesReponsesCertif(): number {
+    return Math.round(((this.activeSkill?.scoreFinal ?? 0) / 100) * (this.questionsCertif.length || 5));
+  }
+
+  etapeUrl(etape: EtapeRoadmapDto): string | null {
+    if (!etape.url) return null;
+    // Ensure absolute URL
+    return etape.url.startsWith('http') ? etape.url : `https://${etape.url}`;
+  }
+
+  private fallbackEtapes(nom: string): EtapeRoadmapDto[] {
+    return [
+      { ordre: 1, type: 'video',  titre: `${nom} Full Course`, description: 'Regarder la vidéo complète', url: 'https://www.youtube.com', duree: '~2h30' },
+      { ordre: 2, type: 'doc',    titre: `Documentation officielle ${nom}`, description: 'Lire les sections principales', url: null, duree: '~1h' },
+      { ordre: 3, type: 'projet', titre: 'Réaliser un mini-projet', description: 'Publier sur GitHub avec README', url: null, duree: '~3h' },
+    ];
+  }
+
+  // ─── localStorage ─────────────────────────────────────────────────────────
+
+  private saveParcoursToStorage(roadmapId: number, etapes: boolean[]): void {
+    try { localStorage.setItem(STORAGE_KEY(roadmapId), JSON.stringify(etapes)); } catch { /**/ }
+  }
+
+  private loadParcoursFromStorage(roadmapId: number): boolean[] | null {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY(roadmapId));
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  private clearParcoursFromStorage(roadmapId: number): void {
+    try { localStorage.removeItem(STORAGE_KEY(roadmapId)); } catch { /**/ }
   }
 }

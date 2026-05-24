@@ -5,7 +5,7 @@ import { RecommandationsDto } from './cv.service';
 
 export interface CompetenceAnalyseeState {
   nom: string;
-  statut: 'maitrise' | 'partiel' | 'renforcer';
+  statut: 'maitrise' | 'renforcer';
 }
 
 export interface CompetenceCvPreviewState {
@@ -46,7 +46,7 @@ export interface GenerateCvState {
   templateId: number | null;
 
   // Étape 4
-  cvCreéId: number | null;
+  cvCreeId: number | null;
   resumeEdite: string;
   titreCv: string;
   scoreApresOptimisation: number;
@@ -75,7 +75,7 @@ const INITIAL_STATE: GenerateCvState = {
   couleurAccent: '#6B4E2A',
   langueSelectionnee: 'Français',
   templateId: null,
-  cvCreéId: null,
+  cvCreeId: null,
   resumeEdite: '',
   titreCv: '',
   scoreApresOptimisation: 0,
