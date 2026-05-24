@@ -1,0 +1,6 @@
+@SmartCV.Gateway_HostAddress = http://localhost:5091
+
+GET {{SmartCV.Gateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
