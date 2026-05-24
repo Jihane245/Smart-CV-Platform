@@ -1,10 +1,10 @@
 name: Auto Pull Request
 
-on:
-  push:
-    branches:
-      - 'feature/*'
-      - 'feature-micro/*'
+on: []
+  ###push:
+    ###branches:
+      ###- 'feature/*'
+      ###- 'feature-micro/*'
 
 jobs:
   create-pr:
