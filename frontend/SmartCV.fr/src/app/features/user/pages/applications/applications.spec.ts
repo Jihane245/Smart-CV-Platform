@@ -204,12 +204,17 @@ describe('Applications', () => {
   });
 
   describe('statutPillClass', () => {
-    it('should map known statuses to classes', () => {
+    it('should map each status to its own pill class', () => {
+      expect(component.statutPillClass(StatutCandidature.enregistree)).toBe('pill-enregistree');
+      expect(component.statutPillClass(StatutCandidature.envoyee)).toBe('pill-envoyee');
+      expect(component.statutPillClass(StatutCandidature.recue)).toBe('pill-recue');
+      expect(component.statutPillClass(StatutCandidature.en_cours_d_examen)).toBe(
+        'pill-en_cours_d_examen',
+      );
+      expect(component.statutPillClass(StatutCandidature.entretien)).toBe('pill-entretien');
       expect(component.statutPillClass(StatutCandidature.acceptee)).toBe('pill-acceptee');
       expect(component.statutPillClass(StatutCandidature.refusee)).toBe('pill-refusee');
-      expect(component.statutPillClass(StatutCandidature.envoyee)).toBe('pill-envoyee');
       expect(component.statutPillClass(StatutCandidature.archivee)).toBe('pill-archivee');
-      expect(component.statutPillClass(StatutCandidature.recue)).toBe('pill-attente');
     });
   });
 
@@ -295,6 +300,19 @@ describe('Applications', () => {
 
       component.ajouter();
       expect(notifMock.error).toHaveBeenCalledWith('Indiquez la date d’envoi.');
+      expect(candidatureServiceMock.ajouter).not.toHaveBeenCalled();
+    });
+
+    it('should reject duplicate entreprise and poste', () => {
+      component.formEntreprise = '  acme ';
+      component.formPoste = 'Frontend';
+      component.formDate = '2026-03-01';
+
+      component.ajouter();
+
+      expect(notifMock.error).toHaveBeenCalledWith(
+        'Cette candidature existe déjà (même entreprise et même poste).',
+      );
       expect(candidatureServiceMock.ajouter).not.toHaveBeenCalled();
     });
 

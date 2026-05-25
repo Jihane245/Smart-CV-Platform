@@ -16,7 +16,6 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Entreprise</th>
             <th>Poste</th>
             <th>Date d’envoi</th>
@@ -25,7 +24,6 @@
         </thead>
         <tbody>
           <tr *ngFor="let c of candidatures">
-            <td class="cell-id">#{{ c.id }}</td>
             <td>{{ c.entreprise }}</td>
             <td>{{ c.poste }}</td>
             <td>{{ c.dateEnvoi | date: 'dd/MM/yyyy' }}</td>

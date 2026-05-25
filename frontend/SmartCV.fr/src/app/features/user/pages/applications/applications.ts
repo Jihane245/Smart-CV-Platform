@@ -103,18 +103,20 @@ export class Applications implements OnInit, AfterViewInit {
       .pipe(
         finalize(() => {
           this.chargement = false;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         }),
       )
       .subscribe({
         next: ({ list, stats }) => {
           this.candidatures = list ?? [];
           this.stats = stats ?? null;
+          this.cdr.detectChanges();
         },
         error: () => {
           this.notif.error('Impossible de charger vos candidatures.');
           this.candidatures = [];
           this.stats = null;
+          this.cdr.detectChanges();
         },
       });
   }
@@ -171,12 +173,21 @@ export class Applications implements OnInit, AfterViewInit {
   }
 
   statutPillClass(statut: string): string {
-    const s = statut as StatutCandidature;
-    if (s === StatutCandidature.acceptee) return 'pill-acceptee';
-    if (s === StatutCandidature.refusee) return 'pill-refusee';
-    if (s === StatutCandidature.envoyee) return 'pill-envoyee';
-    if (s === StatutCandidature.archivee) return 'pill-archivee';
-    return 'pill-attente';
+    const key = statut as StatutCandidature;
+    if (key in STATUT_CANDIDATURE_LABELS) {
+      return `pill-${key}`;
+    }
+    return 'pill-enregistree';
+  }
+
+  private candidatureExisteDeja(entreprise: string, poste: string): boolean {
+    const e = entreprise.trim().toLocaleLowerCase();
+    const p = poste.trim().toLocaleLowerCase();
+    return this.candidatures.some(
+      (c) =>
+        c.entreprise.trim().toLocaleLowerCase() === e &&
+        c.poste.trim().toLocaleLowerCase() === p,
+    );
   }
 
   onStatutChange(row: CandidatureListeItem, event: Event): void {
@@ -193,19 +204,19 @@ export class Applications implements OnInit, AfterViewInit {
         this.candidatureService.getStats().subscribe({
           next: (st) => {
             this.stats = st;
-            this.cdr.markForCheck();
+            this.cdr.detectChanges();
           },
           error: () => {
-            this.cdr.markForCheck();
+            this.cdr.detectChanges();
           },
         });
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       },
       error: () => {
         sel.value = row.statut;
         this.notif.error('Impossible de mettre à jour le statut.');
         this.majStatutId = null;
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       },
     });
   }
@@ -219,6 +230,12 @@ export class Applications implements OnInit, AfterViewInit {
     }
     if (!this.formDate) {
       this.notif.error('Indiquez la date d’envoi.');
+      return;
+    }
+    if (this.candidatureExisteDeja(entreprise, poste)) {
+      this.notif.error(
+        'Cette candidature existe déjà (même entreprise et même poste).',
+      );
       return;
     }
 
@@ -253,8 +270,13 @@ export class Applications implements OnInit, AfterViewInit {
             this.afterAjoutOk();
           }
         },
-        error: () => {
-          this.notif.error('Impossible d’enregistrer la candidature.');
+        error: (err: { status?: number; error?: { message?: string } }) => {
+          const msg = err?.error?.message;
+          if (err?.status === 409 && msg) {
+            this.notif.error(msg);
+          } else {
+            this.notif.error('Impossible d’enregistrer la candidature.');
+          }
         },
       });
   }
