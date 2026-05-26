@@ -15,9 +15,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet restore
-        working-directory: ./backend
-      - run: dotnet build --no-restore --configuration Release
-        working-directory: ./backend
-      - run: dotnet test --verbosity normal
-        working-directory: ./backend/SmartCV.Tests
+      - run: dotnet restore smart-cv-platform.sln
+      - run: dotnet build smart-cv-platform.sln --no-restore --configuration Release
+      - run: dotnet test backend/SmartCV.Tests --no-build --verbosity normal
