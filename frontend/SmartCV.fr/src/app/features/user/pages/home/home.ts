@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { filter, finalize } from 'rxjs/operators';
 
 import {
   DashboardUserDto,
@@ -41,6 +42,9 @@ export class Home implements OnInit {
   chargement = true;
   dashboard: DashboardUserDto | null = null;
 
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(
     private dashboardService: DashboardUserService,
     private notif: NotificationService,
@@ -48,7 +52,20 @@ export class Home implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        filter(() => this.estRouteTableauDeBord()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.charger());
+
     this.charger();
+  }
+
+  private estRouteTableauDeBord(): boolean {
+    const path = this.router.url.split('?')[0].split('#')[0];
+    return path === '/user' || path === '/user/';
   }
 
   get statCards(): StatCard[] {
@@ -206,16 +223,18 @@ export class Home implements OnInit {
       .pipe(
         finalize(() => {
           this.chargement = false;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         }),
       )
       .subscribe({
         next: data => {
           this.dashboard = data;
+          this.cdr.detectChanges();
         },
         error: () => {
           this.notif.error('Impossible de charger votre tableau de bord.');
           this.dashboard = null;
+          this.cdr.detectChanges();
         },
       });
   }

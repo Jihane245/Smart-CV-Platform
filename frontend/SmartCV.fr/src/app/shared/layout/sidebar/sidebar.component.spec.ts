@@ -14,6 +14,7 @@ describe('SidebarComponent', () => {
 
   let authMock: {
     getMe: ReturnType<typeof vi.fn>;
+    isAdmin: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
   };
 
@@ -37,6 +38,7 @@ describe('SidebarComponent', () => {
           preferredUsername: 'jdoe',
         }),
       ),
+      isAdmin: vi.fn().mockReturnValue(of(false)),
       logout: vi.fn(),
     };
 

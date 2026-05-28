@@ -34,6 +34,7 @@ describe('TemplateEditor', () => {
   let authMock: {
     logout: ReturnType<typeof vi.fn>;
     getMe: ReturnType<typeof vi.fn>;
+    getStatus: ReturnType<typeof vi.fn>;
   };
 
   function detect(): void {
@@ -91,6 +92,17 @@ describe('TemplateEditor', () => {
     authMock = {
       logout: vi.fn(),
       getMe: vi.fn().mockReturnValue(of({ claims: [] })),
+      getStatus: vi.fn().mockReturnValue(
+        of({
+          isAuthenticated: true,
+          identityName: 'admin',
+          preferredUsername: 'admin',
+          email: 'admin@example.com',
+          name: 'Admin User',
+          givenName: 'Admin',
+          surname: 'User',
+        }),
+      ),
     };
 
     // Avoid any side effects from localStorage in loadCustomFonts()

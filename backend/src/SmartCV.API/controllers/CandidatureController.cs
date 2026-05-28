@@ -61,12 +61,27 @@ public class CandidatureController : ControllerBase
     public async Task<IActionResult> Ajouter([FromBody] CandidatureAjoutDto dto)
     {
         var userId = GetUserId();
+        var entreprise = dto.Entreprise.Trim();
+        var poste = dto.Poste.Trim();
+
+        var dejaPresente = await _db.Candidatures.AnyAsync(c =>
+            c.UserId == userId
+            && c.Entreprise.ToLower() == entreprise.ToLower()
+            && c.Poste.ToLower() == poste.ToLower());
+
+        if (dejaPresente)
+        {
+            return Conflict(new
+            {
+                message = "Cette candidature existe déjà pour cette entreprise et ce poste.",
+            });
+        }
 
         var nouvelle = new Candidature
         {
             UserId = userId,
-            Entreprise = dto.Entreprise,
-            Poste = dto.Poste,
+            Entreprise = entreprise,
+            Poste = poste,
             DateEnvoi = dto.DateEnvoi,
             Statut = StatutCandidature.enregistree,
             Notes = dto.Notes

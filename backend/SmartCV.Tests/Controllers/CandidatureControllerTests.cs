@@ -177,6 +177,23 @@ public class CandidatureControllerTests
     }
 
     [Fact]
+    public async Task Ajouter_DoublonEntreprisePoste_RetourneConflict()
+    {
+        var db = await CreateDbWithCandidatures();
+        var controller = CreateController(customDb: db);
+        var dto = new CandidatureAjoutDto
+        {
+            Entreprise = "  techcorp ",
+            Poste = "Développeur Full Stack",
+            DateEnvoi = DateTime.UtcNow,
+        };
+
+        var result = await controller.Ajouter(dto);
+
+        result.Should().BeOfType<ConflictObjectResult>();
+    }
+
+    [Fact]
     public async Task Ajouter_UtilisateurNonExistant_RetourneUnauthorized()
     {
         // ARRANGE

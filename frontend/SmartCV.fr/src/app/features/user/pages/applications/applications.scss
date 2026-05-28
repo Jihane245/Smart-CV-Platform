@@ -107,12 +107,6 @@ $input-bg: #f0eae0;
   }
 }
 
-.cell-id {
-  font-weight: 600;
-  color: $br;
-  white-space: nowrap;
-}
-
 .cell-statut {
   min-width: 160px;
 }
@@ -143,26 +137,49 @@ $input-bg: #f0eae0;
   }
 }
 
-.pill-acceptee {
-  background: $green-pill;
+@mixin status-select-arrow($stroke: 'white') {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='#{$stroke}' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
-.pill-refusee {
-  background: $red-pill;
+@mixin status-pill($bg, $fg: $wht, $arrow: 'white') {
+  background-color: $bg;
+  color: $fg !important;
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 10px;
+  @include status-select-arrow($arrow);
+}
+
+.pill-enregistree {
+  @include status-pill(#7a8fa8);
 }
 
 .pill-envoyee {
-  background: #c9a86c;
+  @include status-pill(#c9a86c);
 }
 
-.pill-attente {
-  background: $tan-pill;
-  color: $brd !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c4220' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+.pill-recue {
+  @include status-pill(#5a8f8a);
+}
+
+.pill-en_cours_d_examen {
+  @include status-pill(#c4956a, $brd, '%235c4220');
+}
+
+.pill-entretien {
+  @include status-pill(#7d6b9a);
+}
+
+.pill-acceptee {
+  @include status-pill($green-pill);
+}
+
+.pill-refusee {
+  @include status-pill($red-pill);
 }
 
 .pill-archivee {
-  background: #8a7a70;
+  @include status-pill(#8a7a70);
 }
 
 .empty-inline {
