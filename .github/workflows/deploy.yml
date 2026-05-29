@@ -46,11 +46,9 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
-        working-directory: ./backend
 
       - name: Lancer les tests
         run: dotnet test --verbosity normal
-        working-directory: ./backend/SmartCV.Tests
 
   build-and-push:
     name: Build & Push ECR
