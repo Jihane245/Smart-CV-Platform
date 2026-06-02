@@ -16,15 +16,12 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Utilise le token auto de GitHub
+     - name: Log in to GHCR
+       uses: docker/login-action@v3
+       with:
+         registry: ghcr.io
+         username: khadija11-was
+         password: ${{ secrets.GHCR_TOKEN }}
 
       # --- Build & Push BACKEND ---
       - name: Build and push Backend
