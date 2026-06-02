@@ -63,12 +63,20 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
+
+      - name: Wait for Tailscale
+        run: |
+          sleep 10
+          tailscale status
+          tailscale ping ${{ secrets.VM_IP }}
+
       - name: Deploy to VM via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VM_IP }} #  IP Tailscale vm app1
-          username: ${{ secrets.VM_USER }} #  user Kali
-          key: ${{ secrets.SSH_PRIVATE_KEY }} #  clé SSH privée
+          host: ${{ secrets.VM_IP }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 60s
           script: |
             cd /home/jihane
             docker compose pull
