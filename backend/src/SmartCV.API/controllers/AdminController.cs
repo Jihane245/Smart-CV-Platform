@@ -12,7 +12,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-  [Authorize(Policy = "Admin", AuthenticationSchemes = "Cookies,Bearer")] 
+[Authorize(Policy = "Admin", AuthenticationSchemes = "Cookies,Bearer")] 
 public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -258,7 +258,6 @@ public class AdminController : ControllerBase
       });
   }
 
-    // POST /api/admin/templates
   // POST /api/admin/templates
   [HttpPost("templates")]
   public async Task<IActionResult> CreateTemplate([FromBody] CreateTemplateDto dto)

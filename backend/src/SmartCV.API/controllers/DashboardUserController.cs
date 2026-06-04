@@ -79,7 +79,7 @@ public class DashboardUserController : ControllerBase
 
         string recommendation;
 
-        if (nbCv == 0 && nbTests == 0 && !topCompetencesCv.Any())
+        if (nbCv == 0 && !topCompetencesCv.Any())
         {
             recommendation = "Commence par compléter ton profil et passer quelques tests.";
         }
@@ -104,7 +104,6 @@ public class DashboardUserController : ControllerBase
         {
             NbCv = nbCv,
             NbLettres = nbLettres,
-            NbTests = tests.Count,
             NbRoadmaps = roadmaps.Count,
             NbCompetences = nbCompetences,
 
